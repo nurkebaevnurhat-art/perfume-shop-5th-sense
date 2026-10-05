@@ -403,8 +403,8 @@ h1[tabindex="-1"]:focus { outline: none; }
 .families-head h2 { font-family: var(--ff-serif); font-size: clamp(40px, 5.6vw, 96px); text-transform: uppercase; letter-spacing: 0.02em; line-height: 0.95; }
 .families-lead { max-width: 52ch; }
 .fam-list { width: min(100% - 2 * var(--gutter), var(--max)); margin-inline: auto; border-bottom: 1px solid var(--line-strong); }
-.fam { display: grid; grid-template-columns: 60px minmax(0, 1.4fr) minmax(0, 1fr) auto; align-items: baseline; gap: 20px; padding: 18px 0; border-top: 1px solid var(--line-strong); transition: color 0.5s var(--ease), padding 0.7s var(--ease); }
-.fam-num { font-size: 12px; letter-spacing: 0.12em; color: var(--gold-deep); }
+.fam { display: grid; grid-template-columns: clamp(56px, 6vw, 96px) minmax(0, 1.4fr) minmax(0, 1fr) auto; align-items: baseline; gap: 20px; padding: 18px 0; border-top: 1px solid var(--line-strong); transition: color 0.5s var(--ease), padding 0.7s var(--ease); }
+.fam-num { font-family: var(--ff-display); font-size: clamp(26px, 2.6vw, 42px); line-height: 1; letter-spacing: 0.02em; color: var(--gold); font-variant-numeric: lining-nums tabular-nums; }
 .fam-name { font-family: var(--ff-serif); font-size: clamp(32px, 4.6vw, 80px); line-height: 1; text-transform: uppercase; letter-spacing: 0.02em; }
 .fam-notes { font-size: 14px; color: var(--ink-soft); }
 .fam-count { font-size: 11.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-soft); white-space: nowrap; }
@@ -741,7 +741,7 @@ h1[tabindex="-1"]:focus { outline: none; }
   .irow-img img, .irow-img svg { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }
   .irow-num { display: block; }
   .irow.is-active .irow-name { transform: none; }
-  .fam { grid-template-columns: 40px minmax(0, 1fr) auto; }
+  .fam { grid-template-columns: 56px minmax(0, 1fr) auto; }
   .fam-notes { grid-column: 2 / -1; grid-row: 2; }
   .catalog { grid-template-columns: minmax(0, 1fr); }
   .filters-open { display: inline-flex; }
@@ -784,7 +784,8 @@ h1[tabindex="-1"]:focus { outline: none; }
   .pcard-actions { gap: 14px; }
   .line-link { letter-spacing: 0.12em; }
   .hscroll-track > .pcard { flex-basis: 72vw; }
-  .fam { grid-template-columns: 28px minmax(0, 1fr); gap: 6px 12px; }
+  .fam { grid-template-columns: 40px minmax(0, 1fr); gap: 6px 12px; }
+  .fam-num { font-size: 22px; }
   .fam-count { grid-column: 2; }
   .fam-name { font-size: 32px; }
   .page-head h1 { font-size: clamp(36px, 10.6vw, 64px); }
