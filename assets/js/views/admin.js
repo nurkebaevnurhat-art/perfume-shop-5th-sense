@@ -1,0 +1,692 @@
+/* 5th SENSE — демо-админка.
+   Работает без сервера: каталог и заказы хранятся в браузере (см. FS.catalog
+   и FS.api в api.js). Пароль здесь — только заглушка для демонстрации:
+   на статическом сайте он ничего не защищает. В боевой версии вход и все
+   изменения должен проверять сервер. */
+window.FS = window.FS || {};
+FS.views = FS.views || {};
+
+FS.views.admin = (function () {
+  const { $, $$, esc, money, plural, toast, volumeLabel } = FS.ui;
+  const DEMO_PASSWORD = '5thsense';
+  const SESSION_KEY = 'fs.admin.session';
+  const TABS = [
+    { id: 'overview', token: 'admin', name: 'Обзор' },
+    { id: 'orders', token: 'admin-orders', name: 'Заказы' },
+    { id: 'products', token: 'admin-products', name: 'Товары' },
+    { id: 'data', token: 'admin-data', name: 'Данные' }
+  ];
+  const SHAPES = [['block', 'Прямоугольный'], ['tower', 'Высокий'], ['cylinder', 'Цилиндр'], ['flask', 'Округлые плечи'], ['facet', 'Гранёный'], ['amphora', 'Капля']];
+
+  let root = null;
+  let route = null;
+  let memorySession = false;
+  let orderFilter = { status: 'all', q: '' };
+  let productFilter = { q: '', category: '' };
+  let draft = null; // товар в редакторе
+
+  /* ---------- Вход ---------- */
+  function authed() {
+    try { return sessionStorage.getItem(SESSION_KEY) === '1' || memorySession; } catch (e) { return memorySession; }
+  }
+  function setAuthed(on) {
+    memorySession = on;
+    try { if (on) sessionStorage.setItem(SESSION_KEY, '1'); else sessionStorage.removeItem(SESSION_KEY); } catch (e) { /* только память */ }
+  }
+
+  function loginView() {
+    return `
+      <section class="admin-login">
+        <form class="login-card" data-login novalidate>
+          <p class="corner-note">5th SENSE, админ-панель</p>
+          <h1>Вход для сотрудников</h1>
+          <div class="field">
+            <label for="admin-password">Пароль</label>
+            <input id="admin-password" type="password" autocomplete="current-password" data-autofocus>
+            <p class="field-error" id="admin-password-error" aria-live="polite"></p>
+          </div>
+          <button class="btn btn--primary btn--block" type="submit">Войти</button>
+          <p class="login-hint">Демо-пароль: <strong class="selectable">${DEMO_PASSWORD}</strong>. В демо-версии пароль ничего не защищает: на настоящем сайте вход проверяет сервер.</p>
+          <a class="text-link" href="#home">Вернуться на сайт</a>
+        </form>
+      </section>`;
+  }
+
+  /* ---------- Общие части ---------- */
+  const fmtDate = (iso) => {
+    try { return new Date(iso).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return iso; }
+  };
+  const statusName = (id) => (FS.api.STATUSES.find((s) => s.id === id) || {}).name || id;
+
+  function counts() {
+    const orders = FS.api.orders();
+    return {
+      orders: orders.length,
+      newOrders: orders.filter((o) => o.status === 'new').length,
+      products: FS.products.length
+    };
+  }
+
+  function shell(body) {
+    const c = counts();
+    const tabCount = { orders: c.newOrders ? `<span class="tab-count">${c.newOrders}</span>` : '', products: `<span class="tab-count tab-count--mute">${c.products}</span>` };
+    const activeTab = route.tab === 'edit' ? 'products' : route.tab;
+    return `
+      <section class="admin">
+        <div class="admin-head">
+          <div>
+            <p class="corner-note">демо-версия без сервера</p>
+            <h1>Админ-панель</h1>
+          </div>
+          <div class="admin-head-actions">
+            <a class="text-link" href="#home">Открыть сайт</a>
+            <button class="btn btn--outline btn--sm" type="button" data-admin-logout>Выйти</button>
+          </div>
+        </div>
+        <p class="admin-notice">Изменения сохраняются только в этом браузере и сразу видны на сайте в нём же. Другие посетители их не увидят, пока не подключён сервер.</p>
+        <nav class="admin-tabs" aria-label="Разделы админ-панели">
+          ${TABS.map((t) => `<a class="admin-tab ${t.id === activeTab ? 'is-active' : ''}" href="#${t.token}" ${t.id === activeTab ? 'aria-current="page"' : ''}>${t.name}${tabCount[t.id] || ''}</a>`).join('')}
+        </nav>
+        <div class="admin-body" data-admin-body>${body}</div>
+      </section>`;
+  }
+
+  /* ---------- Обзор ---------- */
+  function lowStock() {
+    const rows = [];
+    FS.products.forEach((p) => p.volumes.forEach((v) => { if (v.stock <= 2) rows.push({ p, v }); }));
+    return rows.sort((a, b) => a.v.stock - b.v.stock);
+  }
+
+  function overview() {
+    const orders = FS.api.orders();
+    const active = orders.filter((o) => o.status !== 'cancelled');
+    const revenue = active.reduce((s, o) => s + (o.total || 0), 0);
+    const out = FS.products.filter((p) => !FS.api.inStock(p)).length;
+    const low = lowStock();
+    const latest = orders.slice().reverse().slice(0, 5);
+    const stats = [
+      ['Новые заказы', counts().newOrders, 'ждут подтверждения'],
+      ['Всего заказов', orders.length, 'в этом браузере'],
+      ['Сумма заказов', money(revenue), 'без отменённых'],
+      ['Товаров', FS.products.length, out ? `${out} нет в наличии` : 'все в наличии']
+    ];
+    return `
+      <div class="stats">${stats.map(([k, v, note]) => `<div class="stat"><p class="stat-label">${k}</p><p class="stat-value">${v}</p><p class="stat-note">${note}</p></div>`).join('')}</div>
+      <div class="admin-cols">
+        <section class="admin-panel">
+          <div class="panel-head"><h2>Последние заказы</h2><a class="text-link" href="#admin-orders">Все заказы</a></div>
+          ${latest.length ? `<ul class="mini-list">${latest.map((o) => `
+            <li><a href="#admin-orders" data-open-order="${esc(o.number)}">
+              <span class="mini-main"><strong>${esc(o.number)}</strong> ${esc(o.customer.firstName)} ${esc(o.customer.lastName)}</span>
+              <span class="mini-meta"><span class="status status--${o.status}">${statusName(o.status)}</span>${money(o.total)}</span>
+            </a></li>`).join('')}</ul>` : emptyOrders()}
+        </section>
+        <section class="admin-panel">
+          <div class="panel-head"><h2>Заканчиваются</h2><a class="text-link" href="#admin-products">Все товары</a></div>
+          ${low.length ? `<ul class="mini-list">${low.slice(0, 8).map(({ p, v }) => `
+            <li><a href="#admin-edit-${p.id}">
+              <span class="mini-main"><strong>${esc(p.name)}</strong> ${esc(volumeLabel(v))}</span>
+              <span class="mini-meta"><span class="stock-pill ${v.stock ? 'is-low' : 'is-out'}">${v.stock ? `осталось ${v.stock}` : 'нет в наличии'}</span></span>
+            </a></li>`).join('')}</ul>` : '<p class="panel-empty">Остатков достаточно по всем позициям.</p>'}
+        </section>
+      </div>`;
+  }
+
+  function emptyOrders() {
+    return `<div class="panel-empty">
+      <p>Заказов пока нет. Оформите заказ на сайте или добавьте тестовый, чтобы посмотреть, как работает раздел.</p>
+      <button class="btn btn--outline btn--sm" type="button" data-test-order>Добавить тестовый заказ</button>
+    </div>`;
+  }
+
+  /* ---------- Заказы ---------- */
+  function orderRow(o) {
+    const items = o.items.map((i) => `<li><span>${esc(i.brand)} ${esc(i.name)}, ${i.ml}&nbsp;мл × ${i.qty}</span><span>${money(i.price * i.qty)}</span></li>`).join('');
+    return `
+      <details class="order" data-order="${esc(o.number)}">
+        <summary>
+          <span class="order-num"><strong>${esc(o.number)}</strong>${o.test ? '<span class="tag">тест</span>' : ''}<em>${fmtDate(o.createdAt)}</em></span>
+          <span class="order-who">${esc(o.customer.firstName)} ${esc(o.customer.lastName)}<em>${esc(o.customer.phone)}</em></span>
+          <span class="order-sum">${money(o.total)}<em>${o.items.reduce((n, i) => n + i.qty, 0)} шт.</em></span>
+          <span class="order-badges"><span class="status status--${o.status}">${statusName(o.status)}</span><span class="pay pay--${o.paymentStatus}">${o.paymentStatus === 'paid' ? 'Оплачен' : 'Не оплачен'}</span></span>
+        </summary>
+        <div class="order-body">
+          <div class="order-controls">
+            <label class="field"><span>Статус заказа</span>
+              <select data-order-status="${esc(o.number)}">${FS.api.STATUSES.map((s) => `<option value="${s.id}" ${s.id === o.status ? 'selected' : ''}>${s.name}</option>`).join('')}</select>
+            </label>
+            <label class="field"><span>Оплата</span>
+              <select data-order-payment="${esc(o.number)}">${FS.api.PAYMENT_STATUSES.map((s) => `<option value="${s.id}" ${s.id === o.paymentStatus ? 'selected' : ''}>${s.name}</option>`).join('')}</select>
+            </label>
+          </div>
+          <div class="order-grid">
+            <div><h3>Состав</h3><ul class="order-items">${items}</ul>
+              <dl class="order-sums"><div><dt>Товары</dt><dd>${money(o.subtotal)}</dd></div><div><dt>Доставка</dt><dd>${o.shipping === null ? 'рассчитает менеджер' : o.shipping === 0 ? 'бесплатно' : money(o.shipping)}</dd></div><div><dt>Итого</dt><dd>${money(o.total)}</dd></div></dl>
+            </div>
+            <div><h3>Покупатель</h3>
+              <p>${esc(o.customer.firstName)} ${esc(o.customer.lastName)}<br><span class="selectable">${esc(o.customer.phone)}</span><br><span class="selectable">${esc(o.customer.email)}</span></p>
+              <h3>Доставка и оплата</h3>
+              <p>${esc(o.delivery.name)}${o.delivery.id === 'pickup' ? '' : `<br>${esc(o.customer.city)}, ${esc(o.customer.address)}`}<br>${esc(o.payment.name)}</p>
+              ${o.comment ? `<h3>Комментарий</h3><p>${esc(o.comment)}</p>` : ''}
+              ${o.gift ? '<p class="tag tag--blue">Подарочная упаковка</p>' : ''}
+            </div>
+          </div>
+        </div>
+      </details>`;
+  }
+
+  function ordersBody() {
+    const all = FS.api.orders().slice().reverse();
+    const q = orderFilter.q.trim().toLowerCase();
+    const list = all.filter((o) => (orderFilter.status === 'all' || o.status === orderFilter.status) &&
+      (!q || [o.number, o.customer.firstName, o.customer.lastName, o.customer.phone].join(' ').toLowerCase().includes(q)));
+    const chip = (id, name) => {
+      const n = id === 'all' ? all.length : all.filter((o) => o.status === id).length;
+      return `<button type="button" class="chip ${orderFilter.status === id ? 'chip--active' : ''}" data-order-filter="${id}" aria-pressed="${orderFilter.status === id}">${name} <span class="chip-count">${n}</span></button>`;
+    };
+    return `
+      <div class="admin-toolbar">
+        <label class="toolbar-search"><span class="visually-hidden">Поиск заказа</span>${FS.ui.icon.search}<input id="order-search" type="search" placeholder="Номер, имя или телефон" value="${esc(orderFilter.q)}" autocomplete="off"></label>
+        <button class="btn btn--outline btn--sm" type="button" data-test-order>Добавить тестовый заказ</button>
+      </div>
+      <div class="chips admin-chips">${chip('all', 'Все')}${FS.api.STATUSES.map((s) => chip(s.id, s.name)).join('')}</div>
+      <div data-order-list>${list.length ? `<div class="orders">${list.map(orderRow).join('')}</div>` : (all.length ? '<p class="panel-empty">Нет заказов с таким статусом или по такому запросу.</p>' : emptyOrders())}</div>`;
+  }
+
+  function testOrder() {
+    const pool = FS.products.filter((p) => p.type === 'perfume' && FS.api.inStock(p));
+    if (!pool.length) { toast('Нет товаров в наличии для тестового заказа'); return; }
+    const picks = pool.sort(() => Math.random() - 0.5).slice(0, Math.min(2, pool.length));
+    const items = picks.map((p) => { const v = p.volumes.find((x) => x.stock > 0); return { id: p.id, name: p.name, brand: p.brand, ml: v.ml, qty: 1, price: v.price }; });
+    const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
+    const delivery = FS.delivery[1];
+    const shipping = FS.shipping.quote(delivery.id, subtotal);
+    FS.api.createOrder({
+      test: true,
+      customer: { firstName: 'Тестовый', lastName: 'Покупатель', phone: '+7 700 000 00 00', email: 'test@example.com', city: 'Город', address: 'Тестовая улица, 1' },
+      items,
+      delivery: { id: delivery.id, name: delivery.name },
+      payment: { id: 'on_delivery', name: 'При получении' },
+      comment: 'Пример заказа для проверки админ-панели',
+      gift: false,
+      subtotal,
+      shipping,
+      total: subtotal + (shipping || 0)
+    }).then((o) => { toast(`Тестовый заказ ${o.number} добавлен`); renderBody(); });
+  }
+
+  /* ---------- Товары ---------- */
+  function productsBody() {
+    const q = productFilter.q.trim().toLowerCase();
+    const cat = FS.categories.find((c) => c.id === productFilter.category);
+    const list = FS.products.filter((p) => (!cat || cat.match(p)) && (!q || `${p.name} ${p.brand}`.toLowerCase().includes(q)));
+    const flags = (p) => [p.niche && 'нишевая', p.bestseller && 'бестселлер', p.isNew && 'новинка', p.featured && 'на витрине'].filter(Boolean).map((f) => `<span class="tag">${f}</span>`).join('');
+    return `
+      <div class="admin-toolbar">
+        <label class="toolbar-search"><span class="visually-hidden">Поиск товара</span>${FS.ui.icon.search}<input id="product-search" type="search" placeholder="Название или бренд" value="${esc(productFilter.q)}" autocomplete="off"></label>
+        <label class="toolbar-sort"><span class="visually-hidden">Коллекция</span>
+          <select id="product-category"><option value="">Все коллекции</option>${FS.categories.map((c) => `<option value="${c.id}" ${c.id === productFilter.category ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select>
+        </label>
+        <a class="btn btn--primary btn--sm" href="#admin-new">Добавить товар</a>
+      </div>
+      <p class="result-count">${list.length} ${plural(list.length, 'товар', 'товара', 'товаров')}</p>
+      ${list.length ? `<div class="ptable" role="table" aria-label="Товары">
+        <div class="ptable-row ptable-head" role="row"><span role="columnheader">Фото</span><span role="columnheader">Товар</span><span role="columnheader">Объёмы, цены и остатки</span><span role="columnheader">Действия</span></div>
+        ${list.map((p) => `
+          <div class="ptable-row" role="row">
+            <span class="ptable-thumb" role="cell">${FS.bottle.media(p, { style: 'blueprint' })}</span>
+            <span class="ptable-name" role="cell"><em>${esc(p.brand)}</em><strong>${esc(p.name)}</strong><span class="ptable-flags">${flags(p)}</span></span>
+            <span class="ptable-vols" role="cell">${p.volumes.map((v) => `<span><b>${esc(volumeLabel(v))}</b> ${money(v.price)} <span class="stock-pill ${v.stock > 2 ? '' : v.stock ? 'is-low' : 'is-out'}">${v.stock} шт.</span></span>`).join('')}</span>
+            <span class="ptable-actions" role="cell"><a class="btn btn--outline btn--sm" href="#admin-edit-${p.id}">Редактировать</a><a class="link-btn" href="#product-${p.id}">На сайте</a></span>
+          </div>`).join('')}
+      </div>` : '<p class="panel-empty">Товары не найдены. Измените запрос или выберите другую коллекцию.</p>'}`;
+  }
+
+  /* ---------- Редактор товара ---------- */
+  const TRANSLIT = { а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'e', ж: 'zh', з: 'z', и: 'i', й: 'y', к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ф: 'f', х: 'h', ц: 'c', ч: 'ch', ш: 'sh', щ: 'sch', ы: 'y', э: 'e', ю: 'yu', я: 'ya' };
+  function slugify(s) {
+    const base = String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[а-яё]/g, (ch) => TRANSLIT[ch] || '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'product';
+    let id = base;
+    let n = 2;
+    while (FS.api.productSync(id)) id = `${base}-${n++}`;
+    return id;
+  }
+
+  function blankProduct() {
+    return {
+      id: '', type: 'perfume', name: '', brand: '', gender: 'unisex', family: 'woody', concentration: 'EDP',
+      year: new Date().getFullYear(), perfumer: '', country: '',
+      niche: false, bestseller: false, isNew: true, featured: false,
+      volumes: [{ ml: 50, price: 0, stock: 0 }], main: 50,
+      short: '', description: '',
+      notes: { top: [], heart: [], base: [] },
+      longevity: 3, sillage: 3,
+      bottle: { shape: 'block', cap: 'cube', liquid: '#c9a46a', capColor: 'gold', label: '' }
+    };
+  }
+
+  const opt = (list, value) => list.map(([v, l]) => `<option value="${v}" ${String(v) === String(value) ? 'selected' : ''}>${esc(l)}</option>`).join('');
+  const input = (id, label, value, extra) => `<div class="field ${extra && extra.wide ? 'field--wide' : ''}" data-field="${id}">
+      <label for="pe-${id}">${label}${extra && extra.optional ? ' <span class="optional">необязательно</span>' : ''}</label>
+      <input id="pe-${id}" name="${id}" type="${(extra && extra.type) || 'text'}" value="${esc(value == null ? '' : value)}" ${extra && extra.attrs ? extra.attrs : ''}>
+      <p class="field-error" id="pe-${id}-error"></p></div>`;
+
+  function volumeRows() {
+    return draft.volumes.map((v, i) => `
+      <div class="vol-row" data-vol="${i}">
+        <label class="vol-main" title="Показывать этот объём в карточке"><input type="radio" name="main" value="${i}" ${v.ml === draft.main ? 'checked' : ''}><span class="visually-hidden">Показывать в карточке</span></label>
+        <label><span>Объём, мл</span><input type="number" min="1" step="1" inputmode="numeric" data-vol-field="ml" value="${v.ml || ''}"></label>
+        <label><span>Подпись</span><input type="text" data-vol-field="label" value="${esc(v.label || '')}" placeholder="5 × 10 мл"></label>
+        <label><span>Цена, ${esc(FS.config.currency)}</span><input type="number" min="0" step="500" inputmode="numeric" data-vol-field="price" value="${v.price || ''}"></label>
+        <label><span>Остаток, шт.</span><input type="number" min="0" step="1" inputmode="numeric" data-vol-field="stock" value="${v.stock}"></label>
+        <button class="icon-btn" type="button" data-vol-remove="${i}" aria-label="Удалить объём ${v.ml || ''} мл" ${draft.volumes.length < 2 ? 'disabled' : ''}>${FS.ui.icon.close}</button>
+      </div>`).join('');
+  }
+
+  function photoBlock() {
+    return `<div class="photo-box">
+        <span class="photo-preview">${draft.image ? FS.bottle.media(draft) : FS.bottle.blueprint(draft, {})}</span>
+        <div class="photo-actions">
+          <p>${draft.image ? 'Фото товара. На сайте оно заменяет рисунок флакона.' : 'Фото нет: на сайте показывается чертёж флакона.'}</p>
+          <label class="btn btn--outline btn--sm file-btn">Загрузить фото<input type="file" accept="image/*" data-photo-input></label>
+          ${draft.image ? '<button class="link-btn" type="button" data-photo-remove>Убрать фото</button>' : ''}
+          <p class="field-error" data-photo-error></p>
+        </div>
+      </div>`;
+  }
+
+  function editBody() {
+    const p = draft;
+    const isNew = !p.id;
+    const families = FS.families.map((f) => [f.id, f.name]);
+    const genders = Object.entries(FS.genderLabel);
+    const concs = Object.entries(FS.concentrationLabel);
+    const scale = [[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']];
+    return `
+      <form class="editor" data-editor novalidate>
+        <div class="editor-head">
+          <a class="link-btn" href="#admin-products">Все товары</a>
+          <h2>${isNew ? 'Новый товар' : esc(p.name)}</h2>
+        </div>
+
+        <fieldset class="co-step"><legend>Основное</legend>
+          <div class="field-grid">
+            ${input('name', 'Название', p.name)}
+            ${input('brand', 'Бренд', p.brand)}
+            <div class="field"><label for="pe-type">Тип</label><select id="pe-type" name="type">${opt([['perfume', 'Аромат'], ['set', 'Набор']], p.type)}</select></div>
+            <div class="field"><label for="pe-gender">Для кого</label><select id="pe-gender" name="gender">${opt(genders, p.gender)}</select></div>
+            <div class="field"><label for="pe-family">Семейство</label><select id="pe-family" name="family">${opt(families, p.family)}</select></div>
+            <div class="field"><label for="pe-concentration">Концентрация</label><select id="pe-concentration" name="concentration">${opt(concs, p.concentration)}</select></div>
+            ${input('year', 'Год', p.year, { type: 'number', optional: true, attrs: 'min="1800" max="2100"' })}
+            ${input('country', 'Страна', p.country, { optional: true })}
+            ${input('perfumer', 'Парфюмер', p.perfumer, { optional: true, wide: true })}
+          </div>
+        </fieldset>
+
+        <fieldset class="co-step"><legend>Фото</legend>${photoBlock()}</fieldset>
+
+        <fieldset class="co-step"><legend>Объёмы, цены и остатки</legend>
+          <p class="co-hint">Отмеченный кружком объём показывается в карточке каталога.</p>
+          <div class="vol-rows" data-vol-rows>${volumeRows()}</div>
+          <button class="btn btn--outline btn--sm" type="button" data-vol-add>Добавить объём</button>
+          <p class="field-error" data-vol-error></p>
+        </fieldset>
+
+        <fieldset class="co-step"><legend>Описание</legend>
+          ${input('short', 'Коротко, для карточки', p.short, { wide: true, attrs: 'maxlength="90"' })}
+          <div class="field field--wide"><label for="pe-description">Описание на странице товара</label><textarea id="pe-description" name="description" rows="5">${esc(p.description)}</textarea></div>
+        </fieldset>
+
+        <fieldset class="co-step"><legend>Ноты и характер</legend>
+          <p class="co-hint">Перечисляйте ноты через запятую.</p>
+          <div class="field-grid">
+            ${input('top', 'Верхние ноты', p.notes.top.join(', '), { wide: true })}
+            ${input('heart', 'Ноты сердца', p.notes.heart.join(', '), { wide: true })}
+            ${input('base', 'Базовые ноты', p.notes.base.join(', '), { wide: true })}
+            <div class="field"><label for="pe-longevity">Стойкость, от 1 до 5</label><select id="pe-longevity" name="longevity">${opt(scale, p.longevity)}</select></div>
+            <div class="field"><label for="pe-sillage">Шлейф, от 1 до 5</label><select id="pe-sillage" name="sillage">${opt(scale, p.sillage)}</select></div>
+            <div class="field"><label for="pe-shape">Форма флакона для чертежа</label><select id="pe-shape" name="shape">${opt(SHAPES, p.bottle.shape)}</select></div>
+          </div>
+        </fieldset>
+
+        <fieldset class="co-step"><legend>Витрина</legend>
+          <div class="flag-grid">
+            ${[['niche', 'Нишевая парфюмерия'], ['bestseller', 'Бестселлер'], ['isNew', 'Новинка'], ['featured', 'Широкая карточка в каталоге']].map(([k, l]) => `
+              <label class="check"><input type="checkbox" name="${k}" ${p[k] ? 'checked' : ''}><span class="check-box" aria-hidden="true"></span><span class="check-label">${l}</span></label>`).join('')}
+          </div>
+        </fieldset>
+
+        <p class="form-error" data-form-error role="alert"></p>
+        <div class="editor-actions">
+          <button class="btn btn--primary" type="submit">${isNew ? 'Добавить товар' : 'Сохранить изменения'}</button>
+          <a class="btn btn--outline" href="#admin-products">Отмена</a>
+          ${isNew ? '' : '<button class="btn btn--danger" type="button" data-delete>Удалить товар</button>'}
+        </div>
+      </form>`;
+  }
+
+  // Считываем форму в черновик (без проверки).
+  function readEditor() {
+    const f = $('[data-editor]', root);
+    const val = (n) => (f.elements[n] ? f.elements[n].value.trim() : '');
+    const list = (n) => val(n).split(',').map((x) => x.trim()).filter(Boolean);
+    draft.name = val('name');
+    draft.brand = val('brand');
+    draft.type = val('type');
+    draft.gender = val('gender');
+    draft.family = val('family');
+    draft.concentration = val('concentration');
+    draft.year = Number(val('year')) || undefined;
+    draft.country = val('country');
+    draft.perfumer = val('perfumer');
+    draft.short = val('short');
+    draft.description = val('description');
+    draft.notes = { top: list('top'), heart: list('heart'), base: list('base') };
+    draft.longevity = Number(val('longevity'));
+    draft.sillage = Number(val('sillage'));
+    draft.bottle = { ...draft.bottle, shape: draft.type === 'set' ? 'set' : val('shape'), count: draft.type === 'set' ? 3 : undefined, label: draft.bottle.label || draft.brand.toUpperCase().slice(0, 14) };
+    ['niche', 'bestseller', 'isNew', 'featured'].forEach((k) => { draft[k] = f.elements[k].checked; });
+    draft.volumes = $$('.vol-row', f).map((row) => {
+      const get = (k) => $(`[data-vol-field="${k}"]`, row).value.trim();
+      const v = { ml: Number(get('ml')) || 0, price: Number(get('price')) || 0, stock: Math.max(0, Math.floor(Number(get('stock')) || 0)) };
+      if (get('label')) v.label = get('label');
+      return v;
+    });
+    const mainIdx = Number((f.querySelector('input[name="main"]:checked') || {}).value || 0);
+    draft.main = (draft.volumes[mainIdx] || draft.volumes[0]).ml;
+  }
+
+  function validateEditor() {
+    const errors = {};
+    if (!draft.name) errors.name = 'Укажите название';
+    if (!draft.brand) errors.brand = 'Укажите бренд';
+    if (!draft.short) errors.short = 'Добавьте короткое описание для карточки';
+    if (!draft.notes.top.length) errors.top = 'Укажите хотя бы одну верхнюю ноту';
+    if (!draft.notes.heart.length) errors.heart = 'Укажите хотя бы одну ноту сердца';
+    if (!draft.notes.base.length) errors.base = 'Укажите хотя бы одну базовую ноту';
+    const mls = draft.volumes.map((v) => v.ml);
+    let volError = '';
+    if (draft.volumes.some((v) => v.ml <= 0)) volError = 'У каждого объёма должно быть число миллилитров больше нуля.';
+    else if (draft.volumes.some((v) => v.price <= 0)) volError = 'У каждого объёма должна быть цена больше нуля.';
+    else if (new Set(mls).size !== mls.length) volError = 'Объёмы повторяются. Оставьте каждый объём один раз.';
+    $$('[data-field]', root).forEach((el) => {
+      const msg = errors[el.dataset.field];
+      el.classList.toggle('has-error', Boolean(msg));
+      const out = $('.field-error', el);
+      if (out) out.textContent = msg || '';
+    });
+    $('[data-vol-error]', root).textContent = volError;
+    return Object.keys(errors).length === 0 && !volError;
+  }
+
+  // Уменьшаем фото до 900 px, чтобы оно поместилось в хранилище браузера.
+  function loadPhoto(file) {
+    return new Promise((resolve, reject) => {
+      if (!file.type.startsWith('image/')) { reject(new Error('type')); return; }
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('read'));
+      reader.onload = () => {
+        const img = new Image();
+        img.onerror = () => reject(new Error('decode'));
+        img.onload = () => {
+          const scale = Math.min(1, 900 / Math.max(img.width, img.height));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.82));
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /* ---------- Данные ---------- */
+  function dataBody() {
+    const custom = FS.catalog.isCustom();
+    const ordersCount = FS.api.orders().length;
+    return `
+      <div class="admin-cols">
+        <section class="admin-panel">
+          <h2>Каталог</h2>
+          <p>${custom ? 'Каталог изменён в админ-панели. На сайте в этом браузере показывается изменённая версия.' : 'Каталог не менялся: на сайте показываются исходные данные из assets/js/data.js.'}</p>
+          <button class="btn btn--outline btn--sm" type="button" data-confirm="reset-catalog" ${custom ? '' : 'disabled'}>Вернуть исходный каталог</button>
+        </section>
+        <section class="admin-panel">
+          <h2>Заказы</h2>
+          <p>${ordersCount ? `В этом браузере ${ordersCount} ${plural(ordersCount, 'заказ', 'заказа', 'заказов')}.` : 'Заказов пока нет.'} Удаление заказов не меняет остатки на складе.</p>
+          <button class="btn btn--outline btn--sm" type="button" data-confirm="clear-orders" ${ordersCount ? '' : 'disabled'}>Удалить все заказы</button>
+        </section>
+      </div>
+      <section class="admin-panel">
+        <h2>Экспорт каталога</h2>
+        <p>Каталог в формате JSON. Его можно загрузить в базу данных, когда подключите сервер, или перенести в assets/js/data.js.</p>
+        <label class="visually-hidden" for="export-json">Каталог в JSON</label>
+        <textarea id="export-json" class="code-box" rows="8" readonly>${esc(JSON.stringify(FS.products, null, 2))}</textarea>
+        <button class="btn btn--outline btn--sm" type="button" data-copy-export>Скопировать JSON</button>
+      </section>
+      <section class="admin-panel">
+        <h2>Импорт каталога</h2>
+        <p>Вставьте JSON со списком товаров в том же формате. Текущий каталог в этом браузере будет заменён.</p>
+        <label class="visually-hidden" for="import-json">JSON для импорта</label>
+        <textarea id="import-json" class="code-box" rows="6" placeholder="[ { &quot;id&quot;: &quot;...&quot;, &quot;name&quot;: &quot;...&quot;, ... } ]"></textarea>
+        <p class="field-error" data-import-error></p>
+        <button class="btn btn--outline btn--sm" type="button" data-import>Загрузить каталог</button>
+      </section>`;
+  }
+
+  function validCatalog(list) {
+    return Array.isArray(list) && list.length > 0 && list.every((p) => p && typeof p.id === 'string' && p.name && p.brand &&
+      Array.isArray(p.volumes) && p.volumes.length && p.volumes.every((v) => v.ml > 0 && v.price > 0 && v.stock >= 0) &&
+      p.notes && Array.isArray(p.notes.top) && Array.isArray(p.notes.heart) && Array.isArray(p.notes.base));
+  }
+
+  /* ---------- Рендер ---------- */
+  function body() {
+    if (route.tab === 'orders') return ordersBody();
+    if (route.tab === 'products') return productsBody();
+    if (route.tab === 'data') return dataBody();
+    if (route.tab === 'edit') return editBody();
+    return overview();
+  }
+
+  function renderBody() {
+    root.innerHTML = shell(body());
+  }
+
+  function render(r) {
+    route = r;
+    if (!authed()) return loginView();
+    if (r.tab === 'edit') {
+      const existing = r.id && FS.api.productSync(r.id);
+      if (r.id && !existing) return shell('<p class="panel-empty">Товар не найден. Возможно, его уже удалили. <a class="text-link" href="#admin-products">К списку товаров</a></p>');
+      draft = existing ? JSON.parse(JSON.stringify(existing)) : blankProduct();
+    }
+    return shell(body());
+  }
+
+  function confirmButton(btn, label, run) {
+    if (btn.dataset.armed) { run(); return; }
+    btn.dataset.armed = '1';
+    const original = btn.textContent;
+    btn.textContent = label;
+    btn.classList.add('btn--danger');
+    setTimeout(() => { if (document.contains(btn)) { delete btn.dataset.armed; btn.textContent = original; btn.classList.remove('btn--danger'); } }, 4000);
+  }
+
+  function mount(el, r, params, signal) {
+    root = el;
+
+    el.addEventListener('submit', async (e) => {
+      if (e.target.matches('[data-login]')) {
+        e.preventDefault();
+        const value = $('#admin-password', el).value;
+        if (value === DEMO_PASSWORD) {
+          setAuthed(true);
+          FS.app.go(r.key);
+        } else {
+          $('#admin-password-error', el).textContent = `Неверный пароль. В демо-версии пароль: ${DEMO_PASSWORD}`;
+          $('#admin-password', el).focus();
+        }
+        return;
+      }
+      if (e.target.matches('[data-editor]')) {
+        e.preventDefault();
+        readEditor();
+        const formError = $('[data-form-error]', el);
+        if (!validateEditor()) {
+          formError.textContent = 'Проверьте отмеченные поля.';
+          const first = $('.has-error input', el) || $('[data-vol-error]:not(:empty)', el);
+          if (first && first.focus) first.focus();
+          return;
+        }
+        const isNew = !draft.id;
+        if (isNew) draft.id = slugify(`${draft.brand} ${draft.name}`);
+        draft.volumes.sort((a, b) => a.ml - b.ml);
+        const ok = FS.api.upsertProduct(draft);
+        if (!ok) {
+          formError.textContent = 'Изменения применены, но браузер не сохранил их: в хранилище закончилось место. Загрузите фото меньшего размера.';
+          return;
+        }
+        toast(isNew ? `Товар «${draft.name}» добавлен` : `Изменения в «${draft.name}» сохранены`, { label: 'Открыть на сайте', run: () => FS.app.go(`product-${draft.id}`) });
+        FS.app.go('admin-products');
+      }
+    }, { signal });
+
+    el.addEventListener('click', (e) => {
+      const t = e.target;
+      if (t.closest('[data-admin-logout]')) { setAuthed(false); toast('Вы вышли из админ-панели'); FS.app.go('admin'); return; }
+      if (t.closest('[data-test-order]')) { testOrder(); return; }
+      const of = t.closest('[data-order-filter]');
+      if (of) { orderFilter.status = of.dataset.orderFilter; renderBody(); return; }
+      const open = t.closest('[data-open-order]');
+      if (open) { orderFilter = { status: 'all', q: open.dataset.openOrder }; return; }
+      if (t.closest('[data-vol-add]')) {
+        readEditor();
+        const last = draft.volumes[draft.volumes.length - 1];
+        draft.volumes.push({ ml: 0, price: 0, stock: 0 });
+        if (!last) draft.main = 0;
+        $('[data-vol-rows]', el).innerHTML = volumeRows();
+        $$('.vol-row', el).pop().querySelector('[data-vol-field="ml"]').focus();
+        return;
+      }
+      const rm = t.closest('[data-vol-remove]');
+      if (rm) {
+        readEditor();
+        const i = Number(rm.dataset.volRemove);
+        const removedMain = draft.volumes[i].ml === draft.main;
+        draft.volumes.splice(i, 1);
+        if (removedMain) draft.main = draft.volumes[0].ml;
+        $('[data-vol-rows]', el).innerHTML = volumeRows();
+        return;
+      }
+      if (t.closest('[data-photo-remove]')) {
+        readEditor();
+        delete draft.image;
+        t.closest('fieldset').innerHTML = '<legend>Фото</legend>' + photoBlock();
+        return;
+      }
+      const del = t.closest('[data-delete]');
+      if (del) {
+        confirmButton(del, 'Нажмите ещё раз, чтобы удалить', () => {
+          FS.api.deleteProduct(draft.id);
+          toast(`Товар «${draft.name}» удалён`);
+          FS.app.go('admin-products');
+        });
+        return;
+      }
+      const conf = t.closest('[data-confirm]');
+      if (conf) {
+        const action = conf.dataset.confirm;
+        confirmButton(conf, 'Нажмите ещё раз для подтверждения', () => {
+          if (action === 'reset-catalog') { FS.api.resetCatalog(); toast('Исходный каталог восстановлен'); }
+          if (action === 'clear-orders') { FS.api.clearOrders(); toast('Все заказы удалены'); }
+          renderBody();
+        });
+        return;
+      }
+      if (t.closest('[data-copy-export]')) {
+        const box = $('#export-json', el);
+        const fallback = () => { box.focus(); box.select(); toast('Выделите текст и скопируйте его вручную'); };
+        try {
+          navigator.clipboard.writeText(box.value).then(() => toast('JSON скопирован'), fallback);
+        } catch (err) { fallback(); }
+        return;
+      }
+      if (t.closest('[data-import]')) {
+        const out = $('[data-import-error]', el);
+        let list;
+        try { list = JSON.parse($('#import-json', el).value); } catch (err) { out.textContent = 'Это не JSON. Проверьте, что текст скопирован целиком.'; return; }
+        if (!validCatalog(list)) { out.textContent = 'Формат не подходит: нужен список товаров с полями id, name, brand, volumes и notes, как в экспорте.'; return; }
+        if (!FS.api.replaceCatalog(list)) { out.textContent = 'Каталог применён, но браузер не сохранил его: закончилось место в хранилище.'; return; }
+        toast(`Каталог загружен: ${list.length} ${plural(list.length, 'товар', 'товара', 'товаров')}`);
+        renderBody();
+      }
+    }, { signal });
+
+    el.addEventListener('change', (e) => {
+      const t = e.target;
+      if (t.dataset.orderStatus) {
+        const o = FS.api.updateOrder(t.dataset.orderStatus, { status: t.value });
+        toast(`Заказ ${o.number}: ${statusName(o.status).toLowerCase()}${o.status === 'cancelled' ? ', товар вернулся на склад' : ''}`);
+        rerenderOrderKeepOpen(o.number);
+        return;
+      }
+      if (t.dataset.orderPayment) {
+        const o = FS.api.updateOrder(t.dataset.orderPayment, { paymentStatus: t.value });
+        toast(`Заказ ${o.number}: ${o.paymentStatus === 'paid' ? 'отмечен как оплаченный' : 'отмечен как неоплаченный'}`);
+        rerenderOrderKeepOpen(o.number);
+        return;
+      }
+      if (t.id === 'product-category') { productFilter.category = t.value; renderBody(); return; }
+      if (t.matches('[data-photo-input]') && t.files && t.files[0]) {
+        const err = t.closest('.photo-actions').querySelector('[data-photo-error]');
+        loadPhoto(t.files[0]).then((url) => {
+          readEditor();
+          draft.image = url;
+          t.closest('fieldset').innerHTML = '<legend>Фото</legend>' + photoBlock();
+        }).catch(() => { err.textContent = 'Не удалось прочитать файл. Выберите фото в формате JPG, PNG или WebP.'; });
+      }
+    }, { signal });
+
+    let timer = null;
+    el.addEventListener('input', (e) => {
+      const t = e.target;
+      if (t.id !== 'order-search' && t.id !== 'product-search') return;
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (t.id === 'order-search') orderFilter.q = t.value;
+        else productFilter.q = t.value;
+        const pos = t.selectionStart;
+        renderBody();
+        const again = $('#' + t.id, el);
+        again.focus();
+        try { again.setSelectionRange(pos, pos); } catch (err) { /* type=search */ }
+      }, 200);
+    }, { signal });
+
+    if (route.tab === 'orders' && orderFilter.q) {
+      const first = $('.order', el);
+      if (first) first.open = true;
+    }
+  }
+
+  function rerenderOrderKeepOpen(number) {
+    renderBody();
+    const d = root.querySelector(`.order[data-order="${CSS.escape(number)}"]`);
+    if (d) { d.open = true; const s = d.querySelector('[data-order-status]'); if (s) s.focus(); }
+  }
+
+  function unmount() {
+    // Поиск по заказу из обзора действует только на один переход.
+    if (route && route.tab === 'orders') orderFilter.q = '';
+  }
+
+  return { render, mount, unmount, title: () => 'Админ-панель' };
+})();

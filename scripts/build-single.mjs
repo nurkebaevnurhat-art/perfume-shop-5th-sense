@@ -1,7 +1,7 @@
 // Собирает весь сайт в один HTML-файл: стили, скрипты и текстуры встраиваются.
 // Используется для публикации в виде Artifact или отправки одним файлом.
 // Запуск: node scripts/build-single.mjs  →  dist/5th-sense.html
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -13,7 +13,12 @@ const svgData = (p) => `data:image/svg+xml;base64,${Buffer.from(read(p)).toStrin
 const css = read('assets/css/style.css').replace(/url\("\.\.\/img\/([\w-]+\.svg)"\)/g, (_, f) => `url("${svgData('assets/img/' + f)}")`);
 
 const scripts = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map((m) => m[1]);
-const js = scripts.map((src) => `/* ${src} */\n${read(src)}`).join('\n');
+// Фото товаров встраиваются как data:-адреса; код находит их через FS.assetUrl(path).
+const photos = readdirSync(join(root, 'assets/products')).filter((f) => /\.(jpe?g|png|webp)$/i.test(f));
+const mime = (f) => (/\.png$/i.test(f) ? 'image/png' : /\.webp$/i.test(f) ? 'image/webp' : 'image/jpeg');
+const assets = Object.fromEntries(photos.map((f) => [`assets/products/${f}`, `data:${mime(f)};base64,${readFileSync(join(root, 'assets/products', f)).toString('base64')}`]));
+const js = `window.FS = window.FS || {};\nFS.assets = ${JSON.stringify(assets)};\n` +
+  scripts.map((src) => `/* ${src} */\n${read(src)}`).join('\n');
 
 const title = html.match(/<title>.*<\/title>/)[0];
 const fonts = [...html.matchAll(/<link rel="stylesheet" href="https:\/\/fonts[^>]+>/g)].map((m) => m[0]).join('\n');

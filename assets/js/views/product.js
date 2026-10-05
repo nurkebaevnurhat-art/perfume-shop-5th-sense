@@ -10,17 +10,19 @@ FS.views.product = (function () {
   let qty = 1;
   let root = null;
 
-  const VIEWS = [
-    { id: 'blueprint', label: 'Чертёж' },
-    { id: 'bottle', label: 'Флакон' },
-    { id: 'ink', label: 'Силуэт' }
-  ];
+  // С фото: фото, чертёж, силуэт. Без фото: чертёж, объёмный флакон, силуэт.
+  function views() {
+    return product.image
+      ? [{ id: 'photo', label: 'Фото' }, { id: 'blueprint', label: 'Чертёж' }, { id: 'ink', label: 'Силуэт' }]
+      : [{ id: 'blueprint', label: 'Чертёж' }, { id: 'bottle', label: 'Флакон' }, { id: 'ink', label: 'Силуэт' }];
+  }
 
   function art(view, large) {
     const title = large ? `${product.brand} ${product.name}` : '';
     if (view === 'ink') return FS.bottle.silhouette(product);
-    if (view === 'bottle') return FS.bottle.media(product, { title });
-    return FS.bottle.media(product, { style: 'blueprint', annotate: large, title });
+    if (view === 'photo') return FS.bottle.media(product, { title });
+    if (view === 'bottle') return FS.bottle.render(product, { title });
+    return FS.bottle.blueprint(product, { annotate: large, title });
   }
 
   function scale(value, labels) {
@@ -97,9 +99,9 @@ FS.views.product = (function () {
 
         <div class="product-top">
           <div class="gallery">
-            <div class="gallery-main" data-gallery-main>${stage('blueprint')}</div>
+            <div class="gallery-main" data-gallery-main>${stage(views()[0].id)}</div>
             <div class="gallery-thumbs" role="tablist" aria-label="Изображения">
-              ${VIEWS.map((v, i) => `
+              ${views().map((v, i) => `
                 <button class="thumb ${i === 0 ? 'is-active' : ''}" type="button" role="tab" aria-selected="${i === 0}" data-view="${v.id}">
                   <span class="thumb-art thumb-art--${v.id}">${art(v.id, false)}</span>
                   <span class="thumb-label">${v.label}</span>

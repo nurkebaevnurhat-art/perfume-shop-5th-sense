@@ -7,16 +7,22 @@ FS.storage = (function () {
   const memory = {};
   return {
     get(key, fallback) {
+      if (key in memory) return memory[key];
       try {
         const raw = window.localStorage.getItem(key);
         return raw ? JSON.parse(raw) : fallback;
       } catch (e) {
-        return key in memory ? memory[key] : fallback;
+        return fallback;
       }
     },
+    // Возвращает false, если браузер не дал сохранить (нет места или хранилище закрыто).
     set(key, value) {
       memory[key] = value;
-      try { window.localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* память */ }
+      try { window.localStorage.setItem(key, JSON.stringify(value)); return true; } catch (e) { return false; }
+    },
+    remove(key) {
+      delete memory[key];
+      try { window.localStorage.removeItem(key); } catch (e) { /* нет хранилища */ }
     }
   };
 })();
