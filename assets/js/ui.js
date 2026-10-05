@@ -157,9 +157,7 @@ FS.ui = (function () {
           <a href="#admin">Вход для сотрудников</a>
         </nav>
       </div>
-      <a class="footer-mark" href="#home" aria-label="5th SENSE, на главную">${wordmark()}</a>
-      ${brandLine('footer-sub')}
-      <p class="footer-est">${est()}</p>`;
+      <a class="footer-mark" href="#home" aria-label="5th SENSE Perfume Bar, на главную"><img class="footer-logo" src="${FS.assetUrl('assets/img/logo-intro.png')}" alt="" width="520" height="962" loading="lazy" decoding="async"></a>`;
   }
 
   /* ---------- Карточка товара ---------- */

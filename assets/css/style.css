@@ -723,20 +723,10 @@ h1[tabindex="-1"]:focus { outline: none; }
 .footer-col h2 { font-family: var(--ff); font-size: 11.5px; font-weight: 500; letter-spacing: 0.32em; text-transform: uppercase; color: var(--gold-soft); margin-bottom: 12px; }
 .footer-col a, .footer-col p { color: var(--on-dark-soft); transition: color 0.3s; }
 .footer-col a:hover { color: var(--on-dark); }
-.footer-mark { display: block; padding: 24px var(--gutter) 0; border-top: 1px solid var(--line-dark); color: var(--gold); line-height: 0; }
-.footer-sub { color: var(--gold-soft); padding: 22px var(--gutter) 6px; font-size: clamp(11px, 1.1vw, 15px); }
-.footer-sub i { flex-basis: 18vw; }
-.footer-est { text-align: center; font-family: var(--ff-display); font-size: clamp(10px, 0.9vw, 12px); letter-spacing: 0.42em; margin-right: -0.42em; text-transform: uppercase; color: var(--on-dark-soft); padding: 8px var(--gutter) calc(36px + env(safe-area-inset-bottom, 0px)); }
-.footer-mark .wordmark { transition: transform 1.2s var(--ease);
-  /* Живое золото: тёплый металл с бликом сверху и мягким светом, медленно скользящим по буквам */
-  background:
-    linear-gradient(105deg, rgba(255, 244, 214, 0) 40%, rgba(255, 244, 214, 0.55) 50%, rgba(255, 244, 214, 0) 60%) 0 0 / 250% 100% no-repeat,
-    linear-gradient(180deg, #f3dca4 0%, #deb460 28%, #c8963f 58%, #a87430 82%, #8c5f27 100%);
-  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 22px rgba(214, 160, 70, 0.18));
-  animation: goldSheen 7s ease-in-out infinite; }
-@keyframes goldSheen { 0% { background-position: 130% 0, 0 0; } 55%, 100% { background-position: -30% 0, 0 0; } }
-.footer-mark:hover .wordmark { transform: translateY(-2%); }
+.footer-mark { display: flex; justify-content: center; padding: clamp(48px, 7vw, 96px) var(--gutter) clamp(56px, 8vw, 110px); border-top: 1px solid var(--line-dark); }
+/* Логотип бутика в подвале */
+.footer-logo { width: auto; height: clamp(260px, 42vw, 480px); max-width: 80vw; object-fit: contain; transition: transform 1.2s var(--ease); }
+.footer-mark:hover .footer-logo { transform: translateY(-1.5%); }
 .footer-base { padding: 18px var(--gutter) 22px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--on-dark-soft); }
 
 /* ---------- Фото и админка (общие мелочи) ---------- */
@@ -850,7 +840,6 @@ h1[tabindex="-1"]:focus { outline: none; }
   .reveal, .c, .pd-info > * { opacity: 1 !important; transform: none !important; }
   .pd .pd-stage .stage-media { clip-path: none; transform: none; }
   .wordmark--hero { transform: none; }
-  .footer-mark .wordmark { animation: none; }
 }
 
 /* =========================================================
