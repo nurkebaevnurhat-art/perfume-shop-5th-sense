@@ -285,7 +285,7 @@ FS.ui = (function () {
       <div class="cart-empty">
         <p class="cart-empty-title">В корзине пока пусто</p>
         <p>Выберите аромат на витринах бутика или загляните в бестселлеры.</p>
-        <a class="btn btn--primary" href="#catalog" data-action="close-cart">Перейти в каталог</a>
+        <a class="line-link" href="#catalog" data-action="close-cart">Перейти в каталог</a>
       </div>`;
 
     drawer.innerHTML = `

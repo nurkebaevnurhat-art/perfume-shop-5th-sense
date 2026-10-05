@@ -264,7 +264,7 @@ FS.views.favorites = (function () {
       return `<div class="empty">
         <p class="empty-title">Здесь появятся ароматы, которые вы отметите</p>
         <p>Нажмите на сердце на карточке аромата, чтобы сохранить его и вернуться к нему позже.</p>
-        <a class="btn btn--primary" href="#catalog">Перейти в каталог</a>
+        <a class="line-link" href="#catalog">Перейти в каталог</a>
       </div>`;
     }
     return `<p class="result-count">${list.length} ${plural(list.length, 'аромат', 'аромата', 'ароматов')}</p>
