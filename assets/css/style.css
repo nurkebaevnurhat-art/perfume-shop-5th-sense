@@ -221,7 +221,7 @@ h1[tabindex="-1"]:focus { outline: none; }
 .menu-panel { position: absolute; inset: 0; display: grid; grid-template-rows: auto 1fr auto; padding: env(safe-area-inset-top, 0px) var(--gutter) calc(24px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--on-dark); clip-path: inset(0 0 100% 0); transition: clip-path 0.9s var(--ease-io); overflow-y: auto; }
 .layer.is-open .menu-panel { clip-path: inset(0 0 0 0); }
 .menu-top { height: var(--header-h); display: flex; align-items: center; justify-content: space-between; }
-.menu-note { font-size: 11px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--gold-soft); }
+.menu-note { font-family: var(--ff-display); font-size: 15px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold-soft); }
 .menu-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 40px; align-items: center; padding-block: 24px; }
 .menu-links { display: flex; flex-direction: column; }
 .menu-links a { display: grid; grid-template-columns: 48px minmax(0, 1fr); align-items: start; column-gap: 8px; padding: 4px 0; font-family: var(--ff-serif); font-size: clamp(28px, min(3.8vw, 6.2vh), 56px); line-height: 1.04; text-transform: uppercase; letter-spacing: 0.03em; opacity: 0; transform: translate3d(0, 40px, 0); transition: opacity 0.8s var(--ease), transform 0.9s var(--ease), color 0.4s; }
