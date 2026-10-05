@@ -321,11 +321,14 @@ h1[tabindex="-1"]:focus { outline: none; }
 .hero-count { font-family: var(--ff-serif); font-size: 24px; font-variant-numeric: lining-nums tabular-nums; color: var(--gold-deep); }
 .hero-now { display: grid; gap: 4px; }
 .hero-now span { font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--ink-soft); }
-.hero-now a { font-family: var(--ff-serif); font-size: clamp(26px, 2.4vw, 36px); text-transform: uppercase; letter-spacing: 0.04em; line-height: 1; }
+.hero-now a { max-width: 24vw; font-family: var(--ff-serif); font-size: clamp(24px, 2vw, 32px); text-transform: uppercase; letter-spacing: 0.04em; line-height: 1.02; }
 .hero-now.is-swap > * { animation: swapIn 0.9s var(--ease); }
 @keyframes swapIn { from { opacity: 0; transform: translateY(12px); } }
-.hero-cta { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
-.hero-cta .pill--ghost { color: var(--ink); }
+/* Компактные действия у правого края, не заходят на флакон */
+.hero-cta { display: flex; flex-direction: column; align-items: flex-end; gap: 14px; }
+.hero-cta .pill { min-height: 38px; padding: 0 18px; font-size: 10.5px; letter-spacing: 0.22em; }
+.hero-link { font-size: 10.5px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; line-height: 1; padding-bottom: 5px; border-bottom: 1px solid currentColor; white-space: nowrap; transition: color 0.4s, border-color 0.4s; }
+.hero-link:hover { color: var(--gold-deep); }
 .hero-mark { position: absolute; z-index: 3; left: var(--gutter); right: var(--gutter); bottom: 3vh; color: var(--gold); text-shadow: 0 1px 0 rgba(255, 250, 240, 0.35); overflow: hidden; line-height: 0; transform: translate3d(0, calc(var(--p) * 60%), 0); opacity: calc(1 - var(--p) * 1.6); }
 .wordmark--hero { transform: translate3d(0, 102%, 0); }
 .is-ready .wordmark--hero { transform: none; transition: transform 1.6s var(--ease) 0.15s; }
@@ -705,7 +708,8 @@ h1[tabindex="-1"]:focus { outline: none; }
   .header-mark .emblem { width: 20px; }
   .hero-pin { --fx: 9%; --fy: 20%; }
   .hero-caption { grid-template-columns: auto minmax(0, 1fr); }
-  .hero-cta { grid-column: 1 / -1; justify-content: flex-start; }
+  .hero-cta { grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: flex-start; gap: 22px; }
+  .hero-now a { max-width: none; }
   .menu-grid { grid-template-columns: minmax(0, 1fr); }
   .menu-shots { display: none; }
   .index-grid { grid-template-columns: minmax(0, 1fr); }
@@ -734,6 +738,12 @@ h1[tabindex="-1"]:focus { outline: none; }
   .summary { position: relative; top: 0; order: -1; }
 }
 
+/* Высокие планшеты: флакон ниже, чтобы подпись и кнопки стояли под ним */
+@media (max-width: 1000px) and (orientation: portrait) {
+  .slide { --gy: 40%; }
+  .slide-img { height: 56%; margin-bottom: 16vh; }
+}
+
 @media (max-width: 760px) {
   .hero { height: 190vh; }
   .hero-pin { --fx: 7%; --fy: 22%; }
@@ -741,7 +751,9 @@ h1[tabindex="-1"]:focus { outline: none; }
   .slide-img { height: 58%; margin-bottom: 14vh; }
   .hero-caption { bottom: calc(18vw + 34px); gap: 12px 16px; }
   .hero-now a { font-size: 22px; }
-  .hero-cta .pill--lg { min-height: 44px; padding: 0 16px; font-size: 11px; }
+  .hero-cta { flex-wrap: wrap; gap: 12px 18px; }
+  .hero-cta .pill { min-height: 42px; padding: 0 16px; }
+  .hero-cta .pill, .hero-link { letter-spacing: 0.12em; }
   .story-text { font-size: clamp(28px, 8vw, 40px); }
   .story-sign { aspect-ratio: 4 / 3; }
   .services { grid-template-columns: minmax(0, 1fr); }
@@ -769,6 +781,9 @@ h1[tabindex="-1"]:focus { outline: none; }
 }
 
 @media (max-width: 420px) {
+  .hero-cta { gap: 12px 14px; }
+  .hero-cta .pill { padding: 0 12px; font-size: 10px; }
+  .hero-cta .pill, .hero-link { font-size: 10px; letter-spacing: 0.07em; }
   .hero-count { display: none; }
   .hero-caption { grid-template-columns: minmax(0, 1fr); }
   .buy-row { flex-wrap: wrap; }
@@ -778,8 +793,13 @@ h1[tabindex="-1"]:focus { outline: none; }
   .summary { padding: 20px 16px; }
 }
 
+/* Невысокие телефоны: флакон меньше, подпись и кнопки под ним */
+@media (max-width: 760px) and (max-height: 760px) {
+  .slide-img { height: 50%; margin-bottom: 20vh; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; transition-duration: 0.01ms !important; transition-delay: 0ms !important; scroll-behavior: auto !important; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; transition: none !important; scroll-behavior: auto !important; }
   .reveal, .c, .pd-info > * { opacity: 1 !important; transform: none !important; }
   .pd .pd-stage .stage-media { clip-path: none; transform: none; }
   .wordmark--hero { transform: none; }

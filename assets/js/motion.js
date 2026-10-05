@@ -153,7 +153,11 @@ FS.motion = (function () {
   function init() {
     window.addEventListener('scroll', requestTick, { passive: true });
     window.addEventListener('resize', () => { fit(); requestTick(); }, { passive: true });
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { fit(); requestTick(); });
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => { fit(); requestTick(); });
+      // Шрифт логотипа может догрузиться позже первой отрисовки: пересчитываем размер.
+      document.fonts.addEventListener('loadingdone', () => { fit(); requestTick(); });
+    }
     // Элементы, добавленные позже (фильтры каталога, избранное), тоже получают появление.
     if ('MutationObserver' in window) {
       let queued = false;

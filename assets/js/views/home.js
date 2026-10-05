@@ -63,8 +63,8 @@ FS.views.home = (function () {
             <p class="hero-count"><span data-hero-index>01</span> / ${pad(slides.length)}</p>
             <p class="hero-now"><span data-hero-brand>${esc(first.brand)}</span><a data-hero-name href="#product-${first.id}">${esc(first.name)}</a></p>
             <div class="hero-cta">
-              <a class="pill pill--brand pill--lg" href="#catalog">Смотреть коллекцию</a>
-              <a class="pill pill--ghost pill--lg" href="#aromaty">Исследовать ароматы</a>
+              <a class="pill pill--brand" href="#catalog">Смотреть коллекцию</a>
+              <a class="hero-link" href="#aromaty">Исследовать ароматы</a>
             </div>
           </div>
           <h1 id="hero-title" class="hero-mark"><span class="visually-hidden">5th SENSE Perfumery, бутик парфюмерии</span>${wordmark('wordmark--hero')}</h1>
