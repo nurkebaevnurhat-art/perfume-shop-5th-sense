@@ -115,7 +115,7 @@ FS.views.home = (function () {
           <div class="hscroll-head">
             <p class="kicker">Бестселлеры</p>
             <h2 id="best-title" class="hscroll-title">Ароматы, за которыми возвращаются</h2>
-            <a class="pill pill--line" href="#catalog-bestsellers">Все бестселлеры</a>
+            <a class="hero-link" href="#catalog-bestsellers">Все бестселлеры</a>
           </div>
           <div class="hscroll-track" tabindex="0" aria-label="Бестселлеры, прокрутите в сторону">
             ${best.map((p, i) => card(p, { index: i % 4, reveal: false })).join('')}
@@ -137,7 +137,7 @@ FS.views.home = (function () {
         <div class="arrivals-head">
           <h2 id="new-title" class="reveal">Новинки</h2>
           <p class="reveal">Последние поступления на полки бутика.</p>
-          <a class="pill pill--ink reveal" href="#catalog-new">Все новинки</a>
+          <a class="hero-link reveal" href="#catalog-new">Все новинки</a>
         </div>
         <div class="shelf-grid shelf-grid--four">${fresh.map((p, i) => card(p, { index: i % 4 })).join('')}</div>
       </section>

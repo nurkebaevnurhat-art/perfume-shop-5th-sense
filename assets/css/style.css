@@ -147,9 +147,10 @@ h1[tabindex="-1"]:focus { outline: none; }
 .chip { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border: 1px solid var(--line-strong); font-size: 13px; transition: border-color 0.3s, color 0.3s; }
 .chip:hover, .chip--active { border-color: var(--brand); color: var(--brand); }
 .chip svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; }
-.tag-chip { display: inline-block; padding: 4px 8px; background: var(--ink); color: var(--on-dark); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; line-height: 1.2; }
-.tag-chip--brand { background: var(--sheet); color: var(--gold-deep); box-shadow: inset 0 0 0 1px var(--line-gold); }
-.tag-chip--out { background: var(--sheet); color: var(--ink-soft); }
+/* Метки на фото: текст с тонкой линией снизу, без плашки */
+.tag-chip { display: inline-block; padding: 0 0 4px; border-bottom: 1px solid currentColor; color: var(--ink); font-size: 10px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; line-height: 1.2; }
+.tag-chip--brand { color: var(--gold-deep); }
+.tag-chip--out { color: var(--ink-soft); }
 
 /* ---------- Движение: появление ---------- */
 .reveal { opacity: 0; transform: translate3d(0, 34px, 0); transition: opacity 1.1s var(--ease), transform 1.3s var(--ease); transition-delay: calc(var(--i, 0) * 80ms); }
@@ -341,6 +342,8 @@ h1[tabindex="-1"]:focus { outline: none; }
 .hero-cta { display: flex; flex-direction: column; align-items: flex-end; gap: 16px; }
 .hero-link { font-size: 11.5px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; line-height: 1; padding-bottom: 5px; border-bottom: 1px solid currentColor; white-space: nowrap; transition: color 0.4s, border-color 0.4s; }
 .hero-link:hover { color: var(--gold-deep); }
+[data-head="dark"] .hero-link:hover { color: var(--gold-soft); }
+.hscroll-head .hero-link, .arrivals-head .hero-link { align-self: end; margin-bottom: 6px; }
 .hero-mark { position: absolute; z-index: 3; left: var(--gutter); right: var(--gutter); bottom: 3vh; padding-bottom: 14px; margin-bottom: -14px; color: var(--gold-deep); overflow: hidden; line-height: 0; }
 /* Логотип как буквы вывески: тёмная античная бронза, светлая кромка сверху и мягкая тень на стене */
 .wordmark--hero { transform: translate3d(0, 102%, 0); letter-spacing: 0.03em;
@@ -444,7 +447,7 @@ h1[tabindex="-1"]:focus { outline: none; }
 .pcard-img img, .pcard-img svg { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }
 .pcard:hover .pcard-img { transform: scale(1.07) translateY(-2%); }
 .pcard:hover .pcard-media::before { opacity: 0.25; }
-.pcard-tags { position: absolute; z-index: 2; top: 12px; left: 12px; display: flex; flex-wrap: wrap; gap: 4px; max-width: calc(100% - 64px); pointer-events: none; }
+.pcard-tags { position: absolute; z-index: 2; top: 18px; left: 18px; display: flex; flex-wrap: wrap; gap: 8px 16px; max-width: calc(100% - 64px); pointer-events: none; }
 .fav-btn { position: absolute; z-index: 3; top: 4px; right: 4px; width: 44px; height: 44px; display: grid; place-items: center; color: var(--ink); transition: color 0.3s, transform 0.5s var(--ease); }
 .fav-btn svg { width: 20px; height: 20px; fill: transparent; stroke: currentColor; stroke-width: 1.4; transition: fill 0.4s var(--ease); }
 .fav-btn:hover { color: var(--gold-deep); transform: scale(1.1); }
