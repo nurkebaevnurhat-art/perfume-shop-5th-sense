@@ -47,7 +47,6 @@ FS.views.home = (function () {
     return `
       <section class="hero" data-head="light" aria-labelledby="hero-title">
         <div class="hero-pin">
-          <div class="hero-brand-bg" aria-hidden="true"></div>
           <div class="hero-scene" data-cursor="Смотреть">
             ${slides.map((p, i) => `
               <a class="slide ${i === 0 ? 'is-active' : ''}" href="#product-${p.id}" data-slide="${i}" tabindex="${i === 0 ? 0 : -1}" aria-label="${esc(p.brand)} ${esc(p.name)}">
@@ -66,15 +65,11 @@ FS.views.home = (function () {
             </div>
           </div>
           <h1 id="hero-title" class="hero-mark"><span class="visually-hidden">5th SENSE Perfumery, бутик парфюмерии</span>${wordmark('wordmark--hero')}</h1>
-          <div class="hero-frame-label" aria-hidden="true">Коллекция 2026</div>
         </div>
       </section>
 
       <section class="story" data-head="dark" aria-labelledby="story-title">
         <div class="story-inner">
-          <figure class="story-sign reveal">
-            <img src="${FS.assetUrl('assets/img/brand-sign.jpg')}" alt="Вывеска бутика 5th SENSE Perfumery: золотые буквы на тёплой стене" loading="lazy" decoding="async">
-          </figure>
           <p class="kicker reveal">О бренде</p>
           <h2 id="story-title" class="visually-hidden">О бренде 5th SENSE</h2>
           <p class="story-text" data-words>Пятое чувство помнит дольше остальных. Мы собираем ароматы, которые становятся частью вашей истории: от первого вдоха до шлейфа, который остаётся после вас.</p>
@@ -197,13 +192,8 @@ FS.views.home = (function () {
         pin.style.setProperty('--my', ((e.clientY - r.top) / r.height - 0.5).toFixed(3));
       }, { signal });
     }
-    M.scene((y, h) => {
-      const p = M.progress(hero, h);
-      heroVisible = p < 0.98;
-      pin.style.setProperty('--p', p.toFixed(4));
-      // Когда кадр сжимается в рамку, вокруг остаётся чёрный фон: шапка становится светлой на тёмном.
-      hero.dataset.head = p > 0.42 ? 'dark' : 'light';
-    });
+    // Смена флаконов идёт, только пока герой виден на экране.
+    M.scene(() => { heroVisible = hero.getBoundingClientRect().bottom > 0; });
 
     /* --- История: слова проявляются по мере прокрутки --- */
     const storyText = $('[data-words]', root);
