@@ -144,7 +144,7 @@ FS.views.home = (function () {
         <h2 id="finale-title" class="finale-title" data-chars>Найдём ваш аромат</h2>
         <p class="finale-text reveal">Расскажите консультанту о любимых нотах и поводе, и он подберёт аромат, который будет звучать именно на вас.</p>
         <div class="finale-cta reveal">
-          <a class="pill pill--brand pill--lg" href="#catalog">Перейти в каталог</a>
+          <a class="hero-link" href="#catalog">Перейти в каталог</a>
           <span class="finale-phone selectable">${esc(FS.config.contacts.phone)}</span>
         </div>
       </section>`;

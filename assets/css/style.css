@@ -426,7 +426,8 @@ h1[tabindex="-1"]:focus { outline: none; }
 .finale { background: radial-gradient(ellipse 60% 70% at 50% 40%, #1f1a14 0%, var(--ink) 70%); color: var(--on-dark); display: grid; justify-items: center; text-align: center; gap: 24px; padding: clamp(96px, 14vw, 200px) var(--gutter); }
 .finale-title { font-family: var(--ff-serif); font-size: clamp(44px, 7.4vw, 124px); line-height: 0.95; text-transform: uppercase; letter-spacing: 0.02em; }
 .finale-text { max-width: 46ch; color: var(--on-dark-soft); }
-.finale-cta { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 18px 28px; }
+.finale-cta { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 18px 40px; }
+.finale-cta .hero-link { font-size: 12.5px; }
 .finale-phone { font-family: var(--ff-serif); font-size: 28px; letter-spacing: 0.04em; color: var(--gold-soft); }
 
 /* =========================================================
