@@ -32,8 +32,7 @@ FS.categories = [
   { id: 'unisex', name: 'Унисекс', short: 'Унисекс', lead: 'Ароматы вне правил, которые одинаково звучат на любой коже.', match: (p) => p.gender === 'unisex' },
   { id: 'niche', name: 'Нишевая парфюмерия', short: 'Нишевая', lead: 'Независимые дома и авторские композиции малыми партиями.', match: (p) => p.niche },
   { id: 'bestsellers', name: 'Бестселлеры', short: 'Бестселлеры', lead: 'Ароматы, за которыми в бутик возвращаются снова.', match: (p) => p.bestseller },
-  { id: 'new', name: 'Новинки', short: 'Новинки', lead: 'Последние поступления на полки бутика.', match: (p) => p.isNew },
-  { id: 'gifts', name: 'Подарочные наборы', short: 'Наборы', lead: 'Собранные нами сеты и миниатюры в фирменной коробке.', match: (p) => p.type === 'set' }
+  { id: 'new', name: 'Новинки', short: 'Новинки', lead: 'Последние поступления на полки бутика.', match: (p) => p.isNew }
 ];
 
 FS.genderLabel = { men: 'Мужской', women: 'Женский', unisex: 'Унисекс' };
@@ -398,19 +397,6 @@ FS.defaultProducts = [
     notes: { top: ['грейпфрут', 'бергамот'], heart: ['имбирь'], base: ['амбра'] },
     longevity: 3, sillage: 3,
     bottle: { shape: 'flask', cap: 'orb', liquid: '#cdb2e3', capColor: 'silver', label: 'LOUIS VUITTON' }
-  },
-  {
-    id: 'set-five-senses', type: 'set',
-    name: 'Сет «Пять чувств»', brand: '5th SENSE',
-    gender: 'unisex', family: 'amber', concentration: 'Set',
-    niche: true, bestseller: true,
-    volumes: [{ ml: 50, price: 89000, stock: 8, label: '5 × 10 мл' }],
-    main: 50,
-    short: 'Пять бестселлеров бутика по 10 мл в фирменной коробке.',
-    description: 'Наш сет для знакомства с бутиком: Baccarat Rouge 540, Oud Wood, Santal 33, Layton и Green Irish Tweed в отливантах по 10 мл. Коробка с карточкой, где описан каждый аромат.',
-    notes: { top: ['шафран', 'кардамон', 'вербена'], heart: ['уд', 'герань', 'папирус'], base: ['амбра', 'сандал', 'ваниль'] },
-    longevity: 4, sillage: 4,
-    bottle: { shape: 'set', count: 5, liquid: '#b0703c', capColor: 'gold', label: '5th SENSE' }
   }
 ];
 

@@ -14,11 +14,14 @@ FS.assetUrl = (path) => (path && FS.assets && FS.assets[path]) || path;
    С сервером эти функции превращаются в GET/PUT /api/products. */
 FS.catalog = (function () {
   const KEY = 'fs.catalog.v1';
+  // Товары, снятые с продажи: убираются и из каталога, сохранённого в браузере через админку.
+  const REMOVED = ['set-five-senses', 'set-evening'];
   const clone = (x) => JSON.parse(JSON.stringify(x));
   return {
     load() {
       const saved = FS.storage.get(KEY, null);
-      FS.products = Array.isArray(saved) && saved.length ? saved : clone(FS.defaultProducts);
+      const list = Array.isArray(saved) ? saved.filter((p) => !REMOVED.includes(p.id)) : [];
+      FS.products = list.length ? list : clone(FS.defaultProducts);
       return FS.products;
     },
     save(list) {

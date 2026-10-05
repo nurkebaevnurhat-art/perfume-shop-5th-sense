@@ -59,7 +59,7 @@ FS.views.checkout = (function () {
       </section>
       <div class="page-body"><div class="empty">
         <p class="empty-title">Корзина пуста</p>
-        <p>Загляните на витрины бутика: бестселлеры, новинки и подарочные наборы.</p>
+        <p>Загляните на витрины бутика: бестселлеры, новинки и нишевая парфюмерия.</p>
         <a class="btn btn--primary" href="#catalog">Перейти в каталог</a>
       </div></div>`;
   }

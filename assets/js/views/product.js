@@ -67,7 +67,6 @@ FS.views.product = (function () {
     selected = FS.api.mainVolume(product);
     qty = 1;
     const fam = FS.families.find((f) => f.id === product.family);
-    const isSet = product.type === 'set';
     const related = FS.api.related(product, 4);
     const conc = FS.concentrationLabel[product.concentration];
 
@@ -82,7 +81,7 @@ FS.views.product = (function () {
       product.country ? ['Страна', esc(product.country)] : null
     ].filter(Boolean);
 
-    const category = isSet ? FS.categories.find((c) => c.id === 'gifts') : FS.categories.find((c) => c.id === product.gender);
+    const category = FS.categories.find((c) => c.id === product.gender);
     const tier = (cls, name, notes, when) => `
       <div class="tier reveal ${cls}">
         <p class="tier-when">${when}</p>
