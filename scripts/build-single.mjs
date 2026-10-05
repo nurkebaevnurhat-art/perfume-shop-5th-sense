@@ -31,6 +31,8 @@ const ld = html.match(/<script type="application\/ld\+json">.*<\/script>/)[0];
 const body = html
   .slice(html.indexOf('<body>') + 6, html.indexOf('</body>'))
   .replace(/<script src="[^"]+"><\/script>\n?/g, '')
+  // Картинки разметки (логотип заставки) встраиваются как data:-адреса.
+  .replace(/src="assets\/img\/([\w.-]+\.(?:png|jpe?g|webp))"/g, (_, f) => `src="${dataUrl('assets/img', f)}"`)
   .trim();
 
 const out = `${title}
