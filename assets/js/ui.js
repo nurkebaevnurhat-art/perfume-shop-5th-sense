@@ -345,8 +345,7 @@ FS.ui = (function () {
     const host = $('[data-search-results]');
     const query = q.trim();
     if (!query) {
-      host.innerHTML = `<p class="search-hint">Часто ищут</p>
-        <div class="search-tags">${['уд', 'роза', 'ваниль', 'Tom Ford', 'сандал', 'Creed'].map((t) => `<button type="button" class="chip" data-search-tag="${esc(t)}">${esc(t)}</button>`).join('')}</div>`;
+      host.innerHTML = '';
       return;
     }
     const found = FS.api.filter({ q: query });
@@ -398,16 +397,9 @@ FS.ui = (function () {
   /* ---------- Глобальные обработчики ---------- */
   function bind() {
     document.addEventListener('click', (e) => {
-      const t = e.target.closest('[data-action], [data-add], [data-fav], [data-remove], [data-step], [data-search-tag], [data-search-all]');
+      const t = e.target.closest('[data-action], [data-add], [data-fav], [data-remove], [data-step], [data-search-all]');
       if (!t) return;
 
-      if (t.dataset.searchTag) {
-        const input = $('#search-input');
-        input.value = t.dataset.searchTag;
-        updateSearch(input.value);
-        input.focus();
-        return;
-      }
       if (t.hasAttribute('data-search-all')) {
         e.preventDefault();
         const q = $('#search-input').value.trim();
