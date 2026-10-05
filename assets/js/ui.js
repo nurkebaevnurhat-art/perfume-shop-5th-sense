@@ -290,7 +290,7 @@ FS.ui = (function () {
     drawer.innerHTML = `
       <div class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="cart-title">
         <div class="drawer-head">
-          <h2 id="cart-title">Корзина${count ? ` <span class="drawer-count">${count}</span>` : ''}</h2>
+          <h2 id="cart-title">Корзина${count ? ` <span class="drawer-count">(${count})</span>` : ''}</h2>
           <button class="icon-btn" type="button" data-action="close-cart" aria-label="Закрыть корзину">${icon.close}</button>
         </div>
         <div class="drawer-body">${body}</div>
