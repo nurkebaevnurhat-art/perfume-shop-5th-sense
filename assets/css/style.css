@@ -339,8 +339,12 @@ h1[tabindex="-1"]:focus { outline: none; }
 .hero-cta { display: flex; flex-direction: column; align-items: flex-end; gap: 16px; }
 .hero-link { font-size: 11.5px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; line-height: 1; padding-bottom: 5px; border-bottom: 1px solid currentColor; white-space: nowrap; transition: color 0.4s, border-color 0.4s; }
 .hero-link:hover { color: var(--gold-deep); }
-.hero-mark { position: absolute; z-index: 3; left: var(--gutter); right: var(--gutter); bottom: 3vh; color: var(--gold); text-shadow: 0 1px 0 rgba(255, 250, 240, 0.35); overflow: hidden; line-height: 0; }
-.wordmark--hero { transform: translate3d(0, 102%, 0); }
+.hero-mark { position: absolute; z-index: 3; left: var(--gutter); right: var(--gutter); bottom: 3vh; padding-bottom: 14px; margin-bottom: -14px; color: var(--gold-deep); overflow: hidden; line-height: 0; }
+/* Логотип как буквы вывески: тёмная античная бронза, светлая кромка сверху и мягкая тень на стене */
+.wordmark--hero { transform: translate3d(0, 102%, 0); letter-spacing: 0.06em;
+  background: linear-gradient(180deg, #b08d5b 0%, #8a6a3d 34%, #5f4524 72%, #4a3519 100%);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 1px 0 rgba(255, 249, 238, 0.55)) drop-shadow(0 10px 14px rgba(46, 31, 14, 0.22)); }
 .is-ready .wordmark--hero { transform: none; transition: transform 1.6s var(--ease) 0.15s; }
 .is-ready .hero-caption { animation: fadeUp 1.4s var(--ease) 0.6s both; }
 @keyframes fadeUp { from { opacity: 0; transform: translate3d(0, 20px, 0); } }
