@@ -88,7 +88,7 @@ h1[tabindex="-1"]:focus { outline: none; }
 .logo-word { font-family: var(--ff-display); font-weight: 500; font-size: 17px; letter-spacing: 0.16em; }
 .logo-th { font-size: 0.62em; vertical-align: 0.5em; line-height: 0; margin: 0 0.04em 0 0.02em; letter-spacing: 0.06em; }
 .logo-sub { font-size: 7.5px; letter-spacing: 0.5em; text-transform: uppercase; margin-right: -0.5em; opacity: 0.75; }
-.wordmark { display: inline-block; font-family: var(--ff-display); font-weight: 500; letter-spacing: 0.04em; line-height: 0.78; white-space: nowrap; }
+.wordmark { display: inline-block; font-family: var(--ff-display); font-weight: 600; letter-spacing: 0.03em; line-height: 0.78; white-space: nowrap; }
 .wm-th { font-size: 0.42em; letter-spacing: 0.04em; vertical-align: 1.02em; line-height: 0; margin-left: 0.02em; }
 .wm-gap { display: inline-block; width: 0.22em; }
 .perfumery { display: flex; align-items: center; justify-content: center; gap: 1.4em; font-family: var(--ff); font-size: 12px; font-weight: 400; letter-spacing: 0.62em; text-transform: uppercase; line-height: 1; }
@@ -341,7 +341,7 @@ h1[tabindex="-1"]:focus { outline: none; }
 .hero-link:hover { color: var(--gold-deep); }
 .hero-mark { position: absolute; z-index: 3; left: var(--gutter); right: var(--gutter); bottom: 3vh; padding-bottom: 14px; margin-bottom: -14px; color: var(--gold-deep); overflow: hidden; line-height: 0; }
 /* Логотип как буквы вывески: тёмная античная бронза, светлая кромка сверху и мягкая тень на стене */
-.wordmark--hero { transform: translate3d(0, 102%, 0); letter-spacing: 0.06em;
+.wordmark--hero { transform: translate3d(0, 102%, 0); letter-spacing: 0.03em;
   background: linear-gradient(180deg, #b08d5b 0%, #8a6a3d 34%, #5f4524 72%, #4a3519 100%);
   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 1px 0 rgba(255, 249, 238, 0.55)) drop-shadow(0 10px 14px rgba(46, 31, 14, 0.22)); }
