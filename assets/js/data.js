@@ -411,19 +411,6 @@ FS.defaultProducts = [
     notes: { top: ['шафран', 'кардамон', 'вербена'], heart: ['уд', 'герань', 'папирус'], base: ['амбра', 'сандал', 'ваниль'] },
     longevity: 4, sillage: 4,
     bottle: { shape: 'set', count: 5, liquid: '#b0703c', capColor: 'gold', label: '5th SENSE' }
-  },
-  {
-    id: 'set-evening', type: 'set',
-    name: 'Сет «Вечер»', brand: '5th SENSE',
-    gender: 'unisex', family: 'gourmand', concentration: 'Set',
-    isNew: true,
-    volumes: [{ ml: 30, price: 55000, stock: 6, label: '3 × 10 мл' }],
-    main: 30,
-    short: 'Три тёплых вечерних аромата по 10 мл.',
-    description: 'Straight to Heaven, Althaïr и Ombré Leather для вечера и холодного сезона. Отливанты по 10 мл в коробке с ложементом.',
-    notes: { top: ['ром', 'корица', 'кардамон'], heart: ['пачули', 'пралине', 'кожа'], base: ['ваниль', 'амбра', 'мох'] },
-    longevity: 4, sillage: 4,
-    bottle: { shape: 'set', count: 3, liquid: '#6e1a22', capColor: 'black', label: '5th SENSE' }
   }
 ];
 
