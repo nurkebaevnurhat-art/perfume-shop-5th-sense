@@ -10,11 +10,10 @@ FS.views.product = (function () {
   let qty = 1;
   let root = null;
 
-  // Основной вид и крупный план. Без фото — объёмная иллюстрация флакона.
+  // Один вид: фото флакона целиком, без фото — объёмная иллюстрация.
+  // Миниатюры появляются, только если видов больше одного (например, при добавлении фото упаковки).
   function views() {
-    return product.image
-      ? [{ id: 'photo', label: 'Флакон' }, { id: 'detail', label: 'Крупный план' }]
-      : [{ id: 'bottle', label: 'Флакон' }, { id: 'detail', label: 'Крупный план' }];
+    return product.image ? [{ id: 'photo', label: 'Флакон' }] : [{ id: 'bottle', label: 'Флакон' }];
   }
 
   function art(view, large) {
@@ -96,13 +95,13 @@ FS.views.product = (function () {
         <div class="pd-top" data-head="light">
           <div class="pd-gallery">
             <div class="pd-stage" data-gallery-main data-cursor="Ближе">${stage(views()[0].id)}</div>
-            <div class="pd-thumbs" role="tablist" aria-label="Изображения">
+            ${views().length > 1 ? `<div class="pd-thumbs" role="tablist" aria-label="Изображения">
               ${views().map((v, i) => `
                 <button class="thumb ${i === 0 ? 'is-active' : ''}" type="button" role="tab" aria-selected="${i === 0}" data-view="${v.id}">
                   <span class="thumb-art thumb-art--${v.id}">${art(v.id, false)}</span>
                   <span class="thumb-label">${v.label}</span>
                 </button>`).join('')}
-            </div>
+            </div>` : ''}
           </div>
 
           <div class="pd-info">
