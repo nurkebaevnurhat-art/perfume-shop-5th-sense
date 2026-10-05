@@ -1,5 +1,5 @@
 /* =========================================================
-   5th SENSE Perfumery — визуальный язык
+   5th SENSE Perfume Bar — визуальный язык
    Направление: вывеска бутика. Тёплый ivory камня, глубокий чёрный,
    благородное матовое золото в акцентах, мягкий боковой свет.
    Классическая антиква (Cormorant Garamond) для заголовков,
@@ -91,9 +91,9 @@ h1[tabindex="-1"]:focus { outline: none; }
 .wordmark { display: inline-block; font-family: var(--ff-display); font-weight: 600; letter-spacing: 0.03em; line-height: 0.78; white-space: nowrap; }
 .wm-th { font-size: 0.42em; letter-spacing: 0.04em; vertical-align: 1.02em; line-height: 0; margin-left: 0.02em; }
 .wm-gap { display: inline-block; width: 0.22em; }
-.perfumery { display: flex; align-items: center; justify-content: center; gap: 1.4em; font-family: var(--ff); font-size: 12px; font-weight: 400; letter-spacing: 0.62em; text-transform: uppercase; line-height: 1; }
-.perfumery i { flex: 0 1 72px; height: 1px; background: currentColor; opacity: 0.7; }
-.perfumery i:first-child { margin-right: -0.62em; }
+.brand-line { display: flex; align-items: center; justify-content: center; gap: 1.4em; font-family: var(--ff); font-size: 12px; font-weight: 400; letter-spacing: 0.62em; text-transform: uppercase; line-height: 1;  white-space: nowrap; }
+.brand-line i { flex: 0 1 72px; height: 1px; background: currentColor; opacity: 0.7; }
+.brand-line i:first-child { margin-right: -0.62em; }
 .emblem { width: 100%; height: auto; overflow: visible; }
 .emblem text { fill: currentColor; }
 .emblem .em-5 { font-family: var(--ff-serif); font-weight: 600; font-size: 52px; }
@@ -694,6 +694,7 @@ h1[tabindex="-1"]:focus { outline: none; }
 .footer-mark { display: block; padding: 24px var(--gutter) 0; border-top: 1px solid var(--line-dark); color: var(--gold); line-height: 0; }
 .footer-sub { color: var(--gold-soft); padding: 22px var(--gutter) 6px; font-size: clamp(11px, 1.1vw, 15px); }
 .footer-sub i { flex-basis: 18vw; }
+.footer-est { text-align: center; font-family: var(--ff-display); font-size: clamp(10px, 0.9vw, 12px); letter-spacing: 0.42em; margin-right: -0.42em; text-transform: uppercase; color: var(--on-dark-soft); padding-top: 8px; }
 .footer-mark .wordmark { transition: transform 1.2s var(--ease); }
 .footer-mark:hover .wordmark { transform: translateY(-2%); }
 .footer-base { padding: 18px var(--gutter) 22px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--on-dark-soft); }
@@ -782,6 +783,7 @@ h1[tabindex="-1"]:focus { outline: none; }
   .toolbar-search { flex-basis: 100%; }
   .toolbar-sort { flex: 1 1 auto; }
   .menu-links a { font-size: 30px; }
+  .menu-note-est { display: none; }
   .menu-foot { font-size: 11.5px; }
 }
 

@@ -1,4 +1,6 @@
-# 5th SENSE Perfumery
+# 5th SENSE Perfume Bar
+
+Est. 2025.
 
 Интернет-магазин парфюмерного бутика **5th SENSE**.
 

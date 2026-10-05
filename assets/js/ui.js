@@ -32,13 +32,14 @@ FS.ui = (function () {
   };
 
   /* ---------- Знаки бренда ---------- */
-  const logo = (cls) => `<span class="logo ${cls || ''}"><span class="logo-word">5<span class="logo-th">th</span> SENSE</span><span class="logo-sub">Perfumery</span></span>`;
+  const logo = (cls) => `<span class="logo ${cls || ''}"><span class="logo-word">5<span class="logo-th">th</span> SENSE</span><span class="logo-sub">Perfume Bar</span></span>`;
 
   // Гигантский логотип; data-fit растягивает его на всю ширину контейнера.
   const wordmark = (cls) => `<span class="wordmark ${cls || ''}" data-fit aria-hidden="true"><span class="wm-5">5</span><span class="wm-th">th</span><span class="wm-gap"> </span>SENSE</span>`;
 
-  // Подпись под логотипом: PERFUMERY между двумя тонкими линиями.
-  const perfumery = (cls) => `<span class="perfumery ${cls || ''}" aria-hidden="true"><i></i>Perfumery<i></i></span>`;
+  // Подпись под логотипом: PERFUME BAR между двумя тонкими линиями, как на логотипе.
+  const brandLine = (cls) => `<span class="brand-line ${cls || ''}" aria-hidden="true"><i></i>${FS.config.tagline}<i></i></span>`;
+  const est = () => `Est. ${FS.config.founded}`;
 
   // Эмблема: цифра 5 с надстрочным TH и лентой шлейфа, как на вывеске бутика.
   const emblem = (cls) => `<svg class="emblem ${cls || ''}" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
@@ -84,7 +85,7 @@ FS.ui = (function () {
     $('#site-menu').innerHTML = `
       <div class="menu-panel" role="dialog" aria-modal="true" aria-label="Меню">
         <div class="menu-top">
-          <span class="menu-note">5th SENSE · Perfumery</span>
+          <span class="menu-note">5th SENSE · ${FS.config.tagline}<span class="menu-note-est"> · ${est()}</span></span>
           <button class="hl" type="button" data-action="close-menu" data-autofocus>Закрыть</button>
         </div>
         <div class="menu-grid">
@@ -153,10 +154,11 @@ FS.ui = (function () {
         </nav>
       </div>
       <a class="footer-mark" href="#home" aria-label="5th SENSE, на главную">${wordmark()}</a>
-      ${perfumery('footer-sub')}
+      ${brandLine('footer-sub')}
+      <p class="footer-est">${est()}</p>
       <div class="footer-base">
         <span>© ${new Date().getFullYear()} 5th SENSE</span>
-        <span>Perfumery · Premium Boutique</span>
+        <span>${FS.config.tagline} · ${est()}</span>
       </div>`;
   }
 
@@ -512,7 +514,7 @@ FS.ui = (function () {
   }
 
   return {
-    $, $$, esc, money, plural, icon, logo, wordmark, perfumery, emblem, tint, hexMix, volumeLabel,
+    $, $$, esc, money, plural, icon, logo, wordmark, brandLine, est, emblem, tint, hexMix, volumeLabel,
     renderHeader, renderFooter, setActiveNav, card, stepper, toast,
     open, close, openCart, renderCart, bind, pulse,
     setStructuredData, productSchema,

@@ -3,7 +3,7 @@ window.FS = window.FS || {};
 FS.views = FS.views || {};
 
 FS.views.home = (function () {
-  const { $, $$, esc, money, plural, card, tint, wordmark, perfumery, emblem } = FS.ui;
+  const { $, $$, esc, money, plural, card, tint, wordmark, emblem } = FS.ui;
   const M = FS.motion;
   const P = (id) => FS.api.productSync(id);
   const pick = (ids, n) => {
@@ -30,7 +30,8 @@ FS.views.home = (function () {
       '@context': 'https://schema.org',
       '@type': 'Store',
       name: '5th SENSE',
-      description: '5th SENSE Perfumery: селективная и нишевая парфюмерия.',
+      description: '5th SENSE Perfume Bar: селективная и нишевая парфюмерия.',
+      foundingDate: String(FS.config.founded),
       telephone: FS.config.contacts.phone
     });
 
@@ -64,7 +65,7 @@ FS.views.home = (function () {
               <a class="hero-link" href="#aromaty">Исследовать ароматы</a>
             </div>
           </div>
-          <h1 id="hero-title" class="hero-mark"><span class="visually-hidden">5th SENSE Perfumery, бутик парфюмерии</span>${wordmark('wordmark--hero')}</h1>
+          <h1 id="hero-title" class="hero-mark"><span class="visually-hidden">5th SENSE Perfume Bar, бутик парфюмерии, основан в 2025 году</span>${wordmark('wordmark--hero')}</h1>
         </div>
       </section>
 
