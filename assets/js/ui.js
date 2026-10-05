@@ -72,7 +72,7 @@ FS.ui = (function () {
           <button class="hl hl--menu" type="button" data-action="menu" aria-expanded="false" aria-controls="site-menu">Меню</button>
           <a class="hl hl--wide" href="#catalog" data-nav="catalog">Коллекция</a>
         </div>
-        <a class="header-mark" href="#home" aria-label="5th SENSE, на главную">${emblem()}<span class="header-word">${logo()}</span></a>
+        <a class="header-mark" href="#home" aria-label="5th SENSE, на главную"><span class="header-word">${logo()}</span></a>
         <div class="header-right">
           <button class="hl hl--wide" type="button" data-action="search">Поиск</button>
           <a class="hl hl--wide" href="#favorites">Избранное<span class="hl-count" data-fav-count hidden></span></a>

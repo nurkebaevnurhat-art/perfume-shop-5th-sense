@@ -3,7 +3,7 @@ window.FS = window.FS || {};
 FS.views = FS.views || {};
 
 FS.views.home = (function () {
-  const { $, $$, esc, money, plural, card, tint, wordmark, emblem } = FS.ui;
+  const { $, $$, esc, money, plural, card, tint, wordmark } = FS.ui;
   const M = FS.motion;
   const P = (id) => FS.api.productSync(id);
   const pick = (ids, n) => {
@@ -53,9 +53,6 @@ FS.views.home = (function () {
               <a class="slide ${i === 0 ? 'is-active' : ''}" href="#product-${p.id}" data-slide="${i}" tabindex="${i === 0 ? 0 : -1}" aria-label="${esc(p.brand)} ${esc(p.name)}">
                 <span class="slide-img">${FS.bottle.media(p, { title: '' })}</span>
               </a>`).join('')}
-          </div>
-          <div class="hero-top">
-            <span class="hero-emblem">${emblem()}</span>
           </div>
           <div class="hero-caption">
             <p class="hero-count"><span data-hero-index>01</span> / ${pad(slides.length)}</p>
