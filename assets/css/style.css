@@ -542,7 +542,7 @@ h1[tabindex="-1"]:focus { outline: none; }
 .catalog .toolbar-search input:focus, .catalog .toolbar select:focus { border-color: var(--ink); box-shadow: 0 1px 0 0 var(--ink); }
 .catalog .filters-open { border: 0; border-bottom: 1px solid currentColor; padding: 0; min-height: 40px; }
 .chips { gap: 8px 22px; }
-.chips .chip { min-height: 30px; padding: 0 0 2px; border: 0; border-bottom: 1px solid currentColor; color: var(--gold-deep); font-size: 13.5px; }
+.chips .chip { min-height: 30px; padding: 0; border: 0; color: var(--gold-deep); font-size: 13.5px; }
 .chips .chip:hover { color: var(--ink); }
 .toolbar-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 18px 0 26px; min-height: 34px; }
 .result-count { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-soft); }
