@@ -95,15 +95,18 @@ FS.app = (function () {
     };
 
     current = { key: route.key, impl };
-    // Переход: шторка цвета бренда закрывает экран, страница меняется, шторка уходит вверх.
+    // Переход: шторка с логотипом закрывает экран, страница меняется, шторка уходит вверх.
     const curtain = $('#curtain');
     if (animate && curtain) {
       curtain.classList.remove('is-out');
       curtain.classList.add('is-in');
       busy = setTimeout(() => {
         swap();
-        curtain.classList.add('is-out');
-        busy = setTimeout(() => curtain.classList.remove('is-in', 'is-out'), 800);
+        // Короткая пауза, чтобы логотип на шторке успели увидеть.
+        busy = setTimeout(() => {
+          curtain.classList.add('is-out');
+          busy = setTimeout(() => curtain.classList.remove('is-in', 'is-out'), 800);
+        }, 220);
       }, 560);
     } else {
       swap();

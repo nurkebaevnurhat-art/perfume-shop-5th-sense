@@ -169,7 +169,6 @@ h1[tabindex="-1"]:focus { outline: none; }
 /* Логотип бутика на заставке: проявляется и слегка поднимается */
 .intro-logo { width: auto; height: min(58vh, 520px); max-width: 72vw; object-fit: contain; opacity: 0; transform: translate3d(0, 16px, 0) scale(0.97); animation: logoIn 1.3s var(--ease) 0.1s forwards; }
 @keyframes logoIn { to { opacity: 1; transform: none; } }
-.curtain-word small { font-size: 0.42em; vertical-align: baseline; letter-spacing: 0.04em; margin-left: 0.04em; }
 .intro-count { position: absolute; right: var(--gutter); bottom: var(--gutter); font-family: var(--ff-serif); font-size: clamp(40px, 6vw, 80px); line-height: 1; font-variant-numeric: tabular-nums; }
 @keyframes draw { to { stroke-dashoffset: 0; } }
 @keyframes fadeIn { to { opacity: 1; } }
@@ -179,7 +178,10 @@ h1[tabindex="-1"]:focus { outline: none; }
 .curtain { position: fixed; inset: 0; z-index: 140; display: grid; place-items: center; background: var(--ink); color: var(--gold-soft); transform: translate3d(0, 100%, 0); pointer-events: none; }
 .curtain.is-in { transform: none; transition: transform 0.56s var(--ease-io); pointer-events: auto; }
 .curtain.is-in.is-out { transform: translate3d(0, -100%, 0); transition: transform 0.8s var(--ease-io); }
-.curtain-word { font-family: var(--ff-display); font-weight: 400; text-transform: uppercase; font-size: clamp(26px, 3.4vw, 44px); letter-spacing: 0.1em; }
+/* Логотип на шторке между страницами: чуть увеличивается, пока шторка закрывает экран */
+.curtain-logo { width: auto; height: min(38vh, 320px); max-width: 60vw; object-fit: contain; opacity: 0; transform: scale(0.94); transition: opacity 0.4s ease, transform 0.9s var(--ease); }
+.curtain.is-in .curtain-logo { opacity: 1; transform: none; transition-delay: 0.15s; }
+.curtain.is-in.is-out .curtain-logo { opacity: 0; transform: translate3d(0, -24px, 0); transition: opacity 0.35s ease, transform 0.8s var(--ease-io); transition-delay: 0s; }
 
 /* ---------- Курсор «Смотреть» ---------- */
 .cursor { position: fixed; left: 0; top: 0; z-index: 130; pointer-events: none; }
