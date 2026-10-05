@@ -41,11 +41,15 @@ FS.ui = (function () {
   const brandLine = (cls) => `<span class="brand-line ${cls || ''}" aria-hidden="true"><i></i>${FS.config.tagline}<i></i></span>`;
   const est = () => `Est. ${FS.config.founded}`;
 
-  // Эмблема: цифра 5 с надстрочным TH и лентой шлейфа, как на вывеске бутика.
-  const emblem = (cls) => `<svg class="emblem ${cls || ''}" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-      <text class="em-5" x="25" y="50" text-anchor="middle">5</text>
-      <text class="em-th" x="37" y="23">TH</text>
-      <path class="em-swoosh" d="M6 41c2-5 8-5 9 0 2 8 10 12 20 9 9-3 13-9 23-10"/>
+  // Эмблема по логотипу: двойная рамка-капсула, массивная 5, под ней TH, звёзды и боковые точки.
+  const emblem = (cls) => `<svg class="emblem ${cls || ''}" viewBox="0 0 48 76" aria-hidden="true" focusable="false">
+      <rect class="em-frame" x="2" y="2" width="44" height="72" rx="22"/>
+      <rect class="em-frame em-frame--in" x="5.5" y="5.5" width="37" height="65" rx="18.5"/>
+      <circle class="em-dot" cx="2" cy="42" r="2"/><circle class="em-dot" cx="46" cy="42" r="2"/>
+      <path class="em-star" d="M24 9.5l1 3.5 3.5 1-3.5 1-1 3.5-1-3.5-3.5-1 3.5-1z"/>
+      <text class="em-5" x="24" y="49" text-anchor="middle">5</text>
+      <text class="em-th" x="24" y="59.5" text-anchor="middle">TH</text>
+      <path class="em-star" d="M24 62l.8 2.6 2.6.8-2.6.8-.8 2.6-.8-2.6-2.6-.8 2.6-.8z"/>
     </svg>`;
 
   // Светлый тон фона для товара: цвет жидкости, сильно разбавленный тёплым камнем.
