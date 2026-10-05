@@ -3,26 +3,25 @@ window.FS = window.FS || {};
 FS.views = FS.views || {};
 
 FS.views.product = (function () {
-  const { $, $$, esc, money, card, icon, stepper, volumeLabel } = FS.ui;
+  const { $, $$, esc, money, card, icon, stepper, volumeLabel, tint } = FS.ui;
 
   let product = null;
   let selected = null;
   let qty = 1;
   let root = null;
 
-  // С фото: фото, чертёж, силуэт. Без фото: чертёж, объёмный флакон, силуэт.
+  // Основной вид и крупный план. Без фото — объёмная иллюстрация флакона.
   function views() {
     return product.image
-      ? [{ id: 'photo', label: 'Фото' }, { id: 'blueprint', label: 'Чертёж' }, { id: 'ink', label: 'Силуэт' }]
-      : [{ id: 'blueprint', label: 'Чертёж' }, { id: 'bottle', label: 'Флакон' }, { id: 'ink', label: 'Силуэт' }];
+      ? [{ id: 'photo', label: 'Флакон' }, { id: 'detail', label: 'Крупный план' }]
+      : [{ id: 'bottle', label: 'Флакон' }, { id: 'detail', label: 'Крупный план' }];
   }
 
   function art(view, large) {
     const title = large ? `${product.brand} ${product.name}` : '';
-    if (view === 'ink') return FS.bottle.silhouette(product);
-    if (view === 'photo') return FS.bottle.media(product, { title });
+    if (view === 'detail' && !product.image) return FS.bottle.render(product, { view: 'detail', title });
     if (view === 'bottle') return FS.bottle.render(product, { title });
-    return FS.bottle.blueprint(product, { annotate: large, title });
+    return FS.bottle.media(product, { title });
   }
 
   function scale(value, labels) {
@@ -39,12 +38,8 @@ FS.views.product = (function () {
   }
 
   function stage(view) {
-    const fam = FS.families.find((f) => f.id === product.family);
     return `<div class="stage stage--${view}" data-zoom>
-      ${view === 'blueprint' ? `<span class="stage-meta stage-meta--tl">${esc(product.brand.toLowerCase())}<br>${esc(product.name.toLowerCase())}</span>
-      <span class="stage-meta stage-meta--tr">${esc(fam.name.toLowerCase())}<br>${product.year || ''}</span>` : ''}
-      ${view === 'ink' ? `<span class="stage-word" aria-hidden="true">${esc(product.name)}</span>` : ''}
-      <div class="stage-media ${view === 'ink' ? 'rough' : ''}">${art(view, true)}</div>
+      <div class="stage-media">${art(view, true)}</div>
     </div>`;
   }
 
@@ -61,10 +56,10 @@ FS.views.product = (function () {
       <p class="stock ${s.cls}"><span class="stock-dot" aria-hidden="true"></span>${s.text}</p>
       <div class="buy-row">
         ${stepper(qty, max, 'data-qty', product.name)}
-        <button class="btn btn--primary btn--grow" type="button" data-buy="add" ${v.stock > 0 ? '' : 'disabled'}>Добавить в корзину</button>
+        <button class="pill pill--brand pill--lg pill--grow" type="button" data-buy="add" ${v.stock > 0 ? '' : 'disabled'}>Добавить в корзину</button>
         <button class="fav-btn fav-btn--inline ${FS.store.isFavorite(product.id) ? 'is-on' : ''}" type="button" data-fav="${product.id}" aria-pressed="${FS.store.isFavorite(product.id)}" aria-label="В избранное: ${esc(product.name)}">${icon.heart}</button>
       </div>
-      <button class="btn btn--outline btn--block" type="button" data-buy="now" ${v.stock > 0 ? '' : 'disabled'}>Купить сейчас</button>`;
+      <button class="pill pill--ink pill--lg pill--block" type="button" data-buy="now" ${v.stock > 0 ? '' : 'disabled'}>Купить сейчас</button>`;
   }
 
   function render(route) {
@@ -88,19 +83,20 @@ FS.views.product = (function () {
       product.country ? ['Страна', esc(product.country)] : null
     ].filter(Boolean);
 
-    return `
-      <div class="product">
-        <nav class="crumbs" aria-label="Навигационная цепочка">
-          <a href="#home">Главная</a><span aria-hidden="true">/</span>
-          <a href="#catalog">Каталог</a><span aria-hidden="true">/</span>
-          <a href="#catalog-${isSet ? 'gifts' : product.gender}">${esc(isSet ? 'Подарочные наборы' : FS.categories.find((c) => c.id === product.gender).name)}</a><span aria-hidden="true">/</span>
-          <span aria-current="page">${esc(product.name)}</span>
-        </nav>
+    const category = isSet ? FS.categories.find((c) => c.id === 'gifts') : FS.categories.find((c) => c.id === product.gender);
+    const tier = (cls, name, notes, when) => `
+      <div class="tier reveal ${cls}">
+        <p class="tier-when">${when}</p>
+        <h3>${name}</h3>
+        <p class="tier-notes">${esc(notes.join(', '))}</p>
+      </div>`;
 
-        <div class="product-top">
-          <div class="gallery">
-            <div class="gallery-main" data-gallery-main>${stage(views()[0].id)}</div>
-            <div class="gallery-thumbs" role="tablist" aria-label="Изображения">
+    return `
+      <article class="pd" style="--tint:${tint(product)}">
+        <div class="pd-top" data-head="light">
+          <div class="pd-gallery">
+            <div class="pd-stage" data-gallery-main data-cursor="Ближе">${stage(views()[0].id)}</div>
+            <div class="pd-thumbs" role="tablist" aria-label="Изображения">
               ${views().map((v, i) => `
                 <button class="thumb ${i === 0 ? 'is-active' : ''}" type="button" role="tab" aria-selected="${i === 0}" data-view="${v.id}">
                   <span class="thumb-art thumb-art--${v.id}">${art(v.id, false)}</span>
@@ -109,11 +105,16 @@ FS.views.product = (function () {
             </div>
           </div>
 
-          <div class="product-info">
-            <a class="product-brand" href="#catalog">${esc(product.brand)}</a>
-            <h1 class="product-name">${esc(product.name)}</h1>
-            <p class="product-sub">${esc(conc)}, ${esc(FS.genderLabel[product.gender].toLowerCase())}, ${esc(fam.name.toLowerCase())}</p>
-            <p class="product-lead">${esc(product.short)}</p>
+          <div class="pd-info">
+            <nav class="crumbs" aria-label="Навигационная цепочка">
+              <a href="#home">Главная</a><span aria-hidden="true">/</span>
+              <a href="#catalog">Коллекция</a><span aria-hidden="true">/</span>
+              <a href="#catalog-${category.id}">${esc(category.name)}</a>
+            </nav>
+            <a class="pd-brand" href="#catalog">${esc(product.brand)}</a>
+            <h1 class="pd-name" data-chars>${esc(product.name)}</h1>
+            <p class="pd-sub">${esc(conc)}, ${esc(FS.genderLabel[product.gender].toLowerCase())}, ${esc(fam.name.toLowerCase())}</p>
+            <p class="pd-lead">${esc(product.short)}</p>
 
             <fieldset class="volumes">
               <legend>Объём</legend>
@@ -137,45 +138,38 @@ FS.views.product = (function () {
           </div>
         </div>
 
-        <section class="product-story" aria-labelledby="story-title">
-          <div class="story-text">
-            <h2 id="story-title">Об аромате</h2>
-            <p>${esc(product.description)}</p>
-            <dl class="specs">
-              ${specs.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}
-              <div><dt>Стойкость</dt><dd>${scale(product.longevity, ['до 2 часов', '3–4 часа', '5–6 часов', '7–9 часов', 'более 10 часов'])}</dd></div>
-              <div><dt>Шлейф</dt><dd>${scale(product.sillage, ['близкий к коже', 'лёгкий', 'умеренный', 'заметный', 'очень сильный'])}</dd></div>
-            </dl>
-          </div>
-
-          <div class="pyramid" aria-labelledby="pyramid-title">
-            <h2 id="pyramid-title">Пирамида аромата</h2>
-            <div class="pyramid-tier pyramid-tier--top">
-              <h3>Верхние ноты</h3>
-              <p>${esc(product.notes.top.join(', '))}</p>
-              <span>первые 15 минут</span>
-            </div>
-            <div class="pyramid-tier pyramid-tier--heart">
-              <h3>Ноты сердца</h3>
-              <p>${esc(product.notes.heart.join(', '))}</p>
-              <span>от 30 минут до 3 часов</span>
-            </div>
-            <div class="pyramid-tier pyramid-tier--base">
-              <h3>Базовые ноты</h3>
-              <p>${esc(product.notes.base.join(', '))}</p>
-              <span>шлейф, который остаётся</span>
-            </div>
+        <section class="pd-notes" data-head="dark" aria-labelledby="pyramid-title">
+          <p class="kicker reveal">Пирамида аромата</p>
+          <h2 id="pyramid-title" class="pd-notes-title reveal">Как раскрывается ${esc(product.name)}</h2>
+          <div class="tiers">
+            ${tier('tier--top', 'Верхние ноты', product.notes.top, 'первые 15 минут')}
+            ${tier('tier--heart', 'Ноты сердца', product.notes.heart, 'от 30 минут до 3 часов')}
+            ${tier('tier--base', 'Базовые ноты', product.notes.base, 'шлейф, который остаётся')}
           </div>
         </section>
 
-        <section class="section pairs-section" aria-labelledby="pairs-title">
-          <div class="section-head">
-            <h2 id="pairs-title">С чем сочетается этот аромат</h2>
-            <p>Ароматы с похожими нотами и характером. Их можно носить по очереди или собрать в гардероб ароматов.</p>
+        <section class="pd-about" data-head="light" aria-labelledby="story-title">
+          <div class="pd-about-text">
+            <p class="kicker reveal">Об аромате</p>
+            <h2 id="story-title" class="visually-hidden">Об аромате</h2>
+            <p class="pd-desc reveal">${esc(product.description)}</p>
           </div>
-          <div class="shelf-grid">${related.map((p, i) => card(p, { index: i })).join('')}</div>
+          <dl class="specs reveal">
+            ${specs.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}
+            <div><dt>Категория</dt><dd><a href="#catalog-${category.id}">${esc(category.name)}</a></dd></div>
+            <div><dt>Стойкость</dt><dd>${scale(product.longevity, ['до 2 часов', '3–4 часа', '5–6 часов', '7–9 часов', 'более 10 часов'])}</dd></div>
+            <div><dt>Шлейф</dt><dd>${scale(product.sillage, ['близкий к коже', 'лёгкий', 'умеренный', 'заметный', 'очень сильный'])}</dd></div>
+          </dl>
         </section>
-      </div>`;
+
+        <section class="pd-pairs" data-head="light" aria-labelledby="pairs-title">
+          <div class="pd-pairs-head">
+            <h2 id="pairs-title" class="reveal">С чем сочетается этот аромат</h2>
+            <p class="reveal">Ароматы с похожими нотами и характером. Их можно носить по очереди или собрать в гардероб ароматов.</p>
+          </div>
+          <div class="shelf-grid shelf-grid--four">${related.map((p, i) => card(p, { index: i })).join('')}</div>
+        </section>
+      </article>`;
   }
 
   function refreshBuy() {
@@ -185,6 +179,8 @@ FS.views.product = (function () {
   function mount(el, route, params, signal) {
     root = el;
     if (!product) return;
+    FS.motion.splitChars($('[data-chars]', root));
+    requestAnimationFrame(() => requestAnimationFrame(() => $('.pd', root).classList.add('is-in')));
 
     $$('input[name="volume"]', root).forEach((input) => input.addEventListener('change', () => {
       selected = product.volumes.find((v) => v.ml === Number(input.value));

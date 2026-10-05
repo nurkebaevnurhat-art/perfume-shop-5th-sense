@@ -116,7 +116,13 @@ FS.views.catalog = (function () {
     return { list, grid };
   }
 
-  function updateResults() {
+  // Перерисовываем только при реальном изменении фильтров: иначе потеря фокуса
+  // полем цены перерисует чипы прямо во время клика и клик «потеряется».
+  let lastKey = null;
+  function updateResults(force) {
+    const key = JSON.stringify(state);
+    if (!force && key === lastKey) return;
+    lastKey = key;
     const { list, grid } = results();
     $('[data-grid]', root).innerHTML = grid;
     $('[data-count]', root).textContent = `${list.length} ${plural(list.length, 'аромат', 'аромата', 'ароматов')}`;
@@ -196,6 +202,7 @@ FS.views.catalog = (function () {
 
   function mount(el, route, params, signal) {
     root = el;
+    lastKey = null;
     updateResults();
     let t = null;
     $('#catalog-search', root).addEventListener('input', (e) => {

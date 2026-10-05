@@ -65,8 +65,9 @@ FS.views.checkout = (function () {
   }
 
   function successState(order) {
-    return `<section class="page-head page-head--center">
-        <h1>Заказ ${esc(order.number)} оформлен</h1>
+    return `<section class="page-head page-head--center page-head--success">
+        <p class="kicker">Заказ ${esc(order.number)}</p>
+        <h1>Заказ принят</h1>
         <p class="page-lead">Спасибо, ${esc(order.customer.firstName)}. Мы позвоним по номеру ${esc(order.customer.phone)}, чтобы подтвердить заказ и время доставки.</p>
       </section>
       <div class="page-body success">
