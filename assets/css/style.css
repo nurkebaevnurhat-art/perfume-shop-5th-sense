@@ -187,6 +187,7 @@ h1[tabindex="-1"]:focus { outline: none; }
 /* ---------- Шапка ---------- */
 .site-header { position: fixed; inset: 0 0 auto 0; z-index: 50; padding-top: env(safe-area-inset-top, 0px); color: var(--ink); transition: color 0.5s var(--ease), background-color 0.5s var(--ease); }
 .site-header[data-tone="dark"] { color: var(--on-dark); }
+.site-header.is-scrolled[data-tone="dark"] { background: rgba(14, 12, 10, 0.86); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
 .site-header.is-scrolled[data-tone="light"] { background: rgba(244, 239, 230, 0.86); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
 .header-inner { height: var(--header-h); padding: 0 var(--gutter); display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; }
 .header-left, .header-right { display: flex; align-items: center; gap: clamp(14px, 2.2vw, 32px); }
@@ -376,7 +377,11 @@ h1[tabindex="-1"]:focus { outline: none; }
 /* Бестселлеры: горизонтальная лента */
 .hscroll { position: relative; background: var(--ink); color: var(--on-dark); }
 .hscroll-pin { display: grid; grid-template-columns: minmax(0, 1fr); gap: 32px; padding-block: clamp(72px, 9vw, 120px); overflow: hidden; }
-.hscroll.is-pinned .hscroll-pin { position: sticky; top: 0; height: 100vh; height: 100svh; align-content: center; padding-block: calc(var(--header-h) + 8px) 40px; }
+.hscroll.is-pinned .hscroll-pin { position: sticky; top: 0; height: 100vh; height: 100svh; align-content: center; gap: clamp(16px, 3vh, 28px); padding-block: calc(var(--header-h) + 16px) 28px; }
+/* В закреплённой ленте всё помещается в один экран: заголовок в строку, фото по высоте окна */
+.hscroll.is-pinned .hscroll-title { font-size: clamp(28px, 3vw, 52px); max-width: none; }
+.hscroll.is-pinned .pcard-media { aspect-ratio: auto; height: clamp(180px, calc(100svh - 480px), 460px); }
+.hscroll.is-pinned .pcard-desc { display: none; }
 .hscroll-head { width: min(100% - 2 * var(--gutter), var(--max)); margin-inline: auto; display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px 32px; }
 .hscroll-head .kicker { flex-basis: 100%; }
 .hscroll-title { font-family: var(--ff-serif); font-size: clamp(34px, 4.2vw, 68px); line-height: 1; text-transform: uppercase; letter-spacing: 0.02em; max-width: 18ch; }

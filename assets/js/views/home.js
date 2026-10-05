@@ -253,7 +253,8 @@ FS.views.home = (function () {
     const track = $('.hscroll-track', hs);
     const bar = $('.hscroll-bar span', hs);
     let distance = 0;
-    const pinned = () => !reduce && window.matchMedia('(min-width: 900px)').matches;
+    // На низких экранах лента не закрепляется: карточки не поместились бы под шапкой.
+    const pinned = () => !reduce && window.matchMedia('(min-width: 900px) and (min-height: 600px)').matches;
     const measure = () => {
       if (pinned()) {
         hs.classList.add('is-pinned');
