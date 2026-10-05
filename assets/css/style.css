@@ -79,6 +79,10 @@ h1[tabindex="-1"]:focus { outline: none; }
   --scene: radial-gradient(ellipse 74% 62% at 50% 45%, var(--scene-light) 0%, var(--scene-light) 24%, color-mix(in srgb, var(--scene-light) 40%, #a8957a) 100%);
 }
 
+/* Ячейка с фото имеет точную высоту, чтобы высокое фото вписывалось целиком, а не растягивало ячейку */
+.menu-shot, .stack-item, .fam-float .fam-shot, .irow-img { grid-template: minmax(0, 1fr) / minmax(0, 1fr); }
+.menu-shot img, .stack-item img, .fam-float .fam-shot img, .irow-img img, .pcard-img img, .stage-media img { min-width: 0; min-height: 0; max-width: 100%; max-height: 100%; }
+
 /* ---------- Знаки бренда ---------- */
 .logo { display: inline-grid; justify-items: center; gap: 3px; line-height: 1; white-space: nowrap; }
 .logo-word { font-family: var(--ff-display); font-weight: 500; font-size: 17px; letter-spacing: 0.16em; }
