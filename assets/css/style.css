@@ -272,6 +272,11 @@ h1[tabindex="-1"]:focus { outline: none; }
 .stepper button:disabled { opacity: 0.3; cursor: not-allowed; }
 .stepper svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; }
 .stepper output { min-width: 30px; text-align: center; font-variant-numeric: tabular-nums; }
+/* Компактный счётчик в корзине */
+.cart-line .stepper { height: 30px; border-color: var(--line); background: transparent; }
+.cart-line .stepper button { width: 28px; }
+.cart-line .stepper svg { width: 12px; height: 12px; }
+.cart-line .stepper output { min-width: 22px; font-size: 13.5px; }
 
 .search-panel { position: absolute; inset: 0 0 auto 0; max-height: 100%; overflow-y: auto; padding: calc(22px + env(safe-area-inset-top, 0px)) var(--gutter) 34px; background: var(--ink); color: var(--on-dark); transform: translateY(-104%); transition: transform 0.8s var(--ease); }
 .layer.is-open .search-panel { transform: none; }
