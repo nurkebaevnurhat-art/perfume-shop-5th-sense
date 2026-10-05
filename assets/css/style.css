@@ -723,9 +723,9 @@ h1[tabindex="-1"]:focus { outline: none; }
 .footer-col h2 { font-family: var(--ff); font-size: 11.5px; font-weight: 500; letter-spacing: 0.32em; text-transform: uppercase; color: var(--gold-soft); margin-bottom: 12px; }
 .footer-col a, .footer-col p { color: var(--on-dark-soft); transition: color 0.3s; }
 .footer-col a:hover { color: var(--on-dark); }
-.footer-mark { display: flex; justify-content: center; padding: clamp(48px, 7vw, 96px) var(--gutter) clamp(56px, 8vw, 110px); border-top: 1px solid var(--line-dark); }
+.footer-mark { display: flex; justify-content: center; padding: clamp(40px, 5vw, 72px) var(--gutter) clamp(44px, 6vw, 84px); border-top: 1px solid var(--line-dark); }
 /* Логотип бутика в подвале */
-.footer-logo { width: auto; height: clamp(260px, 42vw, 480px); max-width: 80vw; object-fit: contain; transition: transform 1.2s var(--ease); }
+.footer-logo { width: auto; height: clamp(170px, 22vw, 280px); max-width: 80vw; object-fit: contain; transition: transform 1.2s var(--ease); }
 .footer-mark:hover .footer-logo { transform: translateY(-1.5%); }
 .footer-base { padding: 18px var(--gutter) 22px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--on-dark-soft); }
 
