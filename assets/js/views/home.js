@@ -3,7 +3,7 @@ window.FS = window.FS || {};
 FS.views = FS.views || {};
 
 FS.views.home = (function () {
-  const { $, $$, esc, money, plural, card, tint, wordmark, emblem } = FS.ui;
+  const { $, $$, esc, money, plural, card, tint, wordmark, perfumery, emblem } = FS.ui;
   const M = FS.motion;
   const P = (id) => FS.api.productSync(id);
   const pick = (ids, n) => {
@@ -14,19 +14,6 @@ FS.views.home = (function () {
 
   let timer = null;
   const pad = (n) => String(n).padStart(2, '0');
-
-  // Цвет сцены героя под каждый флакон: насыщенный фон и светлое пятно света за флаконом.
-  const SCENES = {
-    'baccarat-rouge-540': ['#b4553e', '#ebc7b4'],
-    'lv-les-sables-roses': ['#b77462', '#edcdbf'],
-    'dior-sauvage-elixir': ['#a88a63', '#e5d4bb'],
-    'kilian-straight-to-heaven': ['#b07a3a', '#ecd2a8'],
-    'marly-althair': ['#7d8466', '#dadbc3']
-  };
-  const sceneStyle = (p) => {
-    const [bg, glow] = SCENES[p.id] || [FS.ui.hexMix(tint(p, 0.3), '#8a6a4a', 0.45), tint(p, 0.86)];
-    return `--bg:${bg};--glow:${glow}`;
-  };
 
   function heroSlides() {
     return pick(['baccarat-rouge-540', 'lv-les-sables-roses', 'dior-sauvage-elixir', 'kilian-straight-to-heaven', 'marly-althair'], 5);
@@ -43,7 +30,7 @@ FS.views.home = (function () {
       '@context': 'https://schema.org',
       '@type': 'Store',
       name: '5th SENSE',
-      description: 'Premium Perfume Boutique: селективная и нишевая парфюмерия.',
+      description: '5th SENSE Perfumery: селективная и нишевая парфюмерия.',
       telephone: FS.config.contacts.phone
     });
 
@@ -65,7 +52,7 @@ FS.views.home = (function () {
           <div class="hero-brand-bg" aria-hidden="true"></div>
           <div class="hero-scene" data-cursor="Смотреть">
             ${slides.map((p, i) => `
-              <a class="slide ${i === 0 ? 'is-active' : ''}" href="#product-${p.id}" style="${sceneStyle(p)}" data-slide="${i}" tabindex="${i === 0 ? 0 : -1}" aria-label="${esc(p.brand)} ${esc(p.name)}">
+              <a class="slide ${i === 0 ? 'is-active' : ''}" href="#product-${p.id}" data-slide="${i}" tabindex="${i === 0 ? 0 : -1}" aria-label="${esc(p.brand)} ${esc(p.name)}">
                 <span class="slide-img">${FS.bottle.media(p, { title: '' })}</span>
               </a>`).join('')}
           </div>
@@ -80,13 +67,16 @@ FS.views.home = (function () {
               <a class="pill pill--ghost pill--lg" href="#aromaty">Исследовать ароматы</a>
             </div>
           </div>
-          <h1 id="hero-title" class="hero-mark"><span class="visually-hidden">5th SENSE, premium perfume boutique</span>${wordmark('wordmark--hero')}</h1>
+          <h1 id="hero-title" class="hero-mark"><span class="visually-hidden">5th SENSE Perfumery, бутик парфюмерии</span>${wordmark('wordmark--hero')}</h1>
           <div class="hero-frame-label" aria-hidden="true">Коллекция 2026</div>
         </div>
       </section>
 
       <section class="story" data-head="dark" aria-labelledby="story-title">
         <div class="story-inner">
+          <figure class="story-sign reveal">
+            <img src="${FS.assetUrl('assets/img/brand-sign.jpg')}" alt="Вывеска бутика 5th SENSE Perfumery: золотые буквы на тёплой стене" loading="lazy" decoding="async">
+          </figure>
           <p class="kicker reveal">О бренде</p>
           <h2 id="story-title" class="visually-hidden">О бренде 5th SENSE</h2>
           <p class="story-text" data-words>Пятое чувство помнит дольше остальных. Мы собираем ароматы, которые становятся частью вашей истории: от первого вдоха до шлейфа, который остаётся после вас.</p>
@@ -99,7 +89,7 @@ FS.views.home = (function () {
         </div>
       </section>
 
-      <section class="index" data-head="dark" aria-labelledby="index-title">
+      <section class="index" data-head="light" aria-labelledby="index-title">
         <div class="index-head">
           <p class="kicker reveal">Избранная коллекция</p>
           <h2 id="index-title" class="index-title reveal">Восемь ароматов, с которых начинается бутик</h2>
@@ -140,7 +130,7 @@ FS.views.home = (function () {
         </div>
       </section>
 
-      <section class="families" id="aromaty" data-head="dark" aria-labelledby="fam-title">
+      <section class="families" id="aromaty" data-head="light" aria-labelledby="fam-title">
         <div class="families-head">
           <p class="kicker reveal">Семейства ароматов</p>
           <h2 id="fam-title" class="reveal">Исследовать ароматы</h2>
@@ -214,6 +204,8 @@ FS.views.home = (function () {
       const p = M.progress(hero, h);
       heroVisible = p < 0.98;
       pin.style.setProperty('--p', p.toFixed(4));
+      // Когда кадр сжимается в рамку, вокруг остаётся чёрный фон: шапка становится светлой на тёмном.
+      hero.dataset.head = p > 0.42 ? 'dark' : 'light';
     });
 
     /* --- История: слова проявляются по мере прокрутки --- */

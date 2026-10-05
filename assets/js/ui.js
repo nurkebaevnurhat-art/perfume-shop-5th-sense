@@ -32,20 +32,22 @@ FS.ui = (function () {
   };
 
   /* ---------- Знаки бренда ---------- */
-  const logo = (cls) => `<span class="logo ${cls || ''}">5<span class="logo-th">th</span> SENSE</span>`;
+  const logo = (cls) => `<span class="logo ${cls || ''}"><span class="logo-word">5<span class="logo-th">th</span> SENSE</span><span class="logo-sub">Perfumery</span></span>`;
 
   // Гигантский логотип; data-fit растягивает его на всю ширину контейнера.
   const wordmark = (cls) => `<span class="wordmark ${cls || ''}" data-fit aria-hidden="true"><span class="wm-5">5</span><span class="wm-th">th</span><span class="wm-gap"> </span>SENSE</span>`;
 
-  // Эмблема: капля с цифрой 5 и тремя линиями шлейфа.
-  const emblem = (cls) => `<svg class="emblem ${cls || ''}" viewBox="0 0 64 84" aria-hidden="true" focusable="false">
-      <path class="em-drop" d="M32 14C32 14 9 42 9 58a23 23 0 0 0 46 0C55 42 32 14 32 14Z"/>
-      <path class="em-inner" d="M32 26C32 26 17 46 17 58a15 15 0 0 0 30 0"/>
-      <path class="em-ray" d="M24 9c2-3 2-5 0-8M32 8c2-3 2-5 0-7M40 9c2-3 2-5 0-8"/>
-      <text x="32" y="68" text-anchor="middle">5</text>
+  // Подпись под логотипом: PERFUMERY между двумя тонкими линиями.
+  const perfumery = (cls) => `<span class="perfumery ${cls || ''}" aria-hidden="true"><i></i>Perfumery<i></i></span>`;
+
+  // Эмблема: цифра 5 с надстрочным TH и лентой шлейфа, как на вывеске бутика.
+  const emblem = (cls) => `<svg class="emblem ${cls || ''}" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+      <text class="em-5" x="25" y="50" text-anchor="middle">5</text>
+      <text class="em-th" x="37" y="23">TH</text>
+      <path class="em-swoosh" d="M6 41c2-5 8-5 9 0 2 8 10 12 20 9 9-3 13-9 23-10"/>
     </svg>`;
 
-  // Светлый тон фона для товара: цвет жидкости, сильно разбавленный бумагой.
+  // Светлый тон фона для товара: цвет жидкости, сильно разбавленный тёплым камнем.
   function hexMix(a, b, t) {
     const p = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
     const x = p(a); const y = p(b);
@@ -53,7 +55,7 @@ FS.ui = (function () {
   }
   const tint = (p, amount) => {
     const liquid = (p.bottle && /^#[0-9a-f]{6}$/i.test(p.bottle.liquid)) ? p.bottle.liquid : '#b59a7a';
-    return hexMix(liquid, '#f1ede6', amount == null ? 0.84 : amount);
+    return hexMix(liquid, '#ece6db', amount == null ? 0.9 : amount);
   };
 
   /* ---------- Шапка и меню ---------- */
@@ -82,7 +84,7 @@ FS.ui = (function () {
     $('#site-menu').innerHTML = `
       <div class="menu-panel" role="dialog" aria-modal="true" aria-label="Меню">
         <div class="menu-top">
-          <span class="menu-note">5th SENSE, premium perfume boutique</span>
+          <span class="menu-note">5th SENSE · Perfumery</span>
           <button class="hl" type="button" data-action="close-menu" data-autofocus>Закрыть</button>
         </div>
         <div class="menu-grid">
@@ -151,9 +153,10 @@ FS.ui = (function () {
         </nav>
       </div>
       <a class="footer-mark" href="#home" aria-label="5th SENSE, на главную">${wordmark()}</a>
+      ${perfumery('footer-sub')}
       <div class="footer-base">
         <span>© ${new Date().getFullYear()} 5th SENSE</span>
-        <span>Premium Perfume Boutique</span>
+        <span>Perfumery · Premium Boutique</span>
       </div>`;
   }
 
@@ -509,7 +512,7 @@ FS.ui = (function () {
   }
 
   return {
-    $, $$, esc, money, plural, icon, logo, wordmark, emblem, tint, hexMix, volumeLabel,
+    $, $$, esc, money, plural, icon, logo, wordmark, perfumery, emblem, tint, hexMix, volumeLabel,
     renderHeader, renderFooter, setActiveNav, card, stepper, toast,
     open, close, openCart, renderCart, bind, pulse,
     setStructuredData, productSchema,

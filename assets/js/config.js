@@ -5,7 +5,7 @@ window.FS = window.FS || {};
 
 FS.config = {
   brand: '5th SENSE',
-  tagline: 'Premium Perfume Boutique',
+  tagline: 'Perfumery',
   currency: '₸',
   locale: 'ru-RU',
 
