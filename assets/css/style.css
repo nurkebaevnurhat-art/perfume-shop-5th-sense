@@ -699,8 +699,11 @@ h1[tabindex="-1"]:focus { outline: none; }
 .footer-mark { display: block; padding: 24px var(--gutter) 0; border-top: 1px solid var(--line-dark); color: var(--gold); line-height: 0; }
 .footer-sub { color: var(--gold-soft); padding: 22px var(--gutter) 6px; font-size: clamp(11px, 1.1vw, 15px); }
 .footer-sub i { flex-basis: 18vw; }
-.footer-est { text-align: center; font-family: var(--ff-display); font-size: clamp(10px, 0.9vw, 12px); letter-spacing: 0.42em; margin-right: -0.42em; text-transform: uppercase; color: var(--on-dark-soft); padding-top: 8px; }
-.footer-mark .wordmark { transition: transform 1.2s var(--ease); }
+.footer-est { text-align: center; font-family: var(--ff-display); font-size: clamp(10px, 0.9vw, 12px); letter-spacing: 0.42em; margin-right: -0.42em; text-transform: uppercase; color: var(--on-dark-soft); padding: 8px var(--gutter) calc(36px + env(safe-area-inset-bottom, 0px)); }
+.footer-mark .wordmark { transition: transform 1.2s var(--ease);
+  /* Насыщенное золото с лёгким металлическим переходом */
+  background: linear-gradient(180deg, #e2b968 0%, #cf9d47 45%, #a9772e 100%);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 .footer-mark:hover .wordmark { transform: translateY(-2%); }
 .footer-base { padding: 18px var(--gutter) 22px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--on-dark-soft); }
 

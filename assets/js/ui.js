@@ -159,11 +159,7 @@ FS.ui = (function () {
       </div>
       <a class="footer-mark" href="#home" aria-label="5th SENSE, на главную">${wordmark()}</a>
       ${brandLine('footer-sub')}
-      <p class="footer-est">${est()}</p>
-      <div class="footer-base">
-        <span>© ${new Date().getFullYear()} 5th SENSE</span>
-        <span>${FS.config.tagline} · ${est()}</span>
-      </div>`;
+      <p class="footer-est">${est()}</p>`;
   }
 
   /* ---------- Карточка товара ---------- */
