@@ -533,6 +533,17 @@ h1[tabindex="-1"]:focus { outline: none; }
 .toolbar-sort { flex: 0 0 auto; }
 .toolbar select { min-height: 46px; padding-right: 34px; appearance: none; -webkit-appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--ink) 50%), linear-gradient(135deg, var(--ink) 50%, transparent 50%); background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px; background-repeat: no-repeat; cursor: pointer; }
 .filters-open { display: none; min-height: 46px; }
+/* Каталог: поиск, сортировка и выбранные фильтры — без рамок, только тонкая линия снизу */
+.catalog .toolbar { gap: 12px 32px; align-items: end; }
+.catalog .toolbar-search input, .catalog .toolbar select { background-color: transparent; border: 0; border-bottom: 1px solid var(--line-strong); padding-top: 8px; padding-bottom: 8px; min-height: 44px; }
+.catalog .toolbar-search input { padding-left: 30px; }
+.catalog .toolbar-search svg { left: 0; }
+.catalog .toolbar select { padding-left: 0; background-position: calc(100% - 10px) 50%, calc(100% - 5px) 50%; }
+.catalog .toolbar-search input:focus, .catalog .toolbar select:focus { border-color: var(--ink); box-shadow: 0 1px 0 0 var(--ink); }
+.catalog .filters-open { border: 0; border-bottom: 1px solid currentColor; padding: 0; min-height: 40px; }
+.chips { gap: 8px 22px; }
+.chips .chip { min-height: 30px; padding: 0 0 2px; border: 0; border-bottom: 1px solid currentColor; color: var(--gold-deep); font-size: 13.5px; }
+.chips .chip:hover { color: var(--ink); }
 .toolbar-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 18px 0 26px; min-height: 34px; }
 .result-count { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-soft); }
 .page-body > .result-count { margin-bottom: 20px; }
