@@ -299,8 +299,10 @@ FS.ui = (function () {
         <div class="drawer-foot">
           <div class="sum-row"><span>Товары</span><span>${money(subtotal)}</span></div>
           <p class="drawer-note">Стоимость доставки рассчитается при оформлении.</p>
-          <a class="btn btn--primary btn--block" href="#checkout" data-action="close-cart" data-autofocus>Оформить заказ</a>
-          <button class="btn btn--outline btn--block" type="button" data-action="close-cart">Продолжить покупки</button>
+          <div class="drawer-actions">
+            <a class="line-link" href="#checkout" data-action="close-cart" data-autofocus>Оформить заказ</a>
+            <button class="line-link line-link--soft" type="button" data-action="close-cart">Продолжить покупки</button>
+          </div>
         </div>` : ''}
       </div>`;
   }
