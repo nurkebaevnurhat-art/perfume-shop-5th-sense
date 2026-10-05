@@ -224,10 +224,10 @@ h1[tabindex="-1"]:focus { outline: none; }
 .menu-note { font-size: 11px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--gold-soft); }
 .menu-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 40px; align-items: center; padding-block: 24px; }
 .menu-links { display: flex; flex-direction: column; }
-.menu-links a { display: flex; align-items: baseline; gap: 18px; padding: 4px 0; font-family: var(--ff-serif); font-size: clamp(28px, min(3.8vw, 6.2vh), 56px); line-height: 1.04; text-transform: uppercase; letter-spacing: 0.03em; opacity: 0; transform: translate3d(0, 40px, 0); transition: opacity 0.8s var(--ease), transform 0.9s var(--ease), color 0.4s; }
+.menu-links a { display: grid; grid-template-columns: 48px minmax(0, 1fr); align-items: start; column-gap: 8px; padding: 4px 0; font-family: var(--ff-serif); font-size: clamp(28px, min(3.8vw, 6.2vh), 56px); line-height: 1.04; text-transform: uppercase; letter-spacing: 0.03em; opacity: 0; transform: translate3d(0, 40px, 0); transition: opacity 0.8s var(--ease), transform 0.9s var(--ease), color 0.4s; }
 .layer.is-open .menu-links a { opacity: 1; transform: none; transition-delay: calc(0.25s + var(--i) * 0.05s); }
 .menu-links a:hover { color: var(--gold-soft); }
-.menu-num { font-family: var(--ff); font-size: 11px; letter-spacing: 0.16em; color: var(--gold-soft); }
+.menu-num { font-family: var(--ff-display); font-size: 0.42em; line-height: 1; letter-spacing: 0.04em; color: var(--gold-soft); font-variant-numeric: lining-nums tabular-nums; text-align: left; margin-top: 0.74em; /* по центру первой строки названия */ }
 .menu-shots { position: relative; aspect-ratio: 4 / 5; max-height: 64vh; justify-self: end; width: min(100%, 420px); }
 .menu-shot-wrap { position: absolute; inset: 0; clip-path: inset(100% 0 0 0); transition: clip-path 0.9s var(--ease); }
 .menu-shot-wrap.is-on { clip-path: inset(0 0 0 0); }
@@ -796,7 +796,7 @@ h1[tabindex="-1"]:focus { outline: none; }
   .info-list > div { grid-template-columns: minmax(0, 1fr); gap: 4px; }
   .toolbar-search { flex-basis: 100%; }
   .toolbar-sort { flex: 1 1 auto; }
-  .menu-links a { font-size: 30px; }
+  .menu-links a { font-size: 30px; grid-template-columns: 34px minmax(0, 1fr); }
   .menu-note-est { display: none; }
   .menu-foot { font-size: 11.5px; }
 }
