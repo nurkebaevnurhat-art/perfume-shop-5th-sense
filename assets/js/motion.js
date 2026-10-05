@@ -97,15 +97,30 @@ FS.motion = (function () {
     header.classList.toggle('is-scrolled', window.scrollY > 20);
   }
 
-  /* ---------- Курсор-плашка «Смотреть» ---------- */
+  /* ---------- Курсор «Смотреть»: стеклянное кольцо с бегущей по кругу надписью ---------- */
   function cursor() {
     if (!finePointer.matches || reduce.matches) return;
     const el = document.createElement('div');
     el.className = 'cursor';
     el.setAttribute('aria-hidden', 'true');
-    el.innerHTML = '<span class="cursor-label"></span>';
+    el.innerHTML = `<span class="cursor-badge">
+        <svg class="cursor-ring" viewBox="0 0 76 76" focusable="false">
+          <defs><path id="cursor-path" d="M38 38m-27 0a27 27 0 1 1 54 0a27 27 0 1 1 -54 0"/></defs>
+          <text><textPath href="#cursor-path" textLength="168" lengthAdjust="spacing"></textPath></text>
+        </svg>
+        <span class="cursor-dot"></span>
+      </span>`;
     document.body.appendChild(el);
-    const label = el.firstChild;
+    const path = el.querySelector('textPath');
+    let current = '';
+    // Надпись повторяется, чтобы заполнить окружность: «СМОТРЕТЬ · СМОТРЕТЬ ·».
+    const setLabel = (label) => {
+      if (label === current) return;
+      current = label;
+      const word = label.toUpperCase();
+      const reps = word.length <= 6 ? 3 : 2;
+      path.textContent = Array(reps).fill(word + ' · ').join('');
+    };
     let x = -100; let y = -100; let cx = x; let cy = y; let running = false;
     const step = () => {
       cx += (x - cx) * 0.22;
@@ -116,7 +131,7 @@ FS.motion = (function () {
     document.addEventListener('pointermove', (e) => {
       x = e.clientX; y = e.clientY;
       const target = e.target.closest && e.target.closest('[data-cursor]');
-      if (target) { label.textContent = target.dataset.cursor; el.classList.add('is-on'); } else el.classList.remove('is-on');
+      if (target) { setLabel(target.dataset.cursor); el.classList.add('is-on'); } else el.classList.remove('is-on');
       if (!running) { running = true; requestAnimationFrame(step); }
     }, { passive: true });
     document.addEventListener('pointerleave', () => el.classList.remove('is-on'));
