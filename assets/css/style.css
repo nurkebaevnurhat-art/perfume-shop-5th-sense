@@ -728,9 +728,14 @@ h1[tabindex="-1"]:focus { outline: none; }
 .footer-sub i { flex-basis: 18vw; }
 .footer-est { text-align: center; font-family: var(--ff-display); font-size: clamp(10px, 0.9vw, 12px); letter-spacing: 0.42em; margin-right: -0.42em; text-transform: uppercase; color: var(--on-dark-soft); padding: 8px var(--gutter) calc(36px + env(safe-area-inset-bottom, 0px)); }
 .footer-mark .wordmark { transition: transform 1.2s var(--ease);
-  /* Та же античная бронза, что у логотипа в первом экране */
-  background: linear-gradient(180deg, #b08d5b 0%, #8a6a3d 34%, #5f4524 72%, #4a3519 100%);
-  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  /* Живое золото: тёплый металл с бликом сверху и мягким светом, медленно скользящим по буквам */
+  background:
+    linear-gradient(105deg, rgba(255, 244, 214, 0) 40%, rgba(255, 244, 214, 0.55) 50%, rgba(255, 244, 214, 0) 60%) 0 0 / 250% 100% no-repeat,
+    linear-gradient(180deg, #f3dca4 0%, #deb460 28%, #c8963f 58%, #a87430 82%, #8c5f27 100%);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 22px rgba(214, 160, 70, 0.18));
+  animation: goldSheen 7s ease-in-out infinite; }
+@keyframes goldSheen { 0% { background-position: 130% 0, 0 0; } 55%, 100% { background-position: -30% 0, 0 0; } }
 .footer-mark:hover .wordmark { transform: translateY(-2%); }
 .footer-base { padding: 18px var(--gutter) 22px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--on-dark-soft); }
 
@@ -845,6 +850,7 @@ h1[tabindex="-1"]:focus { outline: none; }
   .reveal, .c, .pd-info > * { opacity: 1 !important; transform: none !important; }
   .pd .pd-stage .stage-media { clip-path: none; transform: none; }
   .wordmark--hero { transform: none; }
+  .footer-mark .wordmark { animation: none; }
 }
 
 /* =========================================================
