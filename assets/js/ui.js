@@ -509,7 +509,7 @@ FS.ui = (function () {
   }
 
   return {
-    $, $$, esc, money, plural, icon, logo, wordmark, emblem, tint, volumeLabel,
+    $, $$, esc, money, plural, icon, logo, wordmark, emblem, tint, hexMix, volumeLabel,
     renderHeader, renderFooter, setActiveNav, card, stepper, toast,
     open, close, openCart, renderCart, bind, pulse,
     setStructuredData, productSchema,

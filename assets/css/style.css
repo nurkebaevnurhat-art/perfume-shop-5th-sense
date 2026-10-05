@@ -278,17 +278,18 @@ h1[tabindex="-1"]:focus { outline: none; }
 .hero-pin { position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden; --p: 0; --mx: 0; --my: 0; --fx: 24%; --fy: 18%; background: var(--ink); }
 .hero-brand-bg { position: absolute; inset: 0; background: var(--brand); opacity: calc((var(--p) - 0.4) * 2.2); }
 .hero-scene { position: absolute; inset: 0; z-index: 1; clip-path: inset(calc(var(--p) * var(--fy)) calc(var(--p) * var(--fx)) calc(var(--p) * (var(--fy) + 6%)) calc(var(--p) * var(--fx))); will-change: clip-path; }
-.slide { position: absolute; inset: 0; display: grid; place-items: center; background: var(--tint); opacity: 0; transform: scale(1.1); transition: opacity 1.6s var(--ease-io), transform 7s cubic-bezier(0.2, 0.6, 0.2, 1); }
-.slide.is-active { opacity: 1; z-index: 2; transform: none; }
-.slide.is-prev { opacity: 1; z-index: 1; transform: none; }
-.slide::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 70% 60% at 50% 45%, transparent 55%, rgba(10, 10, 11, 0.16)); pointer-events: none; }
-.slide-img { position: relative; background: var(--tint); height: 70%; aspect-ratio: 3 / 4; max-width: 86vw; transform: translate3d(calc(var(--mx) * -26px), calc(var(--my) * -18px), 0) scale(calc(1 + var(--p) * 0.08)); transition: transform 1.2s var(--ease); }
+.slide { position: absolute; inset: 0; display: grid; place-items: center; --gy: 46%; background: radial-gradient(ellipse min(42vh, 46vw) 64vh at 50% var(--gy), var(--glow) 0%, var(--glow) 34%, var(--bg) 92%); opacity: 0; scale: 1.1; translate: calc(var(--mx) * -20px) calc(var(--my) * -14px); transition: opacity 1.6s var(--ease-io), scale 7s cubic-bezier(0.2, 0.6, 0.2, 1), translate 1.2s var(--ease); }
+.slide.is-active { opacity: 1; z-index: 2; scale: 1; }
+.slide.is-prev { opacity: 1; z-index: 1; scale: 1; }
+.slide::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 80% 70% at 50% 45%, transparent 50%, rgba(10, 10, 11, 0.22)); pointer-events: none; }
+/* Без собственного фона и трансформации: белый фон фото растворяется в цвете сцены */
+.slide-img { position: relative; height: 70%; aspect-ratio: 3 / 4; max-width: 86vw; }
 .slide-img img, .slide-img svg { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: darken; }
 .hero-top { position: absolute; z-index: 60; top: calc(env(safe-area-inset-top, 0px) + 12px); left: 50%; transform: translateX(-50%); width: clamp(30px, 2.6vw, 38px); color: var(--brand); opacity: calc(1 - var(--p) * 2); }
 .hero-caption { position: absolute; z-index: 3; left: var(--gutter); right: var(--gutter); bottom: calc(16vw + 24px); display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: end; gap: 24px; opacity: calc(1 - var(--p) * 2.4); }
 .hero-count { font-family: var(--ff-serif); font-size: 22px; font-variant-numeric: tabular-nums; }
 .hero-now { display: grid; gap: 4px; }
-.hero-now span { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-soft); }
+.hero-now span { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(10, 10, 11, 0.72); }
 .hero-now a { font-family: var(--ff-serif); font-size: clamp(24px, 2.4vw, 34px); text-transform: uppercase; line-height: 1; }
 .hero-now.is-swap > * { animation: swapIn 0.9s var(--ease); }
 @keyframes swapIn { from { opacity: 0; transform: translateY(12px); } }
@@ -700,6 +701,7 @@ h1[tabindex="-1"]:focus { outline: none; }
 @media (max-width: 760px) {
   .hero { height: 190vh; }
   .hero-pin { --fx: 7%; --fy: 22%; }
+  .slide { --gy: 38%; }
   .slide-img { height: 58%; margin-bottom: 14vh; }
   .hero-caption { bottom: calc(15vw + 18px); gap: 12px 16px; }
   .hero-now a { font-size: 22px; }

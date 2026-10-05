@@ -15,6 +15,19 @@ FS.views.home = (function () {
   let timer = null;
   const pad = (n) => String(n).padStart(2, '0');
 
+  // Цвет сцены героя под каждый флакон: насыщенный фон и светлое пятно света за флаконом.
+  const SCENES = {
+    'baccarat-rouge-540': ['#b4553e', '#ebc7b4'],
+    'lv-les-sables-roses': ['#b77462', '#edcdbf'],
+    'dior-sauvage-elixir': ['#a88a63', '#e5d4bb'],
+    'kilian-straight-to-heaven': ['#b07a3a', '#ecd2a8'],
+    'marly-althair': ['#7d8466', '#dadbc3']
+  };
+  const sceneStyle = (p) => {
+    const [bg, glow] = SCENES[p.id] || [FS.ui.hexMix(tint(p, 0.3), '#8a6a4a', 0.45), tint(p, 0.86)];
+    return `--bg:${bg};--glow:${glow}`;
+  };
+
   function heroSlides() {
     return pick(['baccarat-rouge-540', 'lv-les-sables-roses', 'dior-sauvage-elixir', 'kilian-straight-to-heaven', 'marly-althair'], 5);
   }
@@ -52,7 +65,7 @@ FS.views.home = (function () {
           <div class="hero-brand-bg" aria-hidden="true"></div>
           <div class="hero-scene" data-cursor="Смотреть">
             ${slides.map((p, i) => `
-              <a class="slide ${i === 0 ? 'is-active' : ''}" href="#product-${p.id}" style="--tint:${tint(p, 0.8)}" data-slide="${i}" tabindex="${i === 0 ? 0 : -1}" aria-label="${esc(p.brand)} ${esc(p.name)}">
+              <a class="slide ${i === 0 ? 'is-active' : ''}" href="#product-${p.id}" style="${sceneStyle(p)}" data-slide="${i}" tabindex="${i === 0 ? 0 : -1}" aria-label="${esc(p.brand)} ${esc(p.name)}">
                 <span class="slide-img">${FS.bottle.media(p, { title: '' })}</span>
               </a>`).join('')}
           </div>
