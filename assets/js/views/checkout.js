@@ -60,7 +60,7 @@ FS.views.checkout = (function () {
       <div class="page-body"><div class="empty">
         <p class="empty-title">Корзина пуста</p>
         <p>Загляните на витрины бутика: бестселлеры, новинки и подарочные наборы.</p>
-        <a class="btn btn--gold" href="#catalog">Перейти в каталог</a>
+        <a class="btn btn--primary" href="#catalog">Перейти в каталог</a>
       </div></div>`;
   }
 
@@ -80,7 +80,7 @@ FS.views.checkout = (function () {
             <div class="summary-total"><dt>Итого</dt><dd>${money(order.total)}${order.shipping === null ? '<small>без учёта доставки</small>' : ''}</dd></div>
           </dl>
         </div>
-        <a class="btn btn--gold" href="#catalog">Вернуться в каталог</a>
+        <a class="btn btn--primary" href="#catalog">Вернуться в каталог</a>
       </div>`;
   }
 
@@ -143,7 +143,7 @@ FS.views.checkout = (function () {
           </fieldset>
 
           <p class="form-error" data-form-error role="alert"></p>
-          <button class="btn btn--gold btn--block btn--lg" type="submit">Подтвердить заказ</button>
+          <button class="btn btn--primary btn--block btn--lg" type="submit">Подтвердить заказ</button>
           <p class="co-legal">Нажимая кнопку, вы соглашаетесь на обработку персональных данных для доставки заказа.</p>
         </form>
 

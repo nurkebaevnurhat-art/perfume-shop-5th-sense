@@ -48,6 +48,6 @@ FS.views.notfound = {
         <h1>Такой страницы нет</h1>
         <p class="page-lead">Возможно, аромат сняли с витрины или ссылка устарела. Загляните в каталог: там все ароматы бутика.</p>
       </section>
-      <div class="page-body"><div class="empty"><a class="btn btn--gold" href="#catalog">Перейти в каталог</a></div></div>`;
+      <div class="page-body"><div class="empty"><a class="btn btn--primary" href="#catalog">Перейти в каталог</a></div></div>`;
   }
 };

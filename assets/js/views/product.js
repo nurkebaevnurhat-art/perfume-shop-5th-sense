@@ -11,10 +11,17 @@ FS.views.product = (function () {
   let root = null;
 
   const VIEWS = [
-    { id: 'niche', label: 'На витрине' },
-    { id: 'stone', label: 'На камне' },
-    { id: 'detail', label: 'Крупный план' }
+    { id: 'blueprint', label: 'Чертёж' },
+    { id: 'bottle', label: 'Флакон' },
+    { id: 'ink', label: 'Силуэт' }
   ];
+
+  function art(view, large) {
+    const title = large ? `${product.brand} ${product.name}` : '';
+    if (view === 'ink') return FS.bottle.silhouette(product);
+    if (view === 'bottle') return FS.bottle.media(product, { title });
+    return FS.bottle.media(product, { style: 'blueprint', annotate: large, title });
+  }
 
   function scale(value, labels) {
     return `<div class="scale" role="img" aria-label="${value} из 5: ${labels[value - 1]}">
@@ -30,11 +37,12 @@ FS.views.product = (function () {
   }
 
   function stage(view) {
-    const media = FS.bottle.media(product, { view: view === 'detail' ? 'detail' : 'full', title: `${product.brand} ${product.name}` });
+    const fam = FS.families.find((f) => f.id === product.family);
     return `<div class="stage stage--${view}" data-zoom>
-      <span class="stage-light" aria-hidden="true"></span>
-      <div class="stage-media">${media}</div>
-      ${view === 'detail' ? '' : '<span class="stage-plinth" aria-hidden="true"></span>'}
+      ${view === 'blueprint' ? `<span class="stage-meta stage-meta--tl">${esc(product.brand.toLowerCase())}<br>${esc(product.name.toLowerCase())}</span>
+      <span class="stage-meta stage-meta--tr">${esc(fam.name.toLowerCase())}<br>${product.year || ''}</span>` : ''}
+      ${view === 'ink' ? `<span class="stage-word" aria-hidden="true">${esc(product.name)}</span>` : ''}
+      <div class="stage-media ${view === 'ink' ? 'rough' : ''}">${art(view, true)}</div>
     </div>`;
   }
 
@@ -51,10 +59,10 @@ FS.views.product = (function () {
       <p class="stock ${s.cls}"><span class="stock-dot" aria-hidden="true"></span>${s.text}</p>
       <div class="buy-row">
         ${stepper(qty, max, 'data-qty', product.name)}
-        <button class="btn btn--gold btn--grow" type="button" data-buy="add" ${v.stock > 0 ? '' : 'disabled'}>Добавить в корзину</button>
+        <button class="btn btn--primary btn--grow" type="button" data-buy="add" ${v.stock > 0 ? '' : 'disabled'}>Добавить в корзину</button>
         <button class="fav-btn fav-btn--inline ${FS.store.isFavorite(product.id) ? 'is-on' : ''}" type="button" data-fav="${product.id}" aria-pressed="${FS.store.isFavorite(product.id)}" aria-label="В избранное: ${esc(product.name)}">${icon.heart}</button>
       </div>
-      <button class="btn btn--ink-line btn--block" type="button" data-buy="now" ${v.stock > 0 ? '' : 'disabled'}>Купить сейчас</button>`;
+      <button class="btn btn--outline btn--block" type="button" data-buy="now" ${v.stock > 0 ? '' : 'disabled'}>Купить сейчас</button>`;
   }
 
   function render(route) {
@@ -89,11 +97,11 @@ FS.views.product = (function () {
 
         <div class="product-top">
           <div class="gallery">
-            <div class="gallery-main" data-gallery-main>${stage('niche')}</div>
+            <div class="gallery-main" data-gallery-main>${stage('blueprint')}</div>
             <div class="gallery-thumbs" role="tablist" aria-label="Изображения">
               ${VIEWS.map((v, i) => `
                 <button class="thumb ${i === 0 ? 'is-active' : ''}" type="button" role="tab" aria-selected="${i === 0}" data-view="${v.id}">
-                  <span class="thumb-art thumb-art--${v.id}">${FS.bottle.media(product, { view: v.id === 'detail' ? 'detail' : 'full' })}</span>
+                  <span class="thumb-art thumb-art--${v.id}">${art(v.id, false)}</span>
                   <span class="thumb-label">${v.label}</span>
                 </button>`).join('')}
             </div>

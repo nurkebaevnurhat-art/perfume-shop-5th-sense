@@ -1,58 +1,50 @@
-/* 5th SENSE — главная: вход в бутик. */
+/* 5th SENSE — главная. */
 window.FS = window.FS || {};
 FS.views = FS.views || {};
 
 FS.views.home = (function () {
   const { esc, money, plural, card } = FS.ui;
+  const P = (id) => FS.api.productSync(id);
 
-  // Полки боковых стен: флаконы расставлены так же плотно, как в зале.
-  function shelves(side) {
-    const perfumes = FS.products.filter((p) => p.type === 'perfume');
-    const rows = [];
-    for (let r = 0; r < 4; r++) {
-      const items = [];
-      const n = r % 2 ? 4 : 5;
-      for (let i = 0; i < n; i++) {
-        const idx = (r * 5 + i * 3 + (side === 'r' ? 7 : 0)) % perfumes.length;
-        items.push(`<span class="shelf-bottle" style="--h:${0.68 + ((i * 7 + r * 3) % 4) * 0.07}">${FS.bottle.render(perfumes[idx])}</span>`);
-      }
-      rows.push(`<div class="shelf"><div class="shelf-row">${items.join('')}</div><span class="shelf-ledge"></span></div>`);
-    }
-    return rows.join('');
-  }
+  // Рисованный флакон с облаком распыления — ручная линия, как пометка на полях.
+  const doodle = `<svg class="doodle" viewBox="0 0 120 70" aria-hidden="true" focusable="false">
+    <path d="M18 62c-1-9 0-19 1-27 6-1 13-1 19 0 1 9 2 18 0 27-6 1-14 1-20 0z" />
+    <path d="M23 35c0-4 0-7 1-9h9c1 2 1 5 1 9" /><path d="M24 26c0-3 1-6 4-6s5 2 5 6" />
+    <path d="M37 23c6-3 10-3 14-1" /><circle cx="58" cy="20" r="1.3"/><circle cx="66" cy="15" r="1.1"/><circle cx="64" cy="25" r="1.2"/>
+    <circle cx="74" cy="21" r="1"/><circle cx="72" cy="11" r="1"/><circle cx="82" cy="17" r="1.2"/><circle cx="80" cy="27" r="1"/>
+    <path d="M86 30c6-2 10 2 14-1s7-7 13-5" /></svg>`;
 
-  const vitrineLayout = {
-    niche: 'v-niche', men: 'v-men', women: 'v-women', unisex: 'v-unisex',
-    bestsellers: 'v-best', new: 'v-new', gifts: 'v-gifts'
-  };
-  const vitrineOrder = ['niche', 'men', 'women', 'unisex', 'bestsellers', 'new', 'gifts'];
+  const tiles = [
+    { id: 'niche', area: 't-niche', tone: 'blue', ids: ['baccarat-rouge-540', 'oud-wood', 'santal-33', 'aventus'], fill: ['ink', 'ink', 'ink', 'ink'] },
+    { id: 'men', area: 't-men', ids: ['aventus', 'bleu-de-chanel', 'sauvage-edp'], fill: ['ink', 'ink', 'ink'] },
+    { id: 'women', area: 't-women', ids: ['jadore', 'delina', 'coco-mademoiselle'], fill: ['ink', 'ink', 'ink'] },
+    { id: 'unisex', area: 't-unisex', ids: ['gypsy-water', 'angels-share'], fill: ['ink', 'blue'] },
+    { id: 'bestsellers', area: 't-best', ids: ['layton', 'baccarat-rouge-540', 'santal-33', 'coco-mademoiselle'], fill: ['ink', 'ink', 'ink', 'ink'] },
+    { id: 'new', area: 't-new', ids: ['libre', 'erba-pura', 'angels-share', 'hacivat', 'acqua-di-gio-profondo'], fill: ['mute', 'mute', 'blue', 'mute', 'mute'] },
+    { id: 'gifts', area: 't-gifts', ids: ['set-five-senses'], fill: ['blue'] }
+  ];
 
-  function vitrine(cat) {
-    const items = FS.products.filter(cat.match);
-    const shown = items.slice(0, cat.id === 'niche' ? 5 : 4);
+  function tile(t) {
+    const cat = FS.categories.find((c) => c.id === t.id);
+    const count = FS.products.filter(cat.match).length;
     return `
-      <a class="vitrine ${vitrineLayout[cat.id]}" href="#catalog-${cat.id}">
-        <span class="vitrine-inner">
-          <span class="vitrine-light"></span>
-          <span class="vitrine-bottles">${shown.map((p) => `<span class="vb">${FS.bottle.render(p)}</span>`).join('')}</span>
-          <span class="vitrine-glass"></span>
-        </span>
-        <span class="plaque">
-          <span class="plaque-name">${esc(cat.name)}</span>
-          <span class="plaque-count">${items.length} ${plural(items.length, 'аромат', 'аромата', 'ароматов')}</span>
+      <a class="tile ${t.area} ${t.tone === 'blue' ? 'tile--blue' : ''}" href="#catalog-${cat.id}">
+        <span class="tile-corner">${count} ${plural(count, 'аромат', 'аромата', 'ароматов')}</span>
+        <span class="tile-art">${t.ids.map((id, i) => `<span class="tile-item tile-item--${t.fill[i]}">${FS.bottle.silhouette(P(id))}</span>`).join('')}</span>
+        <span class="tile-foot">
+          <span class="tile-name">${esc(cat.name)}</span>
+          <span class="tile-lead">${esc(cat.lead)}</span>
         </span>
       </a>`;
   }
 
-  function blotter(f, i) {
+  function family(f, i) {
     const count = FS.products.filter((p) => p.family === f.id).length;
     return `
-      <a class="blotter" href="#family-${f.id}" style="--tint:${f.tint};--i:${i}">
-        <span class="blotter-paper">
-          <span class="blotter-name">${esc(f.name)}</span>
-          <span class="blotter-notes">${esc(f.notes)}</span>
-          <span class="blotter-count">${count} ${plural(count, 'аромат', 'аромата', 'ароматов')}</span>
-        </span>
+      <a class="story ${i % 3 === 1 ? 'story--ink' : ''}" href="#family-${f.id}" style="--i:${i}">
+        <span class="story-count">${count} ${plural(count, 'аромат', 'аромата', 'ароматов')}</span>
+        <span class="story-name">${esc(f.name)}</span>
+        <span class="story-notes">${esc(f.notes)}</span>
       </a>`;
   }
 
@@ -60,14 +52,7 @@ FS.views.home = (function () {
     const best = FS.api.filter({ category: 'bestsellers' });
     const showcase = [best.find((p) => p.featured && p.type === 'perfume')].concat(best.filter((p) => !(p.featured && p.type === 'perfume'))).filter(Boolean).slice(0, 7);
     const fresh = FS.api.filter({ category: 'new', sort: 'new' });
-    const counterItems = ['angels-share', 'baccarat-rouge-540', 'portrait-of-a-lady'].map(FS.api.productSync);
-    const playDoors = (() => {
-      try {
-        if (sessionStorage.getItem('fs.doors')) return false;
-        sessionStorage.setItem('fs.doors', '1');
-      } catch (e) { /* без хранилища показываем вход один раз за загрузку */ }
-      return true;
-    })();
+    const total = FS.products.length;
 
     FS.ui.setStructuredData({
       '@context': 'https://schema.org',
@@ -79,45 +64,37 @@ FS.views.home = (function () {
     });
 
     return `
-      <section class="hero ${playDoors ? 'hero--enter' : ''}" aria-labelledby="hero-title">
-        <div class="boutique">
-          <div class="ceiling" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
-          <div class="wall wall--l" aria-hidden="true">${shelves('l')}</div>
-          <div class="feature">
-            <span class="pilaster pilaster--l" aria-hidden="true"></span>
-            <div class="stone">
-              <div class="sign">
-                <h1 id="hero-title" class="sign-logo">5<span class="logo-th">th</span> SENSE</h1>
-                <p class="sign-sub">Premium Perfume Boutique</p>
-              </div>
-              <p class="hero-slogan">Аромат, который запоминают первым</p>
-              <p class="hero-text">Бутик селективной и нишевой парфюмерии. Оригинальные ароматы мировых домов, консультация и бережная упаковка каждого флакона.</p>
-              <div class="hero-actions">
-                <a class="btn btn--gold" href="#catalog">Перейти в каталог</a>
-                <a class="btn btn--ink" href="#aromaty">Исследовать ароматы</a>
-              </div>
-            </div>
-            <div class="counter" aria-hidden="true">
-              <div class="counter-top">${counterItems.map((p) => `<span class="counter-bottle">${FS.bottle.render(p)}</span>`).join('')}</div>
-              <div class="counter-front"></div>
-            </div>
-            <span class="pilaster pilaster--r" aria-hidden="true"></span>
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-sheet">
+          <p class="corner corner--tl">парфюмерный бутик<br>селективные и нишевые ароматы</p>
+          <p class="corner corner--tr">аромат как способ<br>оставаться собой</p>
+          <p class="corner corner--bl">${total} ${plural(total, 'аромат', 'аромата', 'ароматов')} в каталоге</p>
+          <p class="corner corner--br">premium perfume boutique</p>
+          <span class="vertical" aria-hidden="true">香り</span>
+
+          <h1 id="hero-title" class="hero-mark">5<span class="logo-th">th</span> SENSE</h1>
+          <div class="hero-stage">
+            <span class="hero-shape rough" aria-hidden="true">${FS.bottle.silhouette(P('baccarat-rouge-540'))}</span>
+            <p class="hero-slogan"><span>Аромат,</span> <span>который</span> <span>запоминают</span> <span>первым.</span></p>
           </div>
-          <div class="wall wall--r" aria-hidden="true">${shelves('r')}</div>
-          <div class="floor" aria-hidden="true"></div>
+          <p class="hero-text">Бутик селективной и нишевой парфюмерии. Оригинальные ароматы мировых домов, консультация и бережная упаковка каждого флакона.</p>
+          <div class="hero-actions">
+            <a class="btn btn--primary" href="#catalog">Перейти в каталог</a>
+            <a class="btn btn--outline" href="#aromaty">Исследовать ароматы</a>
+          </div>
+          ${doodle}
         </div>
-        <div class="doors" aria-hidden="true"><span class="door door--l"></span><span class="door door--r"></span></div>
       </section>
 
-      <section class="section vitrines-section" id="vitriny" aria-labelledby="vitriny-title">
+      <section class="section" id="vitriny" aria-labelledby="vitriny-title">
         <div class="section-head">
-          <h2 id="vitriny-title">Витрины бутика</h2>
-          <p>Каталог устроен как наш зал: у каждой коллекции своя витрина.</p>
+          <h2 id="vitriny-title">Коллекции</h2>
+          <p>Каждая коллекция собрана, как отдельная витрина бутика.</p>
         </div>
-        <div class="vitrines">${vitrineOrder.map((id) => vitrine(FS.categories.find((c) => c.id === id))).join('')}</div>
+        <div class="tiles">${tiles.map(tile).join('')}</div>
       </section>
 
-      <section class="section showcase-section" aria-labelledby="best-title">
+      <section class="section" aria-labelledby="best-title">
         <div class="section-head section-head--row">
           <div>
             <h2 id="best-title">Бестселлеры</h2>
@@ -128,15 +105,21 @@ FS.views.home = (function () {
         <div class="shelf-grid">${showcase.map((p, i) => card(p, { wide: i === 0, index: i })).join('')}</div>
       </section>
 
-      <section class="section explore-section" id="aromaty" aria-labelledby="aromaty-title">
-        <div class="section-head">
-          <h2 id="aromaty-title">Исследовать ароматы</h2>
-          <p>В бутике знакомство с ароматом начинается с блоттера. Выберите семейство, которое вам ближе, и мы покажем подходящие ароматы.</p>
+      <section class="explore" id="aromaty" aria-labelledby="aromaty-title">
+        <div class="explore-inner">
+          <div class="explore-head">
+            <span class="kanji" aria-hidden="true">香</span>
+            <div class="explore-copy">
+              <p class="explore-note">香, kaori: «аромат» по-японски</p>
+              <h2 id="aromaty-title">Исследовать ароматы</h2>
+              <p>Выберите семейство, которое вам ближе, и мы покажем ароматы с похожим характером.</p>
+            </div>
+          </div>
+          <div class="stories">${FS.families.map(family).join('')}</div>
         </div>
-        <div class="blotters">${FS.families.map(blotter).join('')}</div>
       </section>
 
-      <section class="section new-section" aria-labelledby="new-title">
+      <section class="section" aria-labelledby="new-title">
         <div class="section-head section-head--row">
           <div>
             <h2 id="new-title">Новинки</h2>
@@ -147,28 +130,27 @@ FS.views.home = (function () {
         <div class="rail" tabindex="0" aria-label="Новинки, прокрутите в сторону">${fresh.map((p, i) => card(p, { index: i })).join('')}</div>
       </section>
 
-      <section class="boutique-section" id="boutique" aria-labelledby="boutique-title">
-        <div class="boutique-inner">
-          <div class="boutique-copy">
+      <section class="manifesto" id="boutique" aria-labelledby="boutique-title">
+        <div class="manifesto-poster">
+          <span class="manifesto-block rough" aria-hidden="true"></span>
+          <p class="manifesto-quote">Кто пахнет как&nbsp;все, теряет себя.</p>
+        </div>
+        <div class="manifesto-body">
+          <div class="manifesto-copy">
             <h2 id="boutique-title">Бутик 5th SENSE</h2>
-            <p>Тёмное дерево, светлый камень и мягкий свет: мы перенесли атмосферу нашего зала на сайт, чтобы выбирать аромат было так же спокойно, как у витрины.</p>
-            <p>Если сомневаетесь, позвоните консультанту. Он подберёт аромат по вашим предпочтениям и расскажет, как он раскрывается на коже.</p>
-            <p class="boutique-contact"><span class="selectable">${esc(FS.config.contacts.phone)}</span><span>${esc(FS.config.contacts.hours)}</span></p>
+            <p>Мы собираем ароматы, которые не повторяют друг друга, и помогаем найти тот, что звучит именно на вас.</p>
+            <p>Если сомневаетесь, позвоните консультанту. Он подберёт аромат по любимым нотам, сезону и поводу.</p>
+            <p class="manifesto-contact"><span class="selectable">${esc(FS.config.contacts.phone)}</span><span>${esc(FS.config.contacts.hours)}</span></p>
           </div>
           <ul class="services">
-            <li><h3>Подбор аромата</h3><p>Консультация в бутике или по телефону: по любимым нотам, сезону и поводу.</p></li>
-            <li><h3>Пробник к заказу</h3><p>К каждому заказу кладём пробник аромата из той же семьи, чтобы познакомиться с новым.</p></li>
-            <li><h3>Подарочная упаковка</h3><p>Фирменная коробка с лентой и открытка с вашим текстом без доплаты.</p></li>
-            <li><h3>Оригинальная продукция</h3><p>Каждый флакон с документами о происхождении. Бесплатная доставка курьером от ${money(FS.config.freeShippingFrom)}.</p></li>
+            <li><h3>Подбор аромата</h3><p>Консультация в бутике или по телефону.</p></li>
+            <li><h3>Пробник к заказу</h3><p>Кладём пробник аромата из той же семьи, чтобы познакомиться с новым.</p></li>
+            <li><h3>Подарочная упаковка</h3><p>Фирменная коробка и открытка с вашим текстом без доплаты.</p></li>
+            <li><h3>Оригинальная продукция</h3><p>Документы на каждый флакон. Курьер бесплатно от ${money(FS.config.freeShippingFrom)}.</p></li>
           </ul>
         </div>
       </section>`;
   }
 
-  function mount(root) {
-    const hero = root.querySelector('.hero--enter');
-    if (hero) setTimeout(() => hero.classList.remove('hero--enter'), 3200);
-  }
-
-  return { render, mount, title: () => 'Бутик парфюмерии' };
+  return { render, title: () => 'Бутик парфюмерии' };
 })();

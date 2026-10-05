@@ -146,12 +146,12 @@ FS.ui = (function () {
     const available = v.stock > 0;
     const conc = FS.concentrationLabel[p.concentration] || '';
     const meta = p.type === 'set' ? volumeLabel(v) : `${conc}, ${volumeLabel(v)}`;
+    const family = FS.families.find((f) => f.id === p.family);
     return `
       <article class="pcard ${o.wide ? 'pcard--wide' : ''}" style="--i:${o.index || 0}">
         <a class="pcard-stage" href="#product-${p.id}" tabindex="-1" aria-hidden="true">
-          <span class="pcard-light"></span>
-          <span class="pcard-bottle">${FS.bottle.media(p)}</span>
-          <span class="ledge"></span>
+          <span class="sheet-meta"><span>${esc(family ? family.name.toLowerCase() : '')}</span><span>${esc(volumeLabel(v))}</span></span>
+          <span class="pcard-bottle">${FS.bottle.media(p, { style: 'blueprint' })}</span>
         </a>
         <div class="pcard-badges">${badges(p)}</div>
         <button class="fav-btn ${fav ? 'is-on' : ''}" type="button" data-fav="${p.id}" aria-pressed="${fav}" aria-label="${fav ? 'Убрать из избранного' : 'В избранное'}: ${esc(p.name)}">${icon.heart}</button>
@@ -164,8 +164,8 @@ FS.ui = (function () {
             <span class="pcard-meta">${esc(meta)}</span>
           </div>
           <div class="pcard-actions">
-            <button class="btn btn--gold btn--sm" type="button" data-add="${p.id}" data-ml="${v.ml}" ${available ? '' : 'disabled'}>${available ? 'В корзину' : 'Нет в наличии'}</button>
-            <a class="btn btn--line btn--sm" href="#product-${p.id}">Подробнее</a>
+            <button class="btn btn--primary btn--sm" type="button" data-add="${p.id}" data-ml="${v.ml}" ${available ? '' : 'disabled'}>${available ? 'В корзину' : 'Нет в наличии'}</button>
+            <a class="btn btn--outline btn--sm" href="#product-${p.id}">Подробнее</a>
           </div>
         </div>
       </article>`;
@@ -256,7 +256,7 @@ FS.ui = (function () {
       <div class="cart-empty">
         <p class="cart-empty-title">В корзине пока пусто</p>
         <p>Выберите аромат на витринах бутика или загляните в бестселлеры.</p>
-        <a class="btn btn--gold" href="#catalog" data-action="close-cart">Перейти в каталог</a>
+        <a class="btn btn--primary" href="#catalog" data-action="close-cart">Перейти в каталог</a>
       </div>`;
 
     drawer.innerHTML = `
@@ -270,8 +270,8 @@ FS.ui = (function () {
         <div class="drawer-foot">
           <div class="sum-row"><span>Товары</span><span>${money(subtotal)}</span></div>
           <p class="drawer-note">Стоимость доставки рассчитается при оформлении.</p>
-          <a class="btn btn--gold btn--block" href="#checkout" data-action="close-cart" data-autofocus>Оформить заказ</a>
-          <button class="btn btn--line btn--block" type="button" data-action="close-cart">Продолжить покупки</button>
+          <a class="btn btn--primary btn--block" href="#checkout" data-action="close-cart" data-autofocus>Оформить заказ</a>
+          <button class="btn btn--outline btn--block" type="button" data-action="close-cart">Продолжить покупки</button>
         </div>` : ''}
       </div>`;
   }
@@ -331,7 +331,7 @@ FS.ui = (function () {
         <span><span class="search-brand">${esc(p.brand)}</span><span class="search-name">${esc(p.name)}</span></span>
         <span class="search-price">${money(FS.api.mainVolume(p).price)}</span>
       </a></li>`).join('')}</ul>
-      <button class="btn btn--line btn--block" type="button" data-search-all>Все результаты: ${found.length}</button>`;
+      <button class="btn btn--outline btn--block" type="button" data-search-all>Все результаты: ${found.length}</button>`;
   }
 
   /* ---------- Структурированные данные (schema.org) ---------- */

@@ -16,7 +16,7 @@ const scripts = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map((m) 
 const js = scripts.map((src) => `/* ${src} */\n${read(src)}`).join('\n');
 
 const title = html.match(/<title>.*<\/title>/)[0];
-const fonts = html.match(/<link rel="stylesheet" href="https:\/\/fonts[^>]+>/)[0];
+const fonts = [...html.matchAll(/<link rel="stylesheet" href="https:\/\/fonts[^>]+>/g)].map((m) => m[0]).join('\n');
 const ld = html.match(/<script type="application\/ld\+json">.*<\/script>/)[0];
 const body = html
   .slice(html.indexOf('<body>') + 6, html.indexOf('</body>'))
