@@ -126,7 +126,7 @@ FS.ui = (function () {
       </div>
       <div class="footer-base">
         <span>© ${new Date().getFullYear()} 5th SENSE</span>
-        <span>Premium Perfume Boutique</span>
+        <a class="footer-admin" href="#admin">Вход для сотрудников</a>
       </div>`;
   }
 
@@ -149,7 +149,7 @@ FS.ui = (function () {
     const family = FS.families.find((f) => f.id === p.family);
     return `
       <article class="pcard ${o.wide ? 'pcard--wide' : ''}" style="--i:${o.index || 0}">
-        <a class="pcard-stage" href="#product-${p.id}" tabindex="-1" aria-hidden="true">
+        <a class="pcard-stage ${p.image ? 'pcard-stage--photo' : ''}" href="#product-${p.id}" tabindex="-1" aria-hidden="true">
           <span class="sheet-meta"><span>${esc(family ? family.name.toLowerCase() : '')}</span><span>${esc(volumeLabel(v))}</span></span>
           <span class="pcard-bottle">${FS.bottle.media(p, { style: 'blueprint' })}</span>
         </a>

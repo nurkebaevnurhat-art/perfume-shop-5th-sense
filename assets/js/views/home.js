@@ -15,22 +15,26 @@ FS.views.home = (function () {
     <path d="M86 30c6-2 10 2 14-1s7-7 13-5" /></svg>`;
 
   const tiles = [
-    { id: 'niche', area: 't-niche', tone: 'blue', ids: ['baccarat-rouge-540', 'oud-wood', 'santal-33', 'aventus'], fill: ['ink', 'ink', 'ink', 'ink'] },
-    { id: 'men', area: 't-men', ids: ['aventus', 'bleu-de-chanel', 'sauvage-edp'], fill: ['ink', 'ink', 'ink'] },
-    { id: 'women', area: 't-women', ids: ['jadore', 'delina', 'coco-mademoiselle'], fill: ['ink', 'ink', 'ink'] },
-    { id: 'unisex', area: 't-unisex', ids: ['gypsy-water', 'angels-share'], fill: ['ink', 'blue'] },
-    { id: 'bestsellers', area: 't-best', ids: ['layton', 'baccarat-rouge-540', 'santal-33', 'coco-mademoiselle'], fill: ['ink', 'ink', 'ink', 'ink'] },
-    { id: 'new', area: 't-new', ids: ['libre', 'erba-pura', 'angels-share', 'hacivat', 'acqua-di-gio-profondo'], fill: ['mute', 'mute', 'blue', 'mute', 'mute'] },
+    { id: 'niche', area: 't-niche', tone: 'blue', ids: ['baccarat-rouge-540', 'oud-wood', 'santal-33', 'creed-green-irish-tweed'], fill: ['ink', 'ink', 'ink', 'ink'] },
+    { id: 'men', area: 't-men', ids: ['dior-sauvage-elixir', 'layton', 'dg-the-one'], fill: ['ink', 'ink', 'ink'] },
+    { id: 'women', area: 't-women', ids: ['byredo-blanche', 'jo-malone-peony-blush-suede', 'montale-vanilla-extasy'], fill: ['ink', 'ink', 'ink'] },
+    { id: 'unisex', area: 't-unisex', ids: ['lv-les-sables-roses', 'tom-ford-ombre-leather'], fill: ['ink', 'blue'] },
+    { id: 'bestsellers', area: 't-best', ids: ['layton', 'baccarat-rouge-540', 'santal-33', 'armani-stronger-with-you-intensely'], fill: ['ink', 'ink', 'ink', 'ink'] },
+    { id: 'new', area: 't-new', ids: ['le-labo-the-matcha-26', 'byredo-sundazed', 'marly-althair', 'lv-imagination', 'lv-symphony'], fill: ['mute', 'mute', 'blue', 'mute', 'mute'] },
     { id: 'gifts', area: 't-gifts', ids: ['set-five-senses'], fill: ['blue'] }
   ];
 
   function tile(t) {
     const cat = FS.categories.find((c) => c.id === t.id);
-    const count = FS.products.filter(cat.match).length;
+    const inCat = FS.products.filter(cat.match);
+    const count = inCat.length;
+    // Если товар удалили в админ-панели, берём другие ароматы этой коллекции.
+    let items = t.ids.map(P).filter(Boolean);
+    if (!items.length) items = inCat.slice(0, 3);
     return `
       <a class="tile ${t.area} ${t.tone === 'blue' ? 'tile--blue' : ''}" href="#catalog-${cat.id}">
         <span class="tile-corner">${count} ${plural(count, 'аромат', 'аромата', 'ароматов')}</span>
-        <span class="tile-art">${t.ids.map((id, i) => `<span class="tile-item tile-item--${t.fill[i]}">${FS.bottle.silhouette(P(id))}</span>`).join('')}</span>
+        <span class="tile-art">${items.map((p, i) => `<span class="tile-item tile-item--${t.fill[i] || 'ink'}">${FS.bottle.silhouette(p)}</span>`).join('')}</span>
         <span class="tile-foot">
           <span class="tile-name">${esc(cat.name)}</span>
           <span class="tile-lead">${esc(cat.lead)}</span>
@@ -74,7 +78,7 @@ FS.views.home = (function () {
 
           <h1 id="hero-title" class="hero-mark">5<span class="logo-th">th</span> SENSE</h1>
           <div class="hero-stage">
-            <span class="hero-shape rough" aria-hidden="true">${FS.bottle.silhouette(P('baccarat-rouge-540'))}</span>
+            <span class="hero-shape rough" aria-hidden="true">${FS.bottle.silhouette(P('baccarat-rouge-540') || FS.products[0])}</span>
             <p class="hero-slogan"><span>Аромат,</span> <span>который</span> <span>запоминают</span> <span>первым.</span></p>
           </div>
           <p class="hero-text">Бутик селективной и нишевой парфюмерии. Оригинальные ароматы мировых домов, консультация и бережная упаковка каждого флакона.</p>
