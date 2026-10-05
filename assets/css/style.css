@@ -2,7 +2,7 @@
    5th SENSE Perfume Bar — визуальный язык
    Направление: вывеска бутика. Тёплый ivory камня, глубокий чёрный,
    благородное матовое золото в акцентах, мягкий боковой свет.
-   Классическая антиква (Cormorant Garamond) для заголовков,
+   Заголовки: DM Serif Display (латиница) и Playfair Display (кириллица),
    DM Serif Display для логотипа, Onest для текста.
    ========================================================= */
 :root {
@@ -35,8 +35,9 @@
 
   /* Шрифты */
   --ff: 'Onest', 'Helvetica Neue', Arial, sans-serif;
-  --ff-display: 'DM Serif Display', 'Cormorant Garamond', Georgia, serif;
-  --ff-serif: 'Cormorant Garamond', 'Cormorant', Georgia, 'Times New Roman', serif;
+  --ff-display: 'DM Serif Display', 'Playfair Display', Georgia, serif;
+  /* В DM Serif Display нет кириллицы: русские буквы берёт Playfair Display 600, близкий по толщине и контрасту */
+  --ff-serif: 'DM Serif Display', 'Playfair Display', Georgia, 'Times New Roman', serif;
 
   /* Ритм и движение */
   --gutter: clamp(16px, 3.4vw, 48px);
@@ -50,7 +51,7 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; scroll-padding-top: calc(var(--header-h) + 16px); }
-body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--ff); font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased; font-feature-settings: 'lnum' 1; overflow-x: hidden; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--ff); font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased; font-feature-settings: 'lnum' 1; font-synthesis: none; overflow-x: hidden; }
 body.has-layer, body.filters-locked, body.is-intro { overflow: hidden; }
 img, svg { display: block; max-width: 100%; }
 a { color: inherit; text-decoration: none; }
@@ -845,7 +846,7 @@ h1[tabindex="-1"]:focus { outline: none; }
 .stat:first-child { background: var(--blue); border-color: var(--blue); color: var(--on-blue); }
 .stat:first-child .stat-label, .stat:first-child .stat-note { color: var(--on-blue); opacity: 0.85; }
 .stat-label { font-size: 13px; color: var(--ink-soft); }
-.stat-value { font-family: var(--ff-serif); font-size: clamp(32px, 3.2vw, 44px); font-weight: 500; letter-spacing: 0; line-height: 1.1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.stat-value { font-family: var(--ff-serif); font-size: clamp(32px, 3.2vw, 44px); font-weight: 400; letter-spacing: 0; line-height: 1.1; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .stat-note { font-size: 12.5px; color: var(--ink-soft); }
 
 .admin-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
