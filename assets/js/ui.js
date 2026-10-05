@@ -31,56 +31,82 @@ FS.ui = (function () {
     filter: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg>'
   };
 
-  /* ---------- Логотип ---------- */
+  /* ---------- Знаки бренда ---------- */
   const logo = (cls) => `<span class="logo ${cls || ''}">5<span class="logo-th">th</span> SENSE</span>`;
 
-  /* ---------- Шапка ---------- */
+  // Гигантский логотип; data-fit растягивает его на всю ширину контейнера.
+  const wordmark = (cls) => `<span class="wordmark ${cls || ''}" data-fit aria-hidden="true"><span class="wm-5">5</span><span class="wm-th">th</span><span class="wm-gap"> </span>SENSE</span>`;
+
+  // Эмблема: капля с цифрой 5 и тремя линиями шлейфа.
+  const emblem = (cls) => `<svg class="emblem ${cls || ''}" viewBox="0 0 64 84" aria-hidden="true" focusable="false">
+      <path class="em-drop" d="M32 14C32 14 9 42 9 58a23 23 0 0 0 46 0C55 42 32 14 32 14Z"/>
+      <path class="em-inner" d="M32 26C32 26 17 46 17 58a15 15 0 0 0 30 0"/>
+      <path class="em-ray" d="M24 9c2-3 2-5 0-8M32 8c2-3 2-5 0-7M40 9c2-3 2-5 0-8"/>
+      <text x="32" y="68" text-anchor="middle">5</text>
+    </svg>`;
+
+  // Светлый тон фона для товара: цвет жидкости, сильно разбавленный бумагой.
+  function hexMix(a, b, t) {
+    const p = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+    const x = p(a); const y = p(b);
+    return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join('');
+  }
+  const tint = (p, amount) => {
+    const liquid = (p.bottle && /^#[0-9a-f]{6}$/i.test(p.bottle.liquid)) ? p.bottle.liquid : '#b59a7a';
+    return hexMix(liquid, '#f1ede6', amount == null ? 0.84 : amount);
+  };
+
+  /* ---------- Шапка и меню ---------- */
   function renderHeader() {
     const header = $('#site-header');
     header.innerHTML = `
       <div class="header-inner">
-        <button class="icon-btn header-burger" type="button" data-action="menu" aria-label="Открыть меню" aria-expanded="false" aria-controls="site-menu">${icon.menu}</button>
-        <nav class="header-nav" aria-label="Основная навигация">
-          <a href="#catalog" data-nav="catalog">Каталог</a>
-          <a href="#catalog-men" data-nav="catalog-men">Мужское</a>
-          <a href="#catalog-women" data-nav="catalog-women">Женское</a>
-          <a href="#catalog-niche" data-nav="catalog-niche">Нишевое</a>
-          <a href="#catalog-gifts" data-nav="catalog-gifts">Наборы</a>
-        </nav>
-        <a class="header-logo" href="#home" aria-label="5th SENSE, на главную">${logo()}</a>
-        <div class="header-actions">
-          <button class="icon-btn" type="button" data-action="search" aria-label="Поиск">${icon.search}</button>
-          <a class="icon-btn" href="#favorites" aria-label="Избранное">${icon.heart}<span class="count" data-fav-count hidden></span></a>
-          <button class="icon-btn" type="button" data-action="cart" aria-label="Корзина">${icon.bag}<span class="count" data-cart-count hidden></span></button>
+        <div class="header-left">
+          <button class="hl hl--menu" type="button" data-action="menu" aria-expanded="false" aria-controls="site-menu">Меню</button>
+          <a class="hl hl--wide" href="#catalog" data-nav="catalog">Коллекция</a>
+        </div>
+        <a class="header-mark" href="#home" aria-label="5th SENSE, на главную">${emblem()}<span class="header-word">${logo()}</span></a>
+        <div class="header-right">
+          <button class="hl hl--wide" type="button" data-action="search">Поиск</button>
+          <a class="hl hl--wide" href="#favorites">Избранное<span class="hl-count" data-fav-count hidden></span></a>
+          <button class="hl" type="button" data-action="cart">Корзина<span class="hl-count" data-cart-count hidden></span></button>
         </div>
       </div>`;
 
-    const menu = $('#site-menu');
-    menu.innerHTML = `
-      <div class="menu-panel" role="dialog" aria-modal="true" aria-label="Меню">
-        <div class="menu-head">${logo()}<button class="icon-btn" type="button" data-action="close-menu" aria-label="Закрыть меню">${icon.close}</button></div>
-        <nav class="menu-links" aria-label="Разделы">
-          <a href="#catalog">Весь каталог</a>
-          ${FS.categories.map((c) => `<a href="#catalog-${c.id}">${esc(c.name)}</a>`).join('')}
-        </nav>
-        <div class="menu-foot">
-          <a href="#aromaty">Исследовать ароматы</a>
-          <a href="#delivery">Доставка и оплата</a>
-          <a href="#favorites">Избранное</a>
-          <p class="menu-contact">${esc(FS.config.contacts.phone)}<br>${esc(FS.config.contacts.hours)}</p>
-        </div>
-      </div>`;
-
-    let lastY = 0;
-    const onScroll = () => {
-      const y = window.scrollY;
-      header.classList.toggle('is-solid', y > 24 || !document.body.classList.contains('route-home'));
-      lastY = y;
+    const menuItems = [{ href: '#catalog', name: 'Вся коллекция', id: null }].concat(FS.categories.map((c) => ({ href: `#catalog-${c.id}`, name: c.name, id: c.id })));
+    const preview = (item) => {
+      const list = item.id ? FS.products.filter(FS.categories.find((c) => c.id === item.id).match) : FS.products;
+      const p = list.find((x) => x.image) || list[0];
+      return p ? `<span class="menu-shot" style="--tint:${tint(p)}">${FS.bottle.media(p, { title: '' })}</span>` : '';
     };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
-    FS.ui.refreshHeader = onScroll;
+    $('#site-menu').innerHTML = `
+      <div class="menu-panel" role="dialog" aria-modal="true" aria-label="Меню">
+        <div class="menu-top">
+          <span class="menu-note">5th SENSE, premium perfume boutique</span>
+          <button class="hl" type="button" data-action="close-menu" data-autofocus>Закрыть</button>
+        </div>
+        <div class="menu-grid">
+          <nav class="menu-links" aria-label="Разделы">
+            ${menuItems.map((m, i) => `<a href="${m.href}" style="--i:${i}" data-menu-shot="${i}"><span class="menu-num">${String(i + 1).padStart(2, '0')}</span><span class="menu-name">${esc(m.name)}</span></a>`).join('')}
+          </nav>
+          <div class="menu-shots" aria-hidden="true">${menuItems.map((m, i) => `<span class="menu-shot-wrap ${i === 0 ? 'is-on' : ''}" data-shot="${i}">${preview(m)}</span>`).join('')}</div>
+        </div>
+        <div class="menu-foot">
+          <button type="button" data-action="search">Поиск</button>
+          <a href="#aromaty">Исследовать ароматы</a>
+          <a href="#favorites">Избранное</a>
+          <a href="#delivery">Доставка и оплата</a>
+          <a href="#admin">Вход для сотрудников</a>
+          <span class="selectable">${esc(FS.config.contacts.phone)}</span>
+        </div>
+      </div>`;
+    $('#site-menu').addEventListener('pointerover', (e) => {
+      const a = e.target.closest('[data-menu-shot]');
+      if (!a) return;
+      $$('.menu-shot-wrap').forEach((s) => s.classList.toggle('is-on', s.dataset.shot === a.dataset.menuShot));
+    });
 
+    FS.ui.refreshHeader = () => FS.motion.refresh();
     updateCounts();
     FS.store.subscribe(updateCounts);
   }
@@ -100,42 +126,43 @@ FS.ui = (function () {
   function renderFooter() {
     const c = FS.config.contacts;
     $('#site-footer').innerHTML = `
-      <div class="footer-inner">
-        <div class="footer-brand">
-          <a href="#home" aria-label="5th SENSE, на главную">${logo('logo--footer')}</a>
-          <p>Бутик селективной и нишевой парфюмерии. Только оригинальные ароматы, консультация и бережная упаковка.</p>
+      <div class="footer-top">
+        <div class="footer-col">
+          <h2>Контакты</h2>
+          <p class="selectable">${esc(c.phone)}</p>
+          <p class="selectable">${esc(c.email)}</p>
+          <p>${esc(c.hours)}</p>
         </div>
-        <nav class="footer-col" aria-label="Каталог">
-          <h2>Каталог</h2>
+        <div class="footer-col">
+          <h2>Соцсети</h2>
+          <p class="selectable">${esc(c.instagram)}</p>
+          <p>${esc(c.address)}</p>
+        </div>
+        <nav class="footer-col" aria-label="Коллекция">
+          <h2>Коллекция</h2>
           ${FS.categories.map((cat) => `<a href="#catalog-${cat.id}">${esc(cat.name)}</a>`).join('')}
         </nav>
         <nav class="footer-col" aria-label="Покупателям">
           <h2>Покупателям</h2>
           <a href="#delivery">Доставка и оплата</a>
           <a href="#delivery">Возврат и обмен</a>
-          <a href="#delivery">Подлинность</a>
           <a href="#favorites">Избранное</a>
+          <a href="#admin">Вход для сотрудников</a>
         </nav>
-        <div class="footer-col">
-          <h2>Бутик</h2>
-          <p class="selectable">${esc(c.phone)}</p>
-          <p class="selectable">${esc(c.email)}</p>
-          <p>${esc(c.address)}</p>
-          <p>${esc(c.hours)}</p>
-        </div>
       </div>
+      <a class="footer-mark" href="#home" aria-label="5th SENSE, на главную">${wordmark()}</a>
       <div class="footer-base">
         <span>© ${new Date().getFullYear()} 5th SENSE</span>
-        <a class="footer-admin" href="#admin">Вход для сотрудников</a>
+        <span>Premium Perfume Boutique</span>
       </div>`;
   }
 
   /* ---------- Карточка товара ---------- */
   function badges(p) {
     const out = [];
-    if (p.isNew) out.push('<span class="badge">Новинка</span>');
-    if (p.bestseller) out.push('<span class="badge badge--soft">Бестселлер</span>');
-    if (!FS.api.inStock(p)) out.push('<span class="badge badge--out">Нет в наличии</span>');
+    if (p.isNew) out.push('<span class="tag-chip">Новинка</span>');
+    if (p.bestseller) out.push('<span class="tag-chip tag-chip--brand">Бестселлер</span>');
+    if (!FS.api.inStock(p)) out.push('<span class="tag-chip tag-chip--out">Нет в наличии</span>');
     return out.join('');
   }
 
@@ -146,26 +173,24 @@ FS.ui = (function () {
     const available = v.stock > 0;
     const conc = FS.concentrationLabel[p.concentration] || '';
     const meta = p.type === 'set' ? volumeLabel(v) : `${conc}, ${volumeLabel(v)}`;
-    const family = FS.families.find((f) => f.id === p.family);
     return `
-      <article class="pcard ${o.wide ? 'pcard--wide' : ''}" style="--i:${o.index || 0}">
-        <a class="pcard-stage ${p.image ? 'pcard-stage--photo' : ''}" href="#product-${p.id}" tabindex="-1" aria-hidden="true">
-          <span class="sheet-meta"><span>${esc(family ? family.name.toLowerCase() : '')}</span><span>${esc(volumeLabel(v))}</span></span>
-          <span class="pcard-bottle">${FS.bottle.media(p, { style: 'blueprint' })}</span>
+      <article class="pcard ${o.wide ? 'pcard--wide' : ''} ${o.reveal === false ? '' : 'reveal'}" style="--i:${o.index || 0};--tint:${tint(p)}">
+        <a class="pcard-media" href="#product-${p.id}" tabindex="-1" aria-hidden="true" data-cursor="Смотреть">
+          <span class="pcard-img">${FS.bottle.media(p)}</span>
+          <span class="pcard-tags">${badges(p)}</span>
         </a>
-        <div class="pcard-badges">${badges(p)}</div>
         <button class="fav-btn ${fav ? 'is-on' : ''}" type="button" data-fav="${p.id}" aria-pressed="${fav}" aria-label="${fav ? 'Убрать из избранного' : 'В избранное'}: ${esc(p.name)}">${icon.heart}</button>
         <div class="pcard-body">
           <p class="pcard-brand">${esc(p.brand)}</p>
           <h3 class="pcard-name"><a href="#product-${p.id}">${esc(p.name)}</a></h3>
           <p class="pcard-desc">${esc(p.short)}</p>
+          <p class="pcard-meta">${esc(meta)}</p>
           <div class="pcard-price">
             <span class="price">${money(v.price)}</span>
-            <span class="pcard-meta">${esc(meta)}</span>
-          </div>
-          <div class="pcard-actions">
-            <button class="btn btn--primary btn--sm" type="button" data-add="${p.id}" data-ml="${v.ml}" ${available ? '' : 'disabled'}>${available ? 'В корзину' : 'Нет в наличии'}</button>
-            <a class="btn btn--outline btn--sm" href="#product-${p.id}">Подробнее</a>
+            <div class="pcard-actions">
+              <button class="pill pill--brand" type="button" data-add="${p.id}" data-ml="${v.ml}" ${available ? '' : 'disabled'}>${available ? 'В корзину' : 'Нет в наличии'}</button>
+              <a class="pill" href="#product-${p.id}">Смотреть</a>
+            </div>
           </div>
         </div>
       </article>`;
@@ -484,7 +509,7 @@ FS.ui = (function () {
   }
 
   return {
-    $, $$, esc, money, plural, icon, logo, volumeLabel,
+    $, $$, esc, money, plural, icon, logo, wordmark, emblem, tint, volumeLabel,
     renderHeader, renderFooter, setActiveNav, card, stepper, toast,
     open, close, openCart, renderCart, bind, pulse,
     setStructuredData, productSchema,

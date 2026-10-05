@@ -74,6 +74,7 @@ FS.app = (function () {
     if (current && current.impl.unmount) current.impl.unmount();
 
     const swap = () => {
+      FS.motion.clearScenes();
       document.body.className = document.body.className.replace(/\broute-\S+/g, '').trim();
       document.body.classList.add('route-' + route.name);
       FS.ui.setStructuredData(null);
@@ -83,13 +84,10 @@ FS.app = (function () {
       mountCtl = new AbortController();
       if (impl.mount) impl.mount(view, route, params, mountCtl.signal);
       FS.ui.setActiveNav(route.key);
-      FS.ui.refreshHeader();
+      FS.motion.fit(view);
       if (!(route.anchor && scrollToAnchor(route.anchor, false))) window.scrollTo(0, 0);
-      view.classList.remove('is-leaving');
-      if (animate) {
-        view.classList.add('is-entering');
-        busy = setTimeout(() => view.classList.remove('is-entering'), 900);
-      }
+      FS.motion.reveals(view);
+      FS.ui.refreshHeader();
       if (!first) {
         const h1 = view.querySelector('h1');
         if (h1) { h1.setAttribute('tabindex', '-1'); h1.focus({ preventScroll: true }); }
@@ -97,15 +95,23 @@ FS.app = (function () {
     };
 
     current = { key: route.key, impl };
-    if (animate) {
-      view.classList.add('is-leaving');
-      busy = setTimeout(swap, 320);
+    // Переход: шторка цвета бренда закрывает экран, страница меняется, шторка уходит вверх.
+    const curtain = $('#curtain');
+    if (animate && curtain) {
+      curtain.classList.remove('is-out');
+      curtain.classList.add('is-in');
+      busy = setTimeout(() => {
+        swap();
+        curtain.classList.add('is-out');
+        busy = setTimeout(() => curtain.classList.remove('is-in', 'is-out'), 800);
+      }, 560);
     } else {
       swap();
     }
   }
 
   function start() {
+    FS.motion.init();
     FS.ui.renderHeader();
     FS.ui.renderFooter();
     FS.ui.bind();
@@ -127,6 +133,7 @@ FS.app = (function () {
       go(token);
     });
     render(resolve(currentToken()));
+    FS.motion.intro(() => { document.body.classList.add('is-ready'); FS.motion.refresh(); });
   }
 
   return { start, go, resolve };

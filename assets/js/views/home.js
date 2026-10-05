@@ -1,160 +1,311 @@
-/* 5th SENSE — главная. */
+/* 5th SENSE — главная: кинематографичная презентация бренда. */
 window.FS = window.FS || {};
 FS.views = FS.views || {};
 
 FS.views.home = (function () {
-  const { esc, money, plural, card } = FS.ui;
+  const { $, $$, esc, money, plural, card, tint, wordmark, emblem } = FS.ui;
+  const M = FS.motion;
   const P = (id) => FS.api.productSync(id);
+  const pick = (ids, n) => {
+    const list = ids.map(P).filter(Boolean);
+    FS.products.forEach((p) => { if (list.length < n && p.image && !list.includes(p)) list.push(p); });
+    return list.slice(0, n);
+  };
 
-  // Рисованный флакон с облаком распыления — ручная линия, как пометка на полях.
-  const doodle = `<svg class="doodle" viewBox="0 0 120 70" aria-hidden="true" focusable="false">
-    <path d="M18 62c-1-9 0-19 1-27 6-1 13-1 19 0 1 9 2 18 0 27-6 1-14 1-20 0z" />
-    <path d="M23 35c0-4 0-7 1-9h9c1 2 1 5 1 9" /><path d="M24 26c0-3 1-6 4-6s5 2 5 6" />
-    <path d="M37 23c6-3 10-3 14-1" /><circle cx="58" cy="20" r="1.3"/><circle cx="66" cy="15" r="1.1"/><circle cx="64" cy="25" r="1.2"/>
-    <circle cx="74" cy="21" r="1"/><circle cx="72" cy="11" r="1"/><circle cx="82" cy="17" r="1.2"/><circle cx="80" cy="27" r="1"/>
-    <path d="M86 30c6-2 10 2 14-1s7-7 13-5" /></svg>`;
+  let timer = null;
+  const pad = (n) => String(n).padStart(2, '0');
 
-  const tiles = [
-    { id: 'niche', area: 't-niche', tone: 'blue', ids: ['baccarat-rouge-540', 'oud-wood', 'santal-33', 'creed-green-irish-tweed'], fill: ['ink', 'ink', 'ink', 'ink'] },
-    { id: 'men', area: 't-men', ids: ['dior-sauvage-elixir', 'layton', 'dg-the-one'], fill: ['ink', 'ink', 'ink'] },
-    { id: 'women', area: 't-women', ids: ['byredo-blanche', 'jo-malone-peony-blush-suede', 'montale-vanilla-extasy'], fill: ['ink', 'ink', 'ink'] },
-    { id: 'unisex', area: 't-unisex', ids: ['lv-les-sables-roses', 'tom-ford-ombre-leather'], fill: ['ink', 'blue'] },
-    { id: 'bestsellers', area: 't-best', ids: ['layton', 'baccarat-rouge-540', 'santal-33', 'armani-stronger-with-you-intensely'], fill: ['ink', 'ink', 'ink', 'ink'] },
-    { id: 'new', area: 't-new', ids: ['le-labo-the-matcha-26', 'byredo-sundazed', 'marly-althair', 'lv-imagination', 'lv-symphony'], fill: ['mute', 'mute', 'blue', 'mute', 'mute'] },
-    { id: 'gifts', area: 't-gifts', ids: ['set-five-senses'], fill: ['blue'] }
-  ];
-
-  function tile(t) {
-    const cat = FS.categories.find((c) => c.id === t.id);
-    const inCat = FS.products.filter(cat.match);
-    const count = inCat.length;
-    // Если товар удалили в админ-панели, берём другие ароматы этой коллекции.
-    let items = t.ids.map(P).filter(Boolean);
-    if (!items.length) items = inCat.slice(0, 3);
-    return `
-      <a class="tile ${t.area} ${t.tone === 'blue' ? 'tile--blue' : ''}" href="#catalog-${cat.id}">
-        <span class="tile-corner">${count} ${plural(count, 'аромат', 'аромата', 'ароматов')}</span>
-        <span class="tile-art">${items.map((p, i) => `<span class="tile-item tile-item--${t.fill[i] || 'ink'}">${FS.bottle.silhouette(p)}</span>`).join('')}</span>
-        <span class="tile-foot">
-          <span class="tile-name">${esc(cat.name)}</span>
-          <span class="tile-lead">${esc(cat.lead)}</span>
-        </span>
-      </a>`;
-  }
-
-  function family(f, i) {
-    const count = FS.products.filter((p) => p.family === f.id).length;
-    return `
-      <a class="story ${i % 3 === 1 ? 'story--ink' : ''}" href="#family-${f.id}" style="--i:${i}">
-        <span class="story-count">${count} ${plural(count, 'аромат', 'аромата', 'ароматов')}</span>
-        <span class="story-name">${esc(f.name)}</span>
-        <span class="story-notes">${esc(f.notes)}</span>
-      </a>`;
+  function heroSlides() {
+    return pick(['baccarat-rouge-540', 'lv-les-sables-roses', 'dior-sauvage-elixir', 'kilian-straight-to-heaven', 'marly-althair'], 5);
   }
 
   function render() {
+    const slides = heroSlides();
+    const featured = pick(['baccarat-rouge-540', 'oud-wood', 'santal-33', 'lv-stellar-times', 'tom-ford-ombre-leather', 'byredo-bal-dafrique', 'clive-christian-matsukita', 'creed-green-irish-tweed'], 8);
     const best = FS.api.filter({ category: 'bestsellers' });
-    const showcase = [best.find((p) => p.featured && p.type === 'perfume')].concat(best.filter((p) => !(p.featured && p.type === 'perfume'))).filter(Boolean).slice(0, 7);
-    const fresh = FS.api.filter({ category: 'new', sort: 'new' });
-    const total = FS.products.length;
+    const fresh = FS.api.filter({ category: 'new', sort: 'new' }).slice(0, 8);
+    const first = slides[0];
 
     FS.ui.setStructuredData({
       '@context': 'https://schema.org',
       '@type': 'Store',
       name: '5th SENSE',
       description: 'Premium Perfume Boutique: селективная и нишевая парфюмерия.',
-      telephone: FS.config.contacts.phone,
-      openingHours: 'Mo-Su 10:00-22:00'
+      telephone: FS.config.contacts.phone
     });
 
+    const family = (f, i) => {
+      const list = FS.products.filter((p) => p.family === f.id);
+      const shot = list.find((p) => p.image) || list[0];
+      return `<a class="fam reveal" href="#family-${f.id}" style="--i:${i}" data-fam="${i}" data-cursor="Открыть">
+          <span class="fam-num">${pad(i + 1)}</span>
+          <span class="fam-name">${esc(f.name)}</span>
+          <span class="fam-notes">${esc(f.notes)}</span>
+          <span class="fam-count">${list.length} ${plural(list.length, 'аромат', 'аромата', 'ароматов')}</span>
+          ${shot ? `<span class="fam-shot" style="--tint:${tint(shot)}">${FS.bottle.media(shot)}</span>` : ''}
+        </a>`;
+    };
+
     return `
-      <section class="hero" aria-labelledby="hero-title">
-        <div class="hero-sheet">
-          <p class="corner corner--tl">парфюмерный бутик<br>селективные и нишевые ароматы</p>
-          <p class="corner corner--tr">аромат как способ<br>оставаться собой</p>
-          <p class="corner corner--bl">${total} ${plural(total, 'аромат', 'аромата', 'ароматов')} в каталоге</p>
-          <p class="corner corner--br">premium perfume boutique</p>
-          <span class="vertical" aria-hidden="true">香り</span>
-
-          <h1 id="hero-title" class="hero-mark">5<span class="logo-th">th</span> SENSE</h1>
-          <div class="hero-stage">
-            <span class="hero-shape rough" aria-hidden="true">${FS.bottle.silhouette(P('baccarat-rouge-540') || FS.products[0])}</span>
-            <p class="hero-slogan"><span>Аромат,</span> <span>который</span> <span>запоминают</span> <span>первым.</span></p>
+      <section class="hero" data-head="light" aria-labelledby="hero-title">
+        <div class="hero-pin">
+          <div class="hero-brand-bg" aria-hidden="true"></div>
+          <div class="hero-scene" data-cursor="Смотреть">
+            ${slides.map((p, i) => `
+              <a class="slide ${i === 0 ? 'is-active' : ''}" href="#product-${p.id}" style="--tint:${tint(p, 0.8)}" data-slide="${i}" tabindex="${i === 0 ? 0 : -1}" aria-label="${esc(p.brand)} ${esc(p.name)}">
+                <span class="slide-img">${FS.bottle.media(p, { title: '' })}</span>
+              </a>`).join('')}
           </div>
-          <p class="hero-text">Бутик селективной и нишевой парфюмерии. Оригинальные ароматы мировых домов, консультация и бережная упаковка каждого флакона.</p>
-          <div class="hero-actions">
-            <a class="btn btn--primary" href="#catalog">Перейти в каталог</a>
-            <a class="btn btn--outline" href="#aromaty">Исследовать ароматы</a>
+          <div class="hero-top">
+            <span class="hero-emblem">${emblem()}</span>
           </div>
-          ${doodle}
-        </div>
-      </section>
-
-      <section class="section" id="vitriny" aria-labelledby="vitriny-title">
-        <div class="section-head">
-          <h2 id="vitriny-title">Коллекции</h2>
-          <p>Каждая коллекция собрана, как отдельная витрина бутика.</p>
-        </div>
-        <div class="tiles">${tiles.map(tile).join('')}</div>
-      </section>
-
-      <section class="section" aria-labelledby="best-title">
-        <div class="section-head section-head--row">
-          <div>
-            <h2 id="best-title">Бестселлеры</h2>
-            <p>Ароматы, за которыми возвращаются в бутик.</p>
-          </div>
-          <a class="text-link" href="#catalog-bestsellers">Все бестселлеры</a>
-        </div>
-        <div class="shelf-grid">${showcase.map((p, i) => card(p, { wide: i === 0, index: i })).join('')}</div>
-      </section>
-
-      <section class="explore" id="aromaty" aria-labelledby="aromaty-title">
-        <div class="explore-inner">
-          <div class="explore-head">
-            <span class="kanji" aria-hidden="true">香</span>
-            <div class="explore-copy">
-              <p class="explore-note">香, kaori: «аромат» по-японски</p>
-              <h2 id="aromaty-title">Исследовать ароматы</h2>
-              <p>Выберите семейство, которое вам ближе, и мы покажем ароматы с похожим характером.</p>
+          <div class="hero-caption">
+            <p class="hero-count"><span data-hero-index>01</span> / ${pad(slides.length)}</p>
+            <p class="hero-now"><span data-hero-brand>${esc(first.brand)}</span><a data-hero-name href="#product-${first.id}">${esc(first.name)}</a></p>
+            <div class="hero-cta">
+              <a class="pill pill--brand pill--lg" href="#catalog">Смотреть коллекцию</a>
+              <a class="pill pill--ghost pill--lg" href="#aromaty">Исследовать ароматы</a>
             </div>
           </div>
-          <div class="stories">${FS.families.map(family).join('')}</div>
+          <h1 id="hero-title" class="hero-mark"><span class="visually-hidden">5th SENSE, premium perfume boutique</span>${wordmark('wordmark--hero')}</h1>
+          <div class="hero-frame-label" aria-hidden="true">Коллекция 2026</div>
         </div>
       </section>
 
-      <section class="section" aria-labelledby="new-title">
-        <div class="section-head section-head--row">
-          <div>
-            <h2 id="new-title">Новинки</h2>
-            <p>Последние поступления на полки бутика.</p>
-          </div>
-          <a class="text-link" href="#catalog-new">Все новинки</a>
-        </div>
-        <div class="rail" tabindex="0" aria-label="Новинки, прокрутите в сторону">${fresh.map((p, i) => card(p, { index: i })).join('')}</div>
-      </section>
-
-      <section class="manifesto" id="boutique" aria-labelledby="boutique-title">
-        <div class="manifesto-poster">
-          <span class="manifesto-block rough" aria-hidden="true"></span>
-          <p class="manifesto-quote">Кто пахнет как&nbsp;все, теряет себя.</p>
-        </div>
-        <div class="manifesto-body">
-          <div class="manifesto-copy">
-            <h2 id="boutique-title">Бутик 5th SENSE</h2>
-            <p>Мы собираем ароматы, которые не повторяют друг друга, и помогаем найти тот, что звучит именно на вас.</p>
-            <p>Если сомневаетесь, позвоните консультанту. Он подберёт аромат по любимым нотам, сезону и поводу.</p>
-            <p class="manifesto-contact"><span class="selectable">${esc(FS.config.contacts.phone)}</span><span>${esc(FS.config.contacts.hours)}</span></p>
-          </div>
+      <section class="story" data-head="dark" aria-labelledby="story-title">
+        <div class="story-inner">
+          <p class="kicker reveal">О бренде</p>
+          <h2 id="story-title" class="visually-hidden">О бренде 5th SENSE</h2>
+          <p class="story-text" data-words>Пятое чувство помнит дольше остальных. Мы собираем ароматы, которые становятся частью вашей истории: от первого вдоха до шлейфа, который остаётся после вас.</p>
           <ul class="services">
-            <li><h3>Подбор аромата</h3><p>Консультация в бутике или по телефону.</p></li>
-            <li><h3>Пробник к заказу</h3><p>Кладём пробник аромата из той же семьи, чтобы познакомиться с новым.</p></li>
-            <li><h3>Подарочная упаковка</h3><p>Фирменная коробка и открытка с вашим текстом без доплаты.</p></li>
-            <li><h3>Оригинальная продукция</h3><p>Документы на каждый флакон. Курьер бесплатно от ${money(FS.config.freeShippingFrom)}.</p></li>
+            <li class="reveal" style="--i:0"><h3>Подбор аромата</h3><p>Консультация в бутике или по телефону.</p></li>
+            <li class="reveal" style="--i:1"><h3>Пробник к заказу</h3><p>Кладём пробник аромата из той же семьи.</p></li>
+            <li class="reveal" style="--i:2"><h3>Подарочная упаковка</h3><p>Фирменная коробка и открытка без доплаты.</p></li>
+            <li class="reveal" style="--i:3"><h3>Оригинальная продукция</h3><p>Курьер бесплатно от ${money(FS.config.freeShippingFrom)}.</p></li>
           </ul>
+        </div>
+      </section>
+
+      <section class="index" data-head="dark" aria-labelledby="index-title">
+        <div class="index-head">
+          <p class="kicker reveal">Избранная коллекция</p>
+          <h2 id="index-title" class="index-title reveal">Восемь ароматов, с которых начинается бутик</h2>
+        </div>
+        <div class="index-grid">
+          <div class="index-num" aria-hidden="true"><span data-index-num>01</span></div>
+          <div class="index-stack" aria-hidden="true">
+            ${featured.map((p, i) => `<span class="stack-item ${i === 0 ? 'is-active' : ''}" data-stack="${i}" style="--tint:${tint(p)}">${FS.bottle.media(p, { title: '' })}</span>`).join('')}
+          </div>
+          <ol class="index-list">
+            ${featured.map((p, i) => `
+              <li class="irow ${i === 0 ? 'is-active' : ''}" data-row="${i}">
+                <a class="irow-img" href="#product-${p.id}" tabindex="-1" aria-hidden="true" style="--tint:${tint(p)}">${FS.bottle.media(p, { title: '' })}</a>
+                <span class="irow-num">${pad(i + 1)}</span>
+                <span class="irow-brand">${esc(p.brand)}</span>
+                <a class="irow-name" href="#product-${p.id}">${esc(p.name)}</a>
+                <span class="irow-meta">${esc(p.short)}</span>
+                <span class="irow-actions">
+                  <a class="pill pill--ink" href="#product-${p.id}">Смотреть</a>
+                  <button class="pill pill--line" type="button" data-add="${p.id}" data-ml="${FS.api.mainVolume(p).ml}" ${FS.api.mainVolume(p).stock > 0 ? '' : 'disabled'}>${money(FS.api.mainVolume(p).price)}, в корзину</button>
+                </span>
+              </li>`).join('')}
+          </ol>
+        </div>
+      </section>
+
+      <section class="hscroll" data-head="dark" aria-labelledby="best-title">
+        <div class="hscroll-pin">
+          <div class="hscroll-head">
+            <p class="kicker">Бестселлеры</p>
+            <h2 id="best-title" class="hscroll-title">Ароматы, за которыми возвращаются</h2>
+            <a class="pill pill--line" href="#catalog-bestsellers">Все бестселлеры</a>
+          </div>
+          <div class="hscroll-track" tabindex="0" aria-label="Бестселлеры, прокрутите в сторону">
+            ${best.map((p, i) => card(p, { index: i % 4, reveal: false })).join('')}
+          </div>
+          <div class="hscroll-bar" aria-hidden="true"><span></span></div>
+        </div>
+      </section>
+
+      <section class="families" id="aromaty" data-head="dark" aria-labelledby="fam-title">
+        <div class="families-head">
+          <p class="kicker reveal">Семейства ароматов</p>
+          <h2 id="fam-title" class="reveal">Исследовать ароматы</h2>
+          <p class="families-lead reveal">Выберите семейство, которое вам ближе. Мы покажем ароматы с похожим характером.</p>
+        </div>
+        <div class="fam-list">${FS.families.map(family).join('')}</div>
+        <div class="fam-float" aria-hidden="true"></div>
+      </section>
+
+      <section class="arrivals" data-head="light" aria-labelledby="new-title">
+        <div class="arrivals-head">
+          <h2 id="new-title" class="reveal">Новинки</h2>
+          <p class="reveal">Последние поступления на полки бутика.</p>
+          <a class="pill pill--ink reveal" href="#catalog-new">Все новинки</a>
+        </div>
+        <div class="shelf-grid shelf-grid--four">${fresh.map((p, i) => card(p, { index: i % 4 })).join('')}</div>
+      </section>
+
+      <section class="finale" data-head="dark" aria-labelledby="finale-title">
+        <p class="kicker reveal">Консультация</p>
+        <h2 id="finale-title" class="finale-title" data-chars>Найдём ваш аромат</h2>
+        <p class="finale-text reveal">Расскажите консультанту о любимых нотах и поводе, и он подберёт аромат, который будет звучать именно на вас.</p>
+        <div class="finale-cta reveal">
+          <a class="pill pill--brand pill--lg" href="#catalog">Перейти в каталог</a>
+          <span class="finale-phone selectable">${esc(FS.config.contacts.phone)}</span>
         </div>
       </section>`;
   }
 
-  return { render, title: () => 'Бутик парфюмерии' };
+  function mount(root, route, params, signal) {
+    const reduce = M.reduce.matches;
+
+    /* --- Герой: смена флаконов, параллакс, сжатие кадра при прокрутке --- */
+    const hero = $('.hero', root);
+    const pin = $('.hero-pin', hero);
+    const slides = $$('.slide', hero);
+    const list = heroSlides();
+    let index = 0;
+    const show = (i) => {
+      const prev = index;
+      index = (i + slides.length) % slides.length;
+      slides.forEach((s, k) => {
+        s.classList.toggle('is-active', k === index);
+        s.classList.toggle('is-prev', k === prev && k !== index);
+        s.tabIndex = k === index ? 0 : -1;
+      });
+      const p = list[index];
+      $('[data-hero-index]', hero).textContent = pad(index + 1);
+      $('[data-hero-brand]', hero).textContent = p.brand;
+      const name = $('[data-hero-name]', hero);
+      name.textContent = p.name;
+      name.setAttribute('href', `#product-${p.id}`);
+      hero.querySelector('.hero-now').classList.remove('is-swap');
+      void hero.offsetWidth;
+      hero.querySelector('.hero-now').classList.add('is-swap');
+    };
+    let heroVisible = true;
+    if (!reduce && slides.length > 1) {
+      clearInterval(timer);
+      timer = setInterval(() => { if (heroVisible && !document.hidden) show(index + 1); }, 5200);
+      signal.addEventListener('abort', () => clearInterval(timer));
+    }
+    if (M.finePointer.matches && !reduce) {
+      pin.addEventListener('pointermove', (e) => {
+        const r = pin.getBoundingClientRect();
+        pin.style.setProperty('--mx', ((e.clientX - r.left) / r.width - 0.5).toFixed(3));
+        pin.style.setProperty('--my', ((e.clientY - r.top) / r.height - 0.5).toFixed(3));
+      }, { signal });
+    }
+    M.scene((y, h) => {
+      const p = M.progress(hero, h);
+      heroVisible = p < 0.98;
+      pin.style.setProperty('--p', p.toFixed(4));
+    });
+
+    /* --- История: слова проявляются по мере прокрутки --- */
+    const storyText = $('[data-words]', root);
+    const words = M.splitWords(storyText);
+    let lastLit = -1;
+    M.scene((y, h) => {
+      const r = storyText.getBoundingClientRect();
+      const k = M.clamp((h * 0.82 - r.top) / (r.height + h * 0.3), 0, 1);
+      const lit = reduce ? words.length : Math.round(k * words.length * 1.1);
+      if (lit === lastLit) return;
+      lastLit = lit;
+      words.forEach((w, i) => w.classList.toggle('is-lit', i < lit));
+    });
+
+    /* --- Индекс: активная строка у центра экрана меняет картинку и номер --- */
+    const rows = $$('.irow', root);
+    const stack = $$('.stack-item', root);
+    const num = $('[data-index-num]', root);
+    let active = 0;
+    const setActive = (i) => {
+      if (i === active) return;
+      active = i;
+      rows.forEach((r, k) => r.classList.toggle('is-active', k === i));
+      stack.forEach((s, k) => { s.classList.toggle('is-active', k === i); });
+      num.textContent = pad(i + 1);
+      num.parentElement.classList.remove('is-swap');
+      void num.offsetWidth;
+      num.parentElement.classList.add('is-swap');
+    };
+    M.scene((y, h) => {
+      let best = 0;
+      let dist = Infinity;
+      rows.forEach((r, i) => {
+        const b = r.getBoundingClientRect();
+        const d = Math.abs(b.top + b.height / 2 - h * 0.5);
+        if (d < dist) { dist = d; best = i; }
+      });
+      setActive(best);
+    });
+    rows.forEach((r, i) => r.addEventListener('pointerenter', () => setActive(i), { signal }));
+
+    /* --- Бестселлеры: горизонтальная лента, закреплённая на время прокрутки --- */
+    const hs = $('.hscroll', root);
+    const track = $('.hscroll-track', hs);
+    const bar = $('.hscroll-bar span', hs);
+    let distance = 0;
+    const pinned = () => !reduce && window.matchMedia('(min-width: 900px)').matches;
+    const measure = () => {
+      if (pinned()) {
+        hs.classList.add('is-pinned');
+        distance = Math.max(0, track.scrollWidth - track.clientWidth);
+        hs.style.height = `${distance + window.innerHeight}px`;
+      } else {
+        hs.classList.remove('is-pinned');
+        hs.style.height = '';
+        track.style.transform = '';
+        distance = 0;
+      }
+    };
+    measure();
+    window.addEventListener('resize', measure, { signal });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
+    M.scene((y, h) => {
+      if (!distance) {
+        const max = track.scrollWidth - track.clientWidth;
+        bar.style.transform = `scaleX(${max > 0 ? (track.scrollLeft / max).toFixed(3) : 0})`;
+        return;
+      }
+      const p = M.progress(hs, h);
+      track.style.transform = `translate3d(${(-p * distance).toFixed(1)}px,0,0)`;
+      bar.style.transform = `scaleX(${p.toFixed(3)})`;
+    });
+    track.addEventListener('scroll', () => M.refresh(), { passive: true, signal });
+
+    /* --- Семейства: превью флакона следует за курсором --- */
+    const fam = $('.families', root);
+    const float = $('.fam-float', fam);
+    if (M.finePointer.matches && !reduce) {
+      let fx = 0; let fy = 0; let tx = 0; let ty = 0; let raf = 0;
+      const follow = () => {
+        fx += (tx - fx) * 0.14; fy += (ty - fy) * 0.14;
+        float.style.transform = `translate3d(${fx.toFixed(1)}px, ${fy.toFixed(1)}px, 0)`;
+        raf = Math.abs(tx - fx) + Math.abs(ty - fy) > 0.5 ? requestAnimationFrame(follow) : 0;
+      };
+      fam.addEventListener('pointermove', (e) => {
+        const r = fam.getBoundingClientRect();
+        tx = e.clientX - r.left; ty = e.clientY - r.top;
+        const row = e.target.closest('.fam');
+        if (row) {
+          const shot = row.querySelector('.fam-shot');
+          if (shot && float.dataset.fam !== row.dataset.fam) { float.dataset.fam = row.dataset.fam; float.innerHTML = shot.outerHTML; }
+          float.classList.add('is-on');
+        } else float.classList.remove('is-on');
+        if (!raf) raf = requestAnimationFrame(follow);
+      }, { signal });
+      fam.addEventListener('pointerleave', () => float.classList.remove('is-on'), { signal });
+    }
+
+    /* --- Финал: заголовок по буквам --- */
+    M.splitChars($('[data-chars]', root));
+    $('[data-chars]', root).classList.add('reveal');
+  }
+
+  function unmount() { clearInterval(timer); }
+
+  return { render, mount, unmount, title: () => 'Бутик парфюмерии' };
 })();
