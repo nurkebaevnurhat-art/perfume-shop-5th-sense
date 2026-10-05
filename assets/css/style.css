@@ -456,7 +456,7 @@ h1[tabindex="-1"]:focus { outline: none; }
 .pcard-name a:hover { background-size: 100% 1px; }
 .pcard-desc { font-size: 14px; color: var(--ink-soft); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .pcard-meta { font-size: 12.5px; color: var(--ink-soft); }
-.pcard-price { margin-top: auto; padding-top: 10px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px solid var(--line); }
+.pcard-price { margin-top: auto; padding-top: 10px; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 10px; border-top: 1px solid var(--line); }
 .price { font-size: 17px; font-weight: 500; white-space: nowrap; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
 .pcard-actions { display: flex; align-items: center; gap: 18px; }
 /* Действия «В корзину» / «Смотреть»: текст с тонкой линией снизу, как ссылки в первом экране */

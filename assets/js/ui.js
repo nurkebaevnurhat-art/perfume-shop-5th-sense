@@ -191,7 +191,6 @@ FS.ui = (function () {
           <p class="pcard-desc">${esc(p.short)}</p>
           <p class="pcard-meta">${esc(meta)}</p>
           <div class="pcard-price">
-            <span class="price">${money(v.price)}</span>
             <div class="pcard-actions">
               <button class="line-link" type="button" data-add="${p.id}" data-ml="${v.ml}" ${available ? '' : 'disabled'}>${available ? 'В корзину' : 'Нет в наличии'}</button>
               <a class="line-link line-link--soft" href="#product-${p.id}">Смотреть</a>

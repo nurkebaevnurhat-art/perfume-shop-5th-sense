@@ -100,7 +100,7 @@ FS.views.home = (function () {
                 <span class="irow-meta">${esc(p.short)}</span>
                 <span class="irow-actions">
                   <a class="line-link" href="#product-${p.id}">Смотреть</a>
-                  <button class="line-link line-link--soft" type="button" data-add="${p.id}" data-ml="${FS.api.mainVolume(p).ml}" ${FS.api.mainVolume(p).stock > 0 ? '' : 'disabled'}>${money(FS.api.mainVolume(p).price)}, в корзину</button>
+                  <button class="line-link line-link--soft" type="button" data-add="${p.id}" data-ml="${FS.api.mainVolume(p).ml}" ${FS.api.mainVolume(p).stock > 0 ? '' : 'disabled'}>В корзину</button>
                 </span>
               </li>`).join('')}
           </ol>
