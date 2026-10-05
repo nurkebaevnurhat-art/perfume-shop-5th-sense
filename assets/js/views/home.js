@@ -36,13 +36,11 @@ FS.views.home = (function () {
 
     const family = (f, i) => {
       const list = FS.products.filter((p) => p.family === f.id);
-      const shot = list.find((p) => p.image) || list[0];
-      return `<a class="fam reveal" href="#family-${f.id}" style="--i:${i}" data-fam="${i}" data-cursor="Открыть">
+      return `<a class="fam reveal" href="#family-${f.id}" style="--i:${i}">
           <span class="fam-num">${pad(i + 1)}</span>
           <span class="fam-name">${esc(f.name)}</span>
           <span class="fam-notes">${esc(f.notes)}</span>
           <span class="fam-count">${list.length} ${plural(list.length, 'аромат', 'аромата', 'ароматов')}</span>
-          ${shot ? `<span class="fam-shot" style="--tint:${tint(shot)}">${FS.bottle.media(shot)}</span>` : ''}
         </a>`;
     };
 
@@ -137,7 +135,6 @@ FS.views.home = (function () {
           <p class="families-lead reveal">Выберите семейство, которое вам ближе. Мы покажем ароматы с похожим характером.</p>
         </div>
         <div class="fam-list">${FS.families.map(family).join('')}</div>
-        <div class="fam-float" aria-hidden="true"></div>
       </section>
 
       <section class="arrivals" data-head="light" aria-labelledby="new-title">
@@ -282,29 +279,6 @@ FS.views.home = (function () {
     });
     track.addEventListener('scroll', () => M.refresh(), { passive: true, signal });
 
-    /* --- Семейства: превью флакона следует за курсором --- */
-    const fam = $('.families', root);
-    const float = $('.fam-float', fam);
-    if (M.finePointer.matches && !reduce) {
-      let fx = 0; let fy = 0; let tx = 0; let ty = 0; let raf = 0;
-      const follow = () => {
-        fx += (tx - fx) * 0.14; fy += (ty - fy) * 0.14;
-        float.style.transform = `translate3d(${fx.toFixed(1)}px, ${fy.toFixed(1)}px, 0)`;
-        raf = Math.abs(tx - fx) + Math.abs(ty - fy) > 0.5 ? requestAnimationFrame(follow) : 0;
-      };
-      fam.addEventListener('pointermove', (e) => {
-        const r = fam.getBoundingClientRect();
-        tx = e.clientX - r.left; ty = e.clientY - r.top;
-        const row = e.target.closest('.fam');
-        if (row) {
-          const shot = row.querySelector('.fam-shot');
-          if (shot && float.dataset.fam !== row.dataset.fam) { float.dataset.fam = row.dataset.fam; float.innerHTML = shot.outerHTML; }
-          float.classList.add('is-on');
-        } else float.classList.remove('is-on');
-        if (!raf) raf = requestAnimationFrame(follow);
-      }, { signal });
-      fam.addEventListener('pointerleave', () => float.classList.remove('is-on'), { signal });
-    }
 
     /* --- Финал: заголовок по буквам --- */
     M.splitChars($('[data-chars]', root));

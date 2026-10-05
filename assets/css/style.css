@@ -74,14 +74,14 @@ h1[tabindex="-1"]:focus { outline: none; }
 /* ---------- Сцена для фото флакона ----------
    Тёплый камень темнее страницы и мягкий свет в центре за флаконом:
    плитка отделяется от фона, белый фон фото растворяется в сцене (multiply): стекло и блики флакона остаются видны. */
-.menu-shot, .stack-item, .fam-float .fam-shot, .pcard-media, .pcard-img, .pd-stage, .stage-media, .irow-img, .cart-thumb, .summary-thumb, .search-thumb {
+.menu-shot, .stack-item, .pcard-media, .pcard-img, .pd-stage, .stage-media, .irow-img, .cart-thumb, .summary-thumb, .search-thumb {
   --scene-light: var(--tint, #ece6db);
   --scene: radial-gradient(ellipse 74% 62% at 50% 45%, var(--scene-light) 0%, var(--scene-light) 24%, color-mix(in srgb, var(--scene-light) 40%, #a8957a) 100%);
 }
 
 /* Ячейка с фото имеет точную высоту, чтобы высокое фото вписывалось целиком, а не растягивало ячейку */
-.menu-shot, .stack-item, .fam-float .fam-shot, .irow-img { grid-template: minmax(0, 1fr) / minmax(0, 1fr); }
-.menu-shot img, .stack-item img, .fam-float .fam-shot img, .irow-img img, .pcard-img img, .stage-media img { min-width: 0; min-height: 0; max-width: 100%; max-height: 100%; }
+.menu-shot, .stack-item, .irow-img { grid-template: minmax(0, 1fr) / minmax(0, 1fr); }
+.menu-shot img, .stack-item img, .irow-img img, .pcard-img img, .stage-media img { min-width: 0; min-height: 0; max-width: 100%; max-height: 100%; }
 
 /* ---------- Знаки бренда ---------- */
 .logo { display: inline-grid; justify-items: center; gap: 3px; line-height: 1; white-space: nowrap; }
@@ -409,12 +409,6 @@ h1[tabindex="-1"]:focus { outline: none; }
 .fam-notes { font-size: 14px; color: var(--ink-soft); }
 .fam-count { font-size: 11.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-soft); white-space: nowrap; }
 .fam:hover { color: var(--gold-deep); padding-left: 16px; }
-.fam-shot { display: none; }
-.fam-float { position: absolute; left: 0; top: 0; z-index: 2; width: 220px; aspect-ratio: 3 / 4; margin: -150px 0 0 -110px; pointer-events: none; opacity: 0; transition: opacity 0.4s var(--ease); }
-.fam-float.is-on { opacity: 1; }
-.fam-float .fam-shot { display: grid; place-items: center; width: 100%; height: 100%; padding: 12%; background: var(--scene); animation: zoomIn 0.6s var(--ease); }
-.fam-float img, .fam-float svg { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }
-@keyframes zoomIn { from { transform: scale(0.85); } }
 
 /* Новинки */
 .arrivals { background: var(--paper); padding-block: clamp(72px, 10vw, 140px); }
