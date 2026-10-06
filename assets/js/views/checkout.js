@@ -153,7 +153,7 @@ FS.views.checkout = (function () {
           </div>
 
           <p class="form-error" data-form-error role="alert"></p>
-          <button class="btn btn--primary btn--block btn--lg" type="submit">Подтвердить заказ</button>
+          <button class="line-link line-link--lg co-submit" type="submit">Подтвердить заказ</button>
         </form>
 
         <aside class="summary" data-summary aria-label="Ваш заказ">${summary(values)}</aside>

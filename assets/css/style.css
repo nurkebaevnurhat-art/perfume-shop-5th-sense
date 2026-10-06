@@ -474,6 +474,11 @@ h1[tabindex="-1"]:focus { outline: none; }
 .line-link:disabled:hover { color: inherit; }
 .line-link:disabled:hover::after { transform: none; }
 .line-link.is-pulse { animation: stamp 0.6s var(--ease); }
+/* Крупные действия: «Добавить в корзину», «Купить сейчас», «Подтвердить заказ» */
+.line-link--lg { min-height: 48px; font-size: 13px; letter-spacing: 0.22em; }
+.line-link--lg::after { bottom: 10px; }
+.line-link--gold { color: var(--gold-deep); }
+.line-link--gold:hover { color: var(--ink); }
 [data-head="dark"] .line-link--soft, .layer--menu .line-link--soft, .layer--search .line-link--soft { color: var(--on-dark-soft); }
 [data-head="dark"] .line-link:hover { color: var(--gold-soft); }
 .pcard--wide { grid-column: span 2; }
@@ -617,9 +622,14 @@ h1[tabindex="-1"]:focus { outline: none; }
 .stock.is-in { color: var(--ok); } .stock.is-in .stock-dot { background: var(--ok); }
 .stock.is-low { color: var(--warn); } .stock.is-low .stock-dot { background: var(--warn); }
 .stock.is-out { color: var(--ink-soft); } .stock.is-out .stock-dot { background: var(--ink-soft); }
-.buy-row { display: flex; gap: 8px; align-items: stretch; }
-.buy-row .stepper { height: auto; min-height: 52px; }
-.fav-btn--inline { position: static; width: 52px; height: 52px; border: 1px solid var(--ink); flex: none; }
+.buy-row { display: flex; align-items: center; gap: 20px; }
+.buy-row .stepper { height: 38px; border-color: var(--line-strong); background: transparent; }
+.buy-row .stepper button { width: 34px; }
+.buy-row .stepper svg { width: 13px; height: 13px; }
+/* Сердечко без рамки */
+.fav-btn--inline { position: static; width: 40px; height: 40px; border: 0; flex: none; }
+.fav-btn--inline svg { width: 22px; height: 22px; }
+.buy-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 40px; }
 .perks { list-style: none; margin: 4px 0 0; padding: 16px 0 0; border-top: 1px solid var(--line); display: grid; gap: 6px; font-size: 13.5px; color: var(--ink-soft); }
 .perks li { display: flex; gap: 12px; align-items: baseline; }
 .perks li::before { content: ''; flex: none; width: 14px; height: 1px; background: var(--gold); transform: translateY(-4px); }
@@ -654,6 +664,7 @@ h1[tabindex="-1"]:focus { outline: none; }
 /* ---------- Оформление заказа ---------- */
 .checkout { width: min(100% - 2 * var(--gutter), var(--max)); margin-inline: auto; padding-block: clamp(32px, 4vw, 56px) clamp(64px, 8vw, 110px); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 420px); gap: clamp(28px, 4vw, 64px); align-items: start; }
 .checkout-form { display: grid; gap: 28px; min-width: 0; }
+.co-submit, .filters-apply { justify-self: start; }
 .co-step { border: 0; margin: 0; padding: 0 0 28px; border-bottom: 1px solid var(--line); display: grid; gap: 16px; min-width: 0; }
 .co-step legend { font-family: var(--ff-serif); font-size: 34px; text-transform: uppercase; line-height: 1; padding: 0; margin-bottom: 16px; }
 .field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
@@ -811,7 +822,7 @@ h1[tabindex="-1"]:focus { outline: none; }
   .pcard--wide { grid-column: span 2; }
   .pcard-desc { display: none; }
   .pcard-name { font-size: 20px; }
-  .price { font-size: 15px; }
+  .price:not(.price--lg) { font-size: 15px; }
   .pcard-price { flex-direction: column; align-items: flex-start; gap: 4px; }
   .pcard-actions { gap: 14px; }
   .line-link { letter-spacing: 0.12em; }

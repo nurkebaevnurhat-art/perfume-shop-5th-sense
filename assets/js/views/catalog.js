@@ -84,7 +84,7 @@ FS.views.catalog = (function () {
         <span class="check-label">Только в наличии</span>
       </label>
       <button class="line-link filters-reset" type="button" data-reset>Сбросить фильтры</button>
-      <button class="btn btn--primary btn--block filters-apply" type="button" data-filters-toggle>Показать ароматы</button>`;
+      <button class="line-link line-link--lg filters-apply" type="button" data-filters-toggle>Показать ароматы</button>`;
   }
 
   function activeChips() {

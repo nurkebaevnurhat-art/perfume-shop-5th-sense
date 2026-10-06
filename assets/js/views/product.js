@@ -55,10 +55,12 @@ FS.views.product = (function () {
       <p class="stock ${s.cls}"><span class="stock-dot" aria-hidden="true"></span>${s.text}</p>
       <div class="buy-row">
         ${stepper(qty, max, 'data-qty', product.name)}
-        <button class="pill pill--brand pill--lg pill--grow" type="button" data-buy="add" ${v.stock > 0 ? '' : 'disabled'}>Добавить в корзину</button>
         <button class="fav-btn fav-btn--inline ${FS.store.isFavorite(product.id) ? 'is-on' : ''}" type="button" data-fav="${product.id}" aria-pressed="${FS.store.isFavorite(product.id)}" aria-label="В избранное: ${esc(product.name)}">${icon.heart}</button>
       </div>
-      <button class="pill pill--ink pill--lg pill--block" type="button" data-buy="now" ${v.stock > 0 ? '' : 'disabled'}>Купить сейчас</button>`;
+      <div class="buy-actions">
+        <button class="line-link line-link--lg" type="button" data-buy="add" ${v.stock > 0 ? '' : 'disabled'}>Добавить в корзину</button>
+        <button class="line-link line-link--lg line-link--gold" type="button" data-buy="now" ${v.stock > 0 ? '' : 'disabled'}>Купить сейчас</button>
+      </div>`;
   }
 
   function render(route) {
