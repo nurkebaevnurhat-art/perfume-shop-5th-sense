@@ -24,6 +24,7 @@ FS.app = (function () {
     if (t === 'checkout') return { name: 'checkout', key: t };
     if (t === 'favorites') return { name: 'favorites', key: t };
     if (t === 'delivery') return { name: 'delivery', key: t };
+    if (t === 'offer' || t === 'privacy' || t === 'returns') return { name: t, key: t };
     if (t === 'admin') return { name: 'admin', key: t, tab: 'overview' };
     if ((m = t.match(/^admin-(orders|products|data)$/))) return { name: 'admin', key: t, tab: m[1] };
     if (t === 'admin-new') return { name: 'admin', key: t, tab: 'edit', id: null };
@@ -128,6 +129,8 @@ FS.app = (function () {
     document.addEventListener('click', (e) => {
       const a = e.target.closest('a[href^="#"]');
       if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
+      // Ссылки, открывающиеся в новой вкладке (оферта из формы заказа), браузер обрабатывает сам.
+      if (a.target === '_blank') return;
       const token = a.getAttribute('href').slice(1);
       if (!token) return;
       // Обычные якоря внутри страницы (например, «Перейти к содержимому») не трогаем.

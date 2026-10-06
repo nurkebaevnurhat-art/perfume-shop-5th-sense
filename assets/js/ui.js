@@ -152,7 +152,9 @@ FS.ui = (function () {
         <nav class="footer-col" aria-label="Покупателям">
           <h2>Покупателям</h2>
           <a href="#delivery">Доставка и оплата</a>
-          <a href="#delivery">Возврат и обмен</a>
+          <a href="#returns">Возврат и обмен</a>
+          <a href="#offer">Публичная оферта</a>
+          <a href="#privacy">Политика конфиденциальности</a>
           <a href="#favorites">Избранное</a>
           <a href="#admin">Вход для сотрудников</a>
         </nav>
