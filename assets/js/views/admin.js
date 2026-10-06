@@ -79,7 +79,7 @@ FS.views.admin = (function () {
             <h1>Админ-панель</h1>
           </div>
           <div class="admin-head-actions">
-            <a class="text-link" href="#home">Открыть сайт</a>
+            <a class="btn btn--sm" href="#home">Открыть сайт</a>
             <button class="btn btn--outline btn--sm" type="button" data-admin-logout>Выйти</button>
           </div>
         </div>

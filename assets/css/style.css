@@ -302,10 +302,13 @@ h1[tabindex="-1"]:focus { outline: none; }
 .search-results .btn--outline { border-color: var(--on-dark); color: var(--on-dark); }
 .search-results .btn--outline:hover { background: var(--on-dark); color: var(--ink); }
 
-.toasts { position: fixed; z-index: 90; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); display: grid; gap: 8px; width: min(440px, calc(100vw - 32px)); pointer-events: none; }
-.toast { pointer-events: auto; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 15px 18px; background: var(--ink); color: var(--on-dark); font-size: 14px; opacity: 0; transform: translateY(14px); transition: opacity 0.5s var(--ease), transform 0.7s var(--ease); }
+/* Уведомления: компактная тёмная плашка в правом нижнем углу, золотой ромб и тонкая линия */
+.toasts { position: fixed; z-index: 90; right: var(--gutter); bottom: calc(24px + env(safe-area-inset-bottom, 0px)); display: grid; justify-items: end; gap: 8px; width: min(360px, calc(100vw - 32px)); pointer-events: none; }
+.toast { position: relative; pointer-events: auto; display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 18px 14px 20px; background: rgba(14, 12, 10, 0.94); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); color: var(--on-dark); border-top: 1px solid var(--line-gold); font-size: 13px; line-height: 1.45; letter-spacing: 0.01em; box-shadow: 0 18px 40px rgba(14, 12, 10, 0.18); opacity: 0; transform: translate3d(0, 12px, 0); transition: opacity 0.5s var(--ease), transform 0.7s var(--ease); }
+.toast::before { content: ''; flex: none; width: 7px; height: 7px; background: var(--gold-soft); transform: rotate(45deg); }
+.toast > span { flex: 1; min-width: 0; }
 .toast.is-in { opacity: 1; transform: none; }
-.toast-action { color: var(--brand-soft); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; white-space: nowrap; }
+.toast-action { position: relative; flex: none; color: var(--gold-soft); font-size: 10.5px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; white-space: nowrap; padding-bottom: 3px; border-bottom: 1px solid currentColor; transition: color 0.3s; }
 .toast-action:hover { color: var(--on-dark); }
 
 .view { display: block; min-height: 70vh; outline: none; }
@@ -885,7 +888,7 @@ h1[tabindex="-1"]:focus { outline: none; }
 .admin { width: min(100% - 2 * var(--gutter), var(--max)); margin-inline: auto; padding-top: calc(var(--header-h) + env(safe-area-inset-top, 0px) + 32px); padding-bottom: clamp(64px, 8vw, 110px); }
 .admin-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
 .admin-head h1 { font-family: var(--ff-serif); font-size: clamp(40px, 5.2vw, 68px); letter-spacing: 0.01em; line-height: 1; margin-top: 6px; }
-.admin-head-actions { display: flex; align-items: center; gap: 24px; }
+.admin-head-actions { display: flex; align-items: center; gap: 28px; }
 .admin-notice { margin-top: 18px; padding: 12px 16px; border-left: 3px solid var(--blue); background: var(--sheet); font-size: 14px; color: var(--ink-soft); max-width: 80ch; }
 .admin-tabs { display: flex; gap: 0; margin-top: 28px; border-bottom: 1px solid var(--line-strong); overflow-x: auto; scrollbar-width: none; }
 .admin-tabs::-webkit-scrollbar { display: none; }
@@ -918,24 +921,35 @@ h1[tabindex="-1"]:focus { outline: none; }
 .mini-main strong { font-weight: 500; margin-right: 6px; }
 .mini-meta { display: flex; align-items: center; gap: 10px; flex: none; font-variant-numeric: tabular-nums; }
 
-.status, .pay, .tag, .stock-pill { display: inline-block; padding: 2px 8px; font-size: 12px; line-height: 1.5; border: 1px solid var(--line-strong); white-space: nowrap; }
-.status--new { background: var(--blue); border-color: var(--blue); color: var(--on-blue); }
-.status--confirmed { border-color: var(--blue); color: var(--blue); }
-.status--shipped { border-color: var(--ink); color: var(--ink); }
-.status--done { background: var(--ink); border-color: var(--ink); color: var(--sheet); }
+/* Статусы и метки в админке: текст с ромбом-маркером, без плашек и рамок */
+.status, .pay, .tag, .stock-pill { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; line-height: 1.4; white-space: nowrap; color: var(--ink-soft); }
+.status::before, .pay::before, .stock-pill::before { content: ''; flex: none; width: 6px; height: 6px; transform: rotate(45deg); border: 1px solid currentColor; }
+.status--new { color: var(--gold-deep); }
+.status--new::before { background: currentColor; }
+.status--confirmed { color: var(--ink); }
+.status--shipped { color: var(--ink); }
+.status--shipped::before { background: currentColor; opacity: 0.5; }
+.status--done { color: var(--ok); }
+.status--done::before { background: currentColor; }
 .status--cancelled { color: var(--ink-soft); text-decoration: line-through; }
-.pay--paid { border-color: var(--ok); color: var(--ok); }
+.pay--paid { color: var(--ok); }
+.pay--paid::before { background: currentColor; }
 .pay--unpaid { color: var(--ink-soft); }
-.tag { font-size: 11px; padding: 1px 6px; color: var(--ink-soft); }
-.tag--blue { border-color: var(--blue); color: var(--blue); }
-.stock-pill { font-size: 11.5px; padding: 0 6px; }
-.stock-pill.is-low { border-color: var(--warn); color: var(--warn); }
-.stock-pill.is-out { border-color: var(--error); color: var(--error); }
+.tag { font-size: 10px; letter-spacing: 0.18em; padding-bottom: 2px; border-bottom: 1px solid currentColor; }
+.tag--blue { color: var(--gold-deep); }
+.stock-pill { font-size: 10.5px; }
+.stock-pill.is-low { color: var(--warn); }
+.stock-pill.is-out { color: var(--error); }
+.stock-pill.is-out::before { background: currentColor; }
 
 .admin-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .admin-toolbar .toolbar-search { flex: 1 1 260px; }
 .admin-toolbar select, .order-controls select, .editor select { width: 100%; min-height: 44px; background-color: var(--sheet); border: 1px solid var(--line-strong); border-radius: 0; padding: 10px 34px 10px 12px; outline: 0; appearance: none; -webkit-appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--ink) 50%), linear-gradient(135deg, var(--ink) 50%, transparent 50%); background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px; background-repeat: no-repeat; cursor: pointer; }
 .admin-toolbar select:focus, .order-controls select:focus, .editor select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--focus-ring); }
+/* Статус и оплата заказа: выпадающие списки без рамки, только линия снизу */
+.order-controls select { background-color: transparent; border: 0; border-bottom: 1px solid var(--line-strong); padding-left: 0; min-height: 40px; background-position: calc(100% - 10px) 50%, calc(100% - 5px) 50%; }
+.order-controls select:focus { border-color: var(--ink); box-shadow: 0 1px 0 0 var(--ink); }
+.order-controls { gap: 12px 32px; }
 .admin-chips { margin-top: -4px; }
 .chip-count { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 .chip--active .chip-count { color: var(--blue); }
@@ -945,14 +959,14 @@ h1[tabindex="-1"]:focus { outline: none; }
 .order[open] { border-color: var(--ink); }
 .order summary { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.2fr) minmax(0, 0.8fr) auto; gap: 12px 16px; align-items: center; padding: 14px 16px; cursor: pointer; list-style: none; }
 .order summary::-webkit-details-marker { display: none; }
-.order summary:hover { background: rgba(20, 100, 214, 0.04); }
+.order summary:hover { background: rgba(176, 141, 91, 0.06); }
 .order summary > span { display: grid; gap: 2px; min-width: 0; font-size: 14.5px; }
 .order summary em { font-style: normal; font-size: 12.5px; color: var(--ink-soft); }
 .order-num { grid-auto-flow: row; }
 .order-num strong { font-weight: 500; }
 .order-num .tag { justify-self: start; }
 .order-sum { font-variant-numeric: tabular-nums; font-weight: 500; }
-.order-badges { display: flex !important; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.order summary > .order-badges { display: flex !important; gap: 8px 20px; flex-wrap: wrap; justify-content: flex-end; }
 .order-body { padding: 4px 16px 18px; border-top: 1px solid var(--line); display: grid; gap: 16px; }
 .order-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 220px)); gap: 12px; padding-top: 14px; }
 .order-controls .field span { font-size: 13px; color: var(--ink-soft); }
