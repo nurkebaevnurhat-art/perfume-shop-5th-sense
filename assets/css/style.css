@@ -46,7 +46,7 @@
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-io: cubic-bezier(0.76, 0, 0.24, 1);
 
-  color-scheme: light;
+  color-scheme: only light; /* запрещает браузеру перекрашивать сайт в «тёмную тему» */
 }
 
 *, *::before, *::after { box-sizing: border-box; }
