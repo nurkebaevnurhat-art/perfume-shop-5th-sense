@@ -48,6 +48,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   if (url.origin !== self.location.origin) return;
+  // Запросы к серверу (заказы, админка) всегда идут в сеть.
+  if (url.pathname.startsWith('/api/')) return;
 
   // Страница: без сети открываем сохранённую главную (маршруты сайта — якоря).
   if (request.mode === 'navigate') {

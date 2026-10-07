@@ -115,6 +115,7 @@ FS.app = (function () {
   }
 
   function start() {
+    FS.backend.status(); // заранее узнаём, подключён ли сервер заказов
     FS.pwa.init();
     FS.motion.init();
     FS.ui.renderHeader();

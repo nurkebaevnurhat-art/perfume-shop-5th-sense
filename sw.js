@@ -3,7 +3,7 @@
    Сайт целиком сохраняется на телефоне, поэтому каталог открывается без интернета.
    Обновления: при каждом открытии файлы тихо обновляются в фоне,
    новая версия видна при следующем запуске. */
-const VERSION = '7c8db0f90a';
+const VERSION = '877f26b680';
 const CACHE = `fs-${VERSION}`;
 const FONTS = 'fs-fonts';
 const PRECACHE = [
@@ -103,6 +103,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   if (url.origin !== self.location.origin) return;
+  // Запросы к серверу (заказы, админка) всегда идут в сеть.
+  if (url.pathname.startsWith('/api/')) return;
 
   // Страница: без сети открываем сохранённую главную (маршруты сайта — якоря).
   if (request.mode === 'navigate') {

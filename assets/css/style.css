@@ -694,6 +694,7 @@ h1[tabindex="-1"]:focus { outline: none; }
 .co-hint { font-size: 13.5px; color: var(--ink-soft); }
 .form-error { color: var(--error); font-size: 14.5px; }
 .form-error:empty { display: none; }
+.hp-field { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 .summary { position: sticky; top: calc(var(--header-h) + 20px); padding: 26px; background: var(--ink); color: var(--on-dark); display: grid; gap: 14px; justify-items: start; }
 .summary h2 { font-family: var(--ff-serif); font-size: 34px; text-transform: uppercase; }
 .summary .link-btn { color: var(--on-dark-soft); }
@@ -917,6 +918,12 @@ h1[tabindex="-1"]:focus { outline: none; }
 .admin-panel { padding: 20px; background: var(--sheet); border: 1px solid var(--line); display: grid; gap: 12px; justify-items: start; min-width: 0; }
 .admin-panel h2 { font-family: var(--ff-serif); font-size: 26px; letter-spacing: 0.01em; }
 .admin-panel > p { color: var(--ink-soft); font-size: 14.5px; max-width: 70ch; }
+.tg-panel [data-telegram] { display: grid; gap: 12px; justify-items: start; }
+.tg-panel [data-telegram] p, .tg-steps { color: var(--ink-soft); font-size: 14.5px; max-width: 70ch; }
+.tg-steps { display: grid; gap: 6px; padding-left: 1.2em; }
+.tg-chats { display: grid; gap: 4px; font-size: 14.5px; list-style: none; padding: 0; }
+.tg-chats li::before { content: "◆"; color: var(--gold); font-size: 9px; margin-right: 10px; vertical-align: 2px; }
+.tg-actions { display: flex; flex-wrap: wrap; gap: 10px 22px; }
 .panel-head { width: 100%; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 .panel-empty { display: grid; gap: 12px; justify-items: start; color: var(--ink-soft); font-size: 14.5px; padding: 8px 0; }
 .mini-list { list-style: none; margin: 0; padding: 0; width: 100%; }

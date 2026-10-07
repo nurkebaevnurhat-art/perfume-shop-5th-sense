@@ -3,6 +3,16 @@
   "framework": null,
   "buildCommand": "node scripts/export-site.mjs",
   "outputDirectory": "public",
+  "functions": {
+    "api/orders.js": {
+      "includeFiles": "assets/js/*.js",
+      "maxDuration": 15
+    },
+    "api/telegram.js": {
+      "includeFiles": "assets/js/*.js",
+      "maxDuration": 15
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",
@@ -53,6 +63,15 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=604800"
+        }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
         }
       ]
     }
