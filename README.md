@@ -49,6 +49,23 @@ python3 -m http.server 8000
 ```
 
 Подходит любой статический хостинг (GitHub Pages, Netlify, Vercel, Nginx).
+
+### Выкладка на Netlify
+
+В проекте уже есть настройки: `netlify.toml` (при выкладке пересобирается `sw.js`),
+`_headers` (заголовки для сервис-воркера и манифеста) и `_redirects`
+(служебные файлы не отдаются посетителям).
+
+**Через GitHub, с автообновлением.** На app.netlify.com: Add new site →
+Import an existing project → GitHub → репозиторий `perfume-shop-5th-sense`.
+Branch to deploy — ветка с этой версией сайта (или `main` после слияния);
+остальные поля Netlify возьмёт из `netlify.toml`. После этого каждое изменение
+в ветке выкладывается само.
+
+**Без GitHub, перетаскиванием.** Соберите папку с `index.html`,
+`manifest.webmanifest`, `sw.js`, `_headers`, `_redirects` и `assets/`, сожмите
+в zip и перетащите на app.netlify.com/drop. Обновлять сайт так нужно вручную,
+перед этим выполнив `node scripts/build-sw.mjs`.
 Маршруты — якоря (`#catalog-men`, `#product-aventus`), поэтому настройка сервера
 не требуется.
 
