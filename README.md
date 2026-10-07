@@ -50,6 +50,22 @@ python3 -m http.server 8000
 
 Подходит любой статический хостинг (GitHub Pages, Netlify, Vercel, Nginx).
 
+### Выкладка на Vercel
+
+Настройки в `vercel.json`: при выкладке скрипт `scripts/export-site.mjs`
+пересобирает `sw.js` и складывает файлы сайта в папку `public/` (служебные
+файлы проекта туда не попадают), заголовки для приложения уже прописаны.
+
+**Через GitHub, с автообновлением.** На vercel.com: Add New → Project →
+Import Git Repository → `perfume-shop-5th-sense` → Deploy. Framework Preset
+оставьте «Other», остальные поля Vercel возьмёт из `vercel.json`. Выкладывается
+основная ветка (`main`); чтобы выложить эту версию до слияния, в настройках
+проекта Settings → Git → Production Branch укажите ветку с ней.
+
+**С компьютера, без GitHub.** В папке проекта выполните `npx vercel --prod`
+(понадобится Node.js); при первом запуске Vercel попросит войти и задаст пару
+вопросов — ответы по умолчанию подходят.
+
 ### Выкладка на Netlify
 
 В проекте уже есть настройки: `netlify.toml` (при выкладке пересобирается `sw.js`),
