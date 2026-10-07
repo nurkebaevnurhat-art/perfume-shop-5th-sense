@@ -81,7 +81,18 @@ FS.views.checkout = (function () {
             <div class="summary-total"><dt>Итого</dt><dd>${money(order.total)}${order.shipping === null ? '<small>без учёта доставки</small>' : ''}</dd></div>
           </dl>
         </div>
+        ${telegramNote(order)}
         <a class="line-link" href="#catalog">Вернуться в каталог</a>
+      </div>`;
+  }
+
+  // Статусы заказа в Telegram: сразу, если заказ оформлен внутри Telegram, иначе по ссылке на бота.
+  function telegramNote(order) {
+    if (order.telegramLinked) return '<p class="co-telegram">Статус заказа пришлём сообщением в Telegram.</p>';
+    if (!order.telegramLink) return '';
+    return `<div class="co-telegram">
+        <a class="line-link line-link--gold" href="${esc(order.telegramLink)}" target="_blank" rel="noopener">Следить за заказом в Telegram</a>
+        <p>Напишем, когда заказ подтвердят и передадут в доставку. В том же чате можно задать вопрос консультанту.</p>
       </div>`;
   }
 
@@ -93,6 +104,9 @@ FS.views.checkout = (function () {
     }
     if (!FS.store.count()) return emptyState();
     const values = draft();
+    // В магазине внутри Telegram подставляем имя из профиля, если форма ещё пустая.
+    const u = FS.tg.user;
+    if (u && !values.firstName && !values.lastName) { values.firstName = u.first_name || ''; values.lastName = u.last_name || ''; }
     const method = values.delivery || FS.delivery[0].id;
     return `
       <section class="page-head">
@@ -258,6 +272,7 @@ FS.views.checkout = (function () {
           comment: data.comment || '',
           gift: data.gift,
           website: data.website || '',
+          telegram: FS.tg.initData || undefined,
           consent: { offer: true, privacy: true, at: new Date().toISOString() },
           subtotal,
           shipping,

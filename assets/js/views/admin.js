@@ -495,7 +495,7 @@ FS.views.admin = (function () {
         </section>
       </div>
       ${serverMode() ? `<section class="admin-panel tg-panel">
-        <h2>Уведомления в Telegram</h2>
+        <h2>Telegram-бот</h2>
         <div data-telegram>${telegramBody()}</div>
       </section>` : ''}
       <section class="admin-panel">
@@ -516,7 +516,8 @@ FS.views.admin = (function () {
   }
 
   /* ---------- Telegram ---------- */
-  let tg = null; // состояние с сервера: { token, tokenValid, bot, source, chats, storage }
+  let tg = null; // состояние с сервера: { token, tokenValid, bot, source, chats, storage, webhook }
+  let tgInvite = null; // последняя ссылка-приглашение для сотрудника
   let tgError = '';
 
   function telegramBody() {
@@ -531,18 +532,34 @@ FS.views.admin = (function () {
     }
     if (!tg.tokenValid) return '<p>Telegram не принял токен бота. Проверьте переменную TELEGRAM_BOT_TOKEN на Vercel и сделайте Redeploy.</p>';
     const bot = `<a class="text-link" href="https://t.me/${esc(tg.bot)}" target="_blank" rel="noopener">@${esc(tg.bot)}</a>`;
-    const chats = tg.chats.length
-      ? `<ul class="tg-chats">${tg.chats.map((c) => `<li>${esc(c.title)}</li>`).join('')}</ul>`
-      : '';
+    if (!tg.storage) return `<p>Бот ${bot} найден, но для его работы нужно хранилище. Подключите Upstash Redis на Vercel (Storage) и сделайте Redeploy.</p>`;
+
+    // Шаг 1: бот для покупателей.
+    if (!tg.webhook || !tg.webhook.enabled) {
+      return `<p>Бот ${bot} пока только присылает уведомления. Включите его для покупателей: в боте появятся меню, кнопка «Магазин» (сайт откроется прямо в Telegram), статусы заказов и вопросы консультанту.</p>
+        <div class="tg-actions"><button class="btn btn--outline btn--sm" type="button" data-tg="enable">Включить бота</button></div>`;
+    }
+
+    // Шаг 2: чаты сотрудников.
+    const staff = tg.chats.length
+      ? `<p>Новые заказы и вопросы покупателей приходят ${tg.chats.length > 1 ? 'в эти чаты' : 'в этот чат'}:</p><ul class="tg-chats">${tg.chats.map((c) => `<li>${esc(c.title)}</li>`).join('')}</ul>`
+      : '<p>Чат сотрудников ещё не подключён: заказы и вопросы покупателей пока никуда не приходят. Нажмите «Подключить сотрудника».</p>';
+    const invite = tgInvite ? `<div class="tg-invite">
+        <p>Откройте ссылку на телефоне сотрудника и нажмите «Старт». Ссылка работает ${tgInvite.minutes} минут и только один раз.</p>
+        <p><a class="text-link selectable" href="${esc(tgInvite.private)}" target="_blank" rel="noopener">${esc(tgInvite.private)}</a></p>
+        <p>Для общей группы сотрудников: <a class="text-link" href="${esc(tgInvite.group)}" target="_blank" rel="noopener">добавить бота в группу</a>.</p>
+      </div>` : '';
     const actions = [];
+    if (tg.source !== 'env') actions.push(`<button class="btn btn--outline btn--sm" type="button" data-tg="invite">${tg.chats.length ? 'Подключить ещё сотрудника' : 'Подключить сотрудника'}</button>`);
     if (tg.chats.length) actions.push('<button class="btn btn--outline btn--sm" type="button" data-tg="test">Отправить проверку</button>');
-    if (tg.source !== 'env' && tg.storage) actions.push(`<button class="btn btn--outline btn--sm" type="button" data-tg="connect">${tg.chats.length ? 'Подключить ещё чат' : 'Подключить чат'}</button>`);
-    if (tg.source === 'storage' && tg.chats.length) actions.push('<button class="btn btn--outline btn--sm" type="button" data-tg="disconnect">Отключить</button>');
-    let lead;
-    if (tg.chats.length) lead = `<p>Бот ${bot} присылает новые заказы ${tg.chats.length > 1 ? 'в эти чаты' : 'в этот чат'}:</p>`;
-    else if (tg.storage) lead = `<p>Бот ${bot} готов. Откройте его в Telegram и нажмите «Старт» (или добавьте бота в рабочую группу и напишите там любое сообщение), затем нажмите «Подключить чат».</p>`;
-    else lead = `<p>Бот ${bot} готов, но некуда отправлять заказы. Подключите хранилище Upstash Redis на Vercel или укажите ID чата в переменной TELEGRAM_CHAT_ID.</p>`;
-    return `${lead}${chats}${tg.source === 'env' ? '<p class="stat-note">Чаты заданы переменной TELEGRAM_CHAT_ID на Vercel.</p>' : ''}<div class="tg-actions">${actions.join('')}</div>`;
+    if (tg.source === 'storage' && tg.chats.length) actions.push('<button class="btn btn--outline btn--sm" type="button" data-tg="disconnect">Отключить сотрудников</button>');
+    actions.push('<button class="btn btn--outline btn--sm" type="button" data-tg="enable">Обновить настройки бота</button>');
+    return `<p>Бот ${bot} работает: покупатели могут открыть магазин, следить за заказом и задать вопрос консультанту.</p>
+      ${tg.webhook.lastError ? `<p class="field-error">Последняя ошибка Telegram: ${esc(tg.webhook.lastError)}</p>` : ''}
+      ${staff}${tg.source === 'env' ? '<p class="stat-note">Чаты заданы переменной TELEGRAM_CHAT_ID на Vercel.</p>' : ''}
+      ${invite}
+      <div class="tg-actions">${actions.join('')}</div>
+      <p class="stat-note">Чтобы ответить покупателю, ответьте (reply) на его сообщение в Telegram: бот перешлёт ответ.</p>`;
   }
 
   function paintTelegram() {
@@ -557,7 +574,9 @@ FS.views.admin = (function () {
         ? await FS.backend.call('GET', '/api/telegram', null, { auth: true })
         : await FS.backend.call('POST', '/api/telegram', { action }, { auth: true });
       tgError = '';
-      if (action === 'connect') toast('Чат подключён: в Telegram пришло подтверждение');
+      tgInvite = action === 'invite' ? tg.invite : (action === 'reload' ? tgInvite : null);
+      if (action === 'enable') toast('Бот включён: откройте его в Telegram и нажмите «Старт»');
+      if (action === 'invite') toast('Ссылка для сотрудника готова');
       if (action === 'test') toast('Проверочное сообщение отправлено');
       if (action === 'disconnect') toast('Чаты отключены');
     } catch (err) {
@@ -777,13 +796,13 @@ FS.views.admin = (function () {
     el.addEventListener('change', (e) => {
       const t = e.target;
       if (t.dataset.orderStatus) {
-        const o = FS.api.updateOrder(t.dataset.orderStatus, { status: t.value }, saveFailed);
+        const o = FS.api.updateOrder(t.dataset.orderStatus, { status: t.value }, { error: saveFailed, saved: customerToast });
         toast(`Заказ ${o.number}: ${statusName(o.status).toLowerCase()}${o.status === 'cancelled' && !serverMode() ? ', товар вернулся на склад' : ''}`);
         rerenderOrderKeepOpen(o.number);
         return;
       }
       if (t.dataset.orderPayment) {
-        const o = FS.api.updateOrder(t.dataset.orderPayment, { paymentStatus: t.value }, saveFailed);
+        const o = FS.api.updateOrder(t.dataset.orderPayment, { paymentStatus: t.value }, { error: saveFailed, saved: customerToast });
         toast(`Заказ ${o.number}: ${o.paymentStatus === 'paid' ? 'отмечен как оплаченный' : 'отмечен как неоплаченный'}`);
         rerenderOrderKeepOpen(o.number);
         return;
@@ -832,6 +851,10 @@ FS.views.admin = (function () {
       const timer = setInterval(() => { if (!document.hidden) sync(); }, 60000);
       if (signal) signal.addEventListener('abort', () => clearInterval(timer));
     }
+  }
+
+  function customerToast(data, o) {
+    if (data.customerNotified) toast(`Покупателю отправлено сообщение в Telegram о заказе ${o.number}`);
   }
 
   function saveFailed(err, o) {

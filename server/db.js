@@ -62,5 +62,28 @@ module.exports = {
     return n <= limit;
   },
   async getChats() { return parse(await command('GET', CHATS)) || []; },
-  async setChats(chats) { if (chats.length) await command('SET', CHATS, JSON.stringify(chats)); else await command('DEL', CHATS); }
+  async setChats(chats) { if (chats.length) await command('SET', CHATS, JSON.stringify(chats)); else await command('DEL', CHATS); },
+  async addChat(chat) {
+    const chats = (await this.getChats()).filter((c) => c.id !== chat.id);
+    chats.push(chat);
+    await this.setChats(chats);
+    return chats;
+  },
+
+  // Простые ключи со сроком жизни: приглашения сотрудников, связи «сообщение → покупатель».
+  async put(key, value, seconds) {
+    const args = ['SET', key, typeof value === 'string' ? value : JSON.stringify(value)];
+    if (seconds) args.push('EX', seconds);
+    await command(...args);
+  },
+  async take(key) { // прочитать и удалить (одноразовые коды)
+    const raw = await command('GET', key);
+    if (raw !== null && raw !== undefined) await command('DEL', key);
+    return raw;
+  },
+  get: (key) => command('GET', key),
+  // true, если ключа ещё не было (например, «уже отвечали недавно»).
+  async once(key, seconds) { return (await command('SET', key, '1', 'NX', 'EX', seconds)) === 'OK'; },
+  addToSet: (key, member) => command('SADD', key, member),
+  members: async (key) => (await command('SMEMBERS', key)) || []
 };

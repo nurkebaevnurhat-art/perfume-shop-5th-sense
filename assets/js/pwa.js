@@ -43,7 +43,7 @@ FS.pwa = (function () {
 
   // Ненавязчивое предложение один раз: на телефоне, через полминуты на сайте.
   function suggest() {
-    if (!touch() || !canInstall() || FS.storage.get(DISMISSED, 0)) return;
+    if (!touch() || !canInstall() || FS.storage.get(DISMISSED, 0) || FS.tg.inside) return;
     FS.storage.set(DISMISSED, Date.now());
     FS.ui.toast('Установите 5th SENSE на телефон', { label: 'Установить', run: install }, { duration: 8000 });
   }

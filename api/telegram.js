@@ -1,20 +1,24 @@
-/* /api/telegram — настройка уведомлений из админ-панели (нужен пароль).
-   GET  — состояние: есть ли токен бота и какие чаты получают заказы.
-   POST { action: 'connect' }    — подключить чаты, которые написали боту.
-   POST { action: 'test' }       — отправить проверочное сообщение.
+/* /api/telegram — настройка бота из админ-панели (нужен пароль).
+   GET  — состояние: токен, включён ли бот, какие чаты сотрудников подключены.
+   POST { action: 'enable' }     — включить бота для покупателей (webhook, меню, кнопка «Магазин»).
+   POST { action: 'invite' }     — одноразовая ссылка, чтобы подключить чат сотрудника.
+   POST { action: 'test' }       — отправить проверочное сообщение сотрудникам.
    POST { action: 'disconnect' } — отключить чаты, подключённые из админки. */
-const { send, readJson, handler, HttpError, requireAdmin } = require('../server/http');
+const { send, readJson, handler, HttpError, requireAdmin, siteUrl } = require('../server/http');
 const db = require('../server/db');
 const telegram = require('../server/telegram');
 const catalog = require('../server/catalog');
+const botApi = require('../server/bot');
 
 async function state() {
   const { source, chats } = telegram.configured() ? await telegram.recipients() : { source: 'none', chats: [] };
   let bot = null;
+  let webhook = { enabled: false, url: '', lastError: '' };
   if (telegram.configured()) {
     try { bot = (await telegram.call('getMe')).username; } catch (err) { console.error(err); }
+    if (bot) { try { webhook = await botApi.webhookState(); } catch (err) { console.error(err); } }
   }
-  return { token: telegram.configured(), tokenValid: Boolean(bot), bot, source, chats, storage: db.configured() };
+  return { token: telegram.configured(), tokenValid: Boolean(bot), bot, source, chats, storage: db.configured(), webhook };
 }
 
 module.exports = handler({
@@ -29,15 +33,16 @@ module.exports = handler({
     const { action } = await readJson(req);
     const brand = catalog.load().config.brand;
 
-    if (action === 'connect') {
-      if (!db.configured()) throw new HttpError(503, 'storage_not_configured', 'Подключите хранилище или укажите TELEGRAM_CHAT_ID в настройках Vercel');
-      const found = await telegram.discover();
-      if (!found.length) throw new HttpError(404, 'no_chats', 'Бот пока не получил ни одного сообщения. Напишите ему /start в Telegram и нажмите ещё раз.');
-      const current = await db.getChats();
-      const chats = [...new Map([...current, ...found].map((c) => [c.id, c])).values()];
-      await db.setChats(chats);
-      await telegram.send(`✅ Чат подключён к сайту <b>${telegram.escape(brand)}</b>. Сюда будут приходить новые заказы.`);
+    if (action === 'enable') {
+      if (!db.configured()) throw new HttpError(503, 'storage_not_configured', 'Сначала подключите хранилище Upstash Redis на Vercel');
+      await botApi.enable(siteUrl(req));
       return send(res, 200, await state());
+    }
+    if (action === 'invite') {
+      if (!db.configured()) throw new HttpError(503, 'storage_not_configured', 'Подключите хранилище или укажите TELEGRAM_CHAT_ID в настройках Vercel');
+      const { webhook } = await state();
+      if (!webhook.enabled) await botApi.enable(siteUrl(req));
+      return send(res, 200, { ...(await state()), invite: await botApi.createInvite() });
     }
     if (action === 'test') {
       const result = await telegram.send(`🔔 Проверка уведомлений <b>${telegram.escape(brand)}</b>: всё работает.`);
