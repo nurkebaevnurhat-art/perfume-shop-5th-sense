@@ -115,6 +115,7 @@ FS.app = (function () {
   }
 
   function start() {
+    FS.pwa.init();
     FS.motion.init();
     FS.ui.renderHeader();
     FS.ui.renderFooter();

@@ -104,6 +104,7 @@ FS.ui = (function () {
           <a href="#favorites">Избранное</a>
           <a href="#delivery">Доставка и оплата</a>
           <a href="#admin">Вход для сотрудников</a>
+          <button class="install-btn" type="button" data-action="install">Установить приложение</button>
           <span class="selectable">${esc(FS.config.contacts.phone)}</span>
         </div>
       </div>`;
@@ -157,6 +158,7 @@ FS.ui = (function () {
           <a href="#privacy">Политика конфиденциальности</a>
           <a href="#favorites">Избранное</a>
           <a href="#admin">Вход для сотрудников</a>
+          <button class="install-btn" type="button" data-action="install">Установить приложение</button>
         </nav>
       </div>
       <a class="footer-mark" href="#home" aria-label="5th SENSE Perfume Bar, на главную"><img class="footer-logo" src="${FS.assetUrl('assets/img/logo-intro.png')}" alt="" width="520" height="962" loading="lazy" decoding="async"></a>`;
@@ -201,7 +203,7 @@ FS.ui = (function () {
   }
 
   /* ---------- Уведомления ---------- */
-  function toast(message, action) {
+  function toast(message, action, opts) {
     const host = $('#toasts');
     const el = document.createElement('div');
     el.className = 'toast';
@@ -213,7 +215,7 @@ FS.ui = (function () {
     const all = host.querySelectorAll('.toast');
     if (all.length > 2) all[0].remove();
     requestAnimationFrame(() => el.classList.add('is-in'));
-    const timer = setTimeout(dismiss, 3600);
+    const timer = setTimeout(dismiss, (opts && opts.duration) || 3600);
     function dismiss() {
       clearTimeout(timer);
       el.classList.remove('is-in');
@@ -454,6 +456,7 @@ FS.ui = (function () {
           close(t.tagName === 'A');
           break;
         case 'search': renderSearch(); open('search-layer'); break;
+        case 'install': close(); FS.pwa.install(); break;
         case 'close-search': close(); break;
         default: break;
       }
