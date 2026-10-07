@@ -24,6 +24,7 @@ FS.app = (function () {
     if (t === 'checkout') return { name: 'checkout', key: t };
     if (t === 'favorites') return { name: 'favorites', key: t };
     if (t === 'delivery') return { name: 'delivery', key: t };
+    if (t === 'offer' || t === 'privacy' || t === 'returns') return { name: t, key: t };
     if (t === 'admin') return { name: 'admin', key: t, tab: 'overview' };
     if ((m = t.match(/^admin-(orders|products|data)$/))) return { name: 'admin', key: t, tab: m[1] };
     if (t === 'admin-new') return { name: 'admin', key: t, tab: 'edit', id: null };
@@ -95,15 +96,18 @@ FS.app = (function () {
     };
 
     current = { key: route.key, impl };
-    // Переход: шторка цвета бренда закрывает экран, страница меняется, шторка уходит вверх.
+    // Переход: шторка с логотипом закрывает экран, страница меняется, шторка уходит вверх.
     const curtain = $('#curtain');
     if (animate && curtain) {
       curtain.classList.remove('is-out');
       curtain.classList.add('is-in');
       busy = setTimeout(() => {
         swap();
-        curtain.classList.add('is-out');
-        busy = setTimeout(() => curtain.classList.remove('is-in', 'is-out'), 800);
+        // Короткая пауза, чтобы логотип на шторке успели увидеть.
+        busy = setTimeout(() => {
+          curtain.classList.add('is-out');
+          busy = setTimeout(() => curtain.classList.remove('is-in', 'is-out'), 800);
+        }, 220);
       }, 560);
     } else {
       swap();
@@ -111,6 +115,7 @@ FS.app = (function () {
   }
 
   function start() {
+    FS.pwa.init();
     FS.motion.init();
     FS.ui.renderHeader();
     FS.ui.renderFooter();
@@ -125,6 +130,8 @@ FS.app = (function () {
     document.addEventListener('click', (e) => {
       const a = e.target.closest('a[href^="#"]');
       if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
+      // Ссылки, открывающиеся в новой вкладке (оферта из формы заказа), браузер обрабатывает сам.
+      if (a.target === '_blank') return;
       const token = a.getAttribute('href').slice(1);
       if (!token) return;
       // Обычные якоря внутри страницы (например, «Перейти к содержимому») не трогаем.

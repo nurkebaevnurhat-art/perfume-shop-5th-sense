@@ -10,11 +10,10 @@ FS.views.product = (function () {
   let qty = 1;
   let root = null;
 
-  // Основной вид и крупный план. Без фото — объёмная иллюстрация флакона.
+  // Один вид: фото флакона целиком, без фото — объёмная иллюстрация.
+  // Миниатюры появляются, только если видов больше одного (например, при добавлении фото упаковки).
   function views() {
-    return product.image
-      ? [{ id: 'photo', label: 'Флакон' }, { id: 'detail', label: 'Крупный план' }]
-      : [{ id: 'bottle', label: 'Флакон' }, { id: 'detail', label: 'Крупный план' }];
+    return product.image ? [{ id: 'photo', label: 'Флакон' }] : [{ id: 'bottle', label: 'Флакон' }];
   }
 
   function art(view, large) {
@@ -56,10 +55,12 @@ FS.views.product = (function () {
       <p class="stock ${s.cls}"><span class="stock-dot" aria-hidden="true"></span>${s.text}</p>
       <div class="buy-row">
         ${stepper(qty, max, 'data-qty', product.name)}
-        <button class="pill pill--brand pill--lg pill--grow" type="button" data-buy="add" ${v.stock > 0 ? '' : 'disabled'}>Добавить в корзину</button>
         <button class="fav-btn fav-btn--inline ${FS.store.isFavorite(product.id) ? 'is-on' : ''}" type="button" data-fav="${product.id}" aria-pressed="${FS.store.isFavorite(product.id)}" aria-label="В избранное: ${esc(product.name)}">${icon.heart}</button>
       </div>
-      <button class="pill pill--ink pill--lg pill--block" type="button" data-buy="now" ${v.stock > 0 ? '' : 'disabled'}>Купить сейчас</button>`;
+      <div class="buy-actions">
+        <button class="line-link line-link--lg" type="button" data-buy="add" ${v.stock > 0 ? '' : 'disabled'}>Добавить в корзину</button>
+        <button class="line-link line-link--lg line-link--gold" type="button" data-buy="now" ${v.stock > 0 ? '' : 'disabled'}>Купить сейчас</button>
+      </div>`;
   }
 
   function render(route) {
@@ -68,7 +69,6 @@ FS.views.product = (function () {
     selected = FS.api.mainVolume(product);
     qty = 1;
     const fam = FS.families.find((f) => f.id === product.family);
-    const isSet = product.type === 'set';
     const related = FS.api.related(product, 4);
     const conc = FS.concentrationLabel[product.concentration];
 
@@ -83,7 +83,7 @@ FS.views.product = (function () {
       product.country ? ['Страна', esc(product.country)] : null
     ].filter(Boolean);
 
-    const category = isSet ? FS.categories.find((c) => c.id === 'gifts') : FS.categories.find((c) => c.id === product.gender);
+    const category = FS.categories.find((c) => c.id === product.gender);
     const tier = (cls, name, notes, when) => `
       <div class="tier reveal ${cls}">
         <p class="tier-when">${when}</p>
@@ -96,13 +96,13 @@ FS.views.product = (function () {
         <div class="pd-top" data-head="light">
           <div class="pd-gallery">
             <div class="pd-stage" data-gallery-main data-cursor="Ближе">${stage(views()[0].id)}</div>
-            <div class="pd-thumbs" role="tablist" aria-label="Изображения">
+            ${views().length > 1 ? `<div class="pd-thumbs" role="tablist" aria-label="Изображения">
               ${views().map((v, i) => `
                 <button class="thumb ${i === 0 ? 'is-active' : ''}" type="button" role="tab" aria-selected="${i === 0}" data-view="${v.id}">
                   <span class="thumb-art thumb-art--${v.id}">${art(v.id, false)}</span>
                   <span class="thumb-label">${v.label}</span>
                 </button>`).join('')}
-            </div>
+            </div>` : ''}
           </div>
 
           <div class="pd-info">

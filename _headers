@@ -1,0 +1,17 @@
+# Заголовки для Netlify (работают и при выкладке перетаскиванием архива).
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+# Сервис-воркер всегда проверяется заново, чтобы обновления доходили до приложения.
+/sw.js
+  Cache-Control: no-cache
+  Content-Type: application/javascript; charset=utf-8
+
+/manifest.webmanifest
+  Content-Type: application/manifest+json; charset=utf-8
+  Cache-Control: no-cache
+
+/assets/icons/*
+  Cache-Control: public, max-age=604800

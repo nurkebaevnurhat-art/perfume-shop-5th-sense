@@ -5,7 +5,8 @@ window.FS = window.FS || {};
 
 FS.config = {
   brand: '5th SENSE',
-  tagline: 'Premium Perfume Boutique',
+  tagline: 'Perfume Bar',
+  founded: 2025,
   currency: '₸',
   locale: 'ru-RU',
 
@@ -17,6 +18,18 @@ FS.config = {
     hours: 'Ежедневно, 10:00–22:00',
     instagram: '@5thsense'
   },
+
+  // Реквизиты продавца для оферты, политики и подвала.
+  // Значения в квадратных скобках — заготовки: замените их на реальные данные.
+  seller: {
+    name: '[ИП «Фамилия И. О.» или ТОО «Название»]',
+    taxId: '[ИИН или БИН]',
+    address: '[Юридический адрес: город, улица, дом]',
+    email: 'boutique@5thsense.example',
+    phone: '+7 (000) 000-00-00'
+  },
+  // Дата последней редакции юридических документов.
+  legalUpdated: '6 октября 2026 г.',
 
   // Порог бесплатной доставки (в валюте магазина).
   freeShippingFrom: 60000,

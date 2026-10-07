@@ -59,8 +59,8 @@ FS.views.checkout = (function () {
       </section>
       <div class="page-body"><div class="empty">
         <p class="empty-title">Корзина пуста</p>
-        <p>Загляните на витрины бутика: бестселлеры, новинки и подарочные наборы.</p>
-        <a class="btn btn--primary" href="#catalog">Перейти в каталог</a>
+        <p>Загляните на витрины бутика: бестселлеры, новинки и нишевая парфюмерия.</p>
+        <a class="line-link" href="#catalog">Перейти в каталог</a>
       </div></div>`;
   }
 
@@ -81,7 +81,7 @@ FS.views.checkout = (function () {
             <div class="summary-total"><dt>Итого</dt><dd>${money(order.total)}${order.shipping === null ? '<small>без учёта доставки</small>' : ''}</dd></div>
           </dl>
         </div>
-        <a class="btn btn--primary" href="#catalog">Вернуться в каталог</a>
+        <a class="line-link" href="#catalog">Вернуться в каталог</a>
       </div>`;
   }
 
@@ -143,9 +143,17 @@ FS.views.checkout = (function () {
             </label>
           </fieldset>
 
+          <div class="co-consent" data-consent-field>
+            <label class="check check--consent">
+              <input type="checkbox" name="consent">
+              <span class="check-box" aria-hidden="true"></span>
+              <span class="check-label">Я принимаю условия <a href="#offer" target="_blank" rel="noopener">публичной оферты</a> и даю согласие на обработку персональных данных в соответствии с <a href="#privacy" target="_blank" rel="noopener">политикой конфиденциальности</a></span>
+            </label>
+            <p class="field-error" data-consent-error></p>
+          </div>
+
           <p class="form-error" data-form-error role="alert"></p>
-          <button class="btn btn--primary btn--block btn--lg" type="submit">Подтвердить заказ</button>
-          <p class="co-legal">Нажимая кнопку, вы соглашаетесь на обработку персональных данных для доставки заказа.</p>
+          <button class="line-link line-link--lg co-submit" type="submit">Подтвердить заказ</button>
         </form>
 
         <aside class="summary" data-summary aria-label="Ваш заказ">${summary(values)}</aside>
@@ -156,6 +164,7 @@ FS.views.checkout = (function () {
     const form = $('[data-checkout]', root);
     const data = Object.fromEntries(new FormData(form).entries());
     data.gift = form.elements.gift.checked;
+    data.consent = form.elements.consent.checked;
     return data;
   }
 
@@ -169,6 +178,7 @@ FS.views.checkout = (function () {
     const digits = String(data.phone || '').replace(/\D/g, '');
     if (data.phone && (digits.length < 10 || digits.length > 12)) errors.phone = 'Введите номер телефона из 10–11 цифр, например +7 701 123 45 67';
     if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) errors.email = 'Проверьте адрес почты: в нём должны быть @ и домен, например name@mail.kz';
+    if (!data.consent) errors.consent = 'Чтобы оформить заказ, примите условия оферты и согласие на обработку данных';
     return errors;
   }
 
@@ -182,6 +192,11 @@ FS.views.checkout = (function () {
       const out = $('.field-error', el);
       if (out) out.textContent = msg || '';
     });
+    const consent = $('[data-consent-field]', root);
+    if (consent) {
+      consent.classList.toggle('has-error', Boolean(errors.consent));
+      $('[data-consent-error]', consent).textContent = errors.consent || '';
+    }
   }
 
   function syncAddress() {
@@ -199,7 +214,8 @@ FS.views.checkout = (function () {
 
     form.addEventListener('input', () => {
       const data = values();
-      FS.storage.set(DRAFT_KEY, { ...data, payment: undefined });
+      // Согласие не сохраняем в черновик: покупатель отмечает его заново при каждом заказе.
+      FS.storage.set(DRAFT_KEY, { ...data, payment: undefined, consent: undefined });
       if (touched) showErrors(validate(data));
     });
     form.addEventListener('change', (e) => {
@@ -218,7 +234,7 @@ FS.views.checkout = (function () {
       const errorBox = $('[data-form-error]', root);
       if (Object.keys(errors).length) {
         errorBox.textContent = 'Проверьте отмеченные поля.';
-        const first = $('.has-error input, .has-error textarea', root);
+        const first = $('.field.has-error input, .field.has-error textarea, .co-consent.has-error input', root);
         if (first) first.focus();
         return;
       }
@@ -240,6 +256,7 @@ FS.views.checkout = (function () {
           payment: { id: payment.id, name: payment.name },
           comment: data.comment || '',
           gift: data.gift,
+          consent: { offer: true, privacy: true, at: new Date().toISOString() },
           subtotal,
           shipping,
           total: subtotal + (shipping || 0)

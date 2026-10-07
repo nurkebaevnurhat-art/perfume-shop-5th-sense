@@ -32,20 +32,27 @@ FS.ui = (function () {
   };
 
   /* ---------- Знаки бренда ---------- */
-  const logo = (cls) => `<span class="logo ${cls || ''}">5<span class="logo-th">th</span> SENSE</span>`;
+  const logo = (cls) => `<span class="logo ${cls || ''}"><span class="logo-word">5<span class="logo-th">th</span> SENSE</span><span class="logo-sub">Perfume Bar</span></span>`;
 
   // Гигантский логотип; data-fit растягивает его на всю ширину контейнера.
   const wordmark = (cls) => `<span class="wordmark ${cls || ''}" data-fit aria-hidden="true"><span class="wm-5">5</span><span class="wm-th">th</span><span class="wm-gap"> </span>SENSE</span>`;
 
-  // Эмблема: капля с цифрой 5 и тремя линиями шлейфа.
-  const emblem = (cls) => `<svg class="emblem ${cls || ''}" viewBox="0 0 64 84" aria-hidden="true" focusable="false">
-      <path class="em-drop" d="M32 14C32 14 9 42 9 58a23 23 0 0 0 46 0C55 42 32 14 32 14Z"/>
-      <path class="em-inner" d="M32 26C32 26 17 46 17 58a15 15 0 0 0 30 0"/>
-      <path class="em-ray" d="M24 9c2-3 2-5 0-8M32 8c2-3 2-5 0-7M40 9c2-3 2-5 0-8"/>
-      <text x="32" y="68" text-anchor="middle">5</text>
+  // Подпись под логотипом: PERFUME BAR между двумя тонкими линиями, как на логотипе.
+  const brandLine = (cls) => `<span class="brand-line ${cls || ''}" aria-hidden="true"><i></i>${FS.config.tagline}<i></i></span>`;
+  const est = () => `Est. ${FS.config.founded}`;
+
+  // Эмблема по логотипу: двойная рамка-капсула, массивная 5, под ней TH, звёзды и боковые точки.
+  const emblem = (cls) => `<svg class="emblem ${cls || ''}" viewBox="0 0 48 76" aria-hidden="true" focusable="false">
+      <rect class="em-frame" x="2" y="2" width="44" height="72" rx="22"/>
+      <rect class="em-frame em-frame--in" x="5.5" y="5.5" width="37" height="65" rx="18.5"/>
+      <circle class="em-dot" cx="2" cy="42" r="2"/><circle class="em-dot" cx="46" cy="42" r="2"/>
+      <path class="em-star" d="M24 9.5l1 3.5 3.5 1-3.5 1-1 3.5-1-3.5-3.5-1 3.5-1z"/>
+      <text class="em-5" x="24" y="49" text-anchor="middle">5</text>
+      <text class="em-th" x="24" y="59.5" text-anchor="middle">TH</text>
+      <path class="em-star" d="M24 62l.8 2.6 2.6.8-2.6.8-.8 2.6-.8-2.6-2.6-.8 2.6-.8z"/>
     </svg>`;
 
-  // Светлый тон фона для товара: цвет жидкости, сильно разбавленный бумагой.
+  // Светлый тон фона для товара: цвет жидкости, сильно разбавленный тёплым камнем.
   function hexMix(a, b, t) {
     const p = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
     const x = p(a); const y = p(b);
@@ -53,7 +60,7 @@ FS.ui = (function () {
   }
   const tint = (p, amount) => {
     const liquid = (p.bottle && /^#[0-9a-f]{6}$/i.test(p.bottle.liquid)) ? p.bottle.liquid : '#b59a7a';
-    return hexMix(liquid, '#f1ede6', amount == null ? 0.84 : amount);
+    return hexMix(liquid, '#ece6db', amount == null ? 0.9 : amount);
   };
 
   /* ---------- Шапка и меню ---------- */
@@ -65,7 +72,7 @@ FS.ui = (function () {
           <button class="hl hl--menu" type="button" data-action="menu" aria-expanded="false" aria-controls="site-menu">Меню</button>
           <a class="hl hl--wide" href="#catalog" data-nav="catalog">Коллекция</a>
         </div>
-        <a class="header-mark" href="#home" aria-label="5th SENSE, на главную">${emblem()}<span class="header-word">${logo()}</span></a>
+        <a class="header-mark" href="#home" aria-label="5th SENSE Perfume Bar, на главную"><img class="header-logo" src="${FS.assetUrl('assets/img/logo-intro.png')}" alt="" width="520" height="962"></a>
         <div class="header-right">
           <button class="hl hl--wide" type="button" data-action="search">Поиск</button>
           <a class="hl hl--wide" href="#favorites">Избранное<span class="hl-count" data-fav-count hidden></span></a>
@@ -82,7 +89,7 @@ FS.ui = (function () {
     $('#site-menu').innerHTML = `
       <div class="menu-panel" role="dialog" aria-modal="true" aria-label="Меню">
         <div class="menu-top">
-          <span class="menu-note">5th SENSE, premium perfume boutique</span>
+          <span class="menu-note">5th SENSE · ${FS.config.tagline}<span class="menu-note-est"> · ${est()}</span></span>
           <button class="hl" type="button" data-action="close-menu" data-autofocus>Закрыть</button>
         </div>
         <div class="menu-grid">
@@ -97,6 +104,7 @@ FS.ui = (function () {
           <a href="#favorites">Избранное</a>
           <a href="#delivery">Доставка и оплата</a>
           <a href="#admin">Вход для сотрудников</a>
+          <button class="install-btn" type="button" data-action="install">Установить приложение</button>
           <span class="selectable">${esc(FS.config.contacts.phone)}</span>
         </div>
       </div>`;
@@ -145,16 +153,15 @@ FS.ui = (function () {
         <nav class="footer-col" aria-label="Покупателям">
           <h2>Покупателям</h2>
           <a href="#delivery">Доставка и оплата</a>
-          <a href="#delivery">Возврат и обмен</a>
+          <a href="#returns">Возврат и обмен</a>
+          <a href="#offer">Публичная оферта</a>
+          <a href="#privacy">Политика конфиденциальности</a>
           <a href="#favorites">Избранное</a>
           <a href="#admin">Вход для сотрудников</a>
+          <button class="install-btn" type="button" data-action="install">Установить приложение</button>
         </nav>
       </div>
-      <a class="footer-mark" href="#home" aria-label="5th SENSE, на главную">${wordmark()}</a>
-      <div class="footer-base">
-        <span>© ${new Date().getFullYear()} 5th SENSE</span>
-        <span>Premium Perfume Boutique</span>
-      </div>`;
+      <a class="footer-mark" href="#home" aria-label="5th SENSE Perfume Bar, на главную"><img class="footer-logo" src="${FS.assetUrl('assets/img/logo-intro.png')}" alt="" width="520" height="962" loading="lazy" decoding="async"></a>`;
   }
 
   /* ---------- Карточка товара ---------- */
@@ -186,10 +193,9 @@ FS.ui = (function () {
           <p class="pcard-desc">${esc(p.short)}</p>
           <p class="pcard-meta">${esc(meta)}</p>
           <div class="pcard-price">
-            <span class="price">${money(v.price)}</span>
             <div class="pcard-actions">
-              <button class="pill pill--brand" type="button" data-add="${p.id}" data-ml="${v.ml}" ${available ? '' : 'disabled'}>${available ? 'В корзину' : 'Нет в наличии'}</button>
-              <a class="pill" href="#product-${p.id}">Смотреть</a>
+              <button class="line-link" type="button" data-add="${p.id}" data-ml="${v.ml}" ${available ? '' : 'disabled'}>${available ? 'В корзину' : 'Нет в наличии'}</button>
+              <a class="line-link line-link--soft" href="#product-${p.id}">Смотреть</a>
             </div>
           </div>
         </div>
@@ -197,7 +203,7 @@ FS.ui = (function () {
   }
 
   /* ---------- Уведомления ---------- */
-  function toast(message, action) {
+  function toast(message, action, opts) {
     const host = $('#toasts');
     const el = document.createElement('div');
     el.className = 'toast';
@@ -209,7 +215,7 @@ FS.ui = (function () {
     const all = host.querySelectorAll('.toast');
     if (all.length > 2) all[0].remove();
     requestAnimationFrame(() => el.classList.add('is-in'));
-    const timer = setTimeout(dismiss, 3600);
+    const timer = setTimeout(dismiss, (opts && opts.duration) || 3600);
     function dismiss() {
       clearTimeout(timer);
       el.classList.remove('is-in');
@@ -281,13 +287,13 @@ FS.ui = (function () {
       <div class="cart-empty">
         <p class="cart-empty-title">В корзине пока пусто</p>
         <p>Выберите аромат на витринах бутика или загляните в бестселлеры.</p>
-        <a class="btn btn--primary" href="#catalog" data-action="close-cart">Перейти в каталог</a>
+        <a class="line-link" href="#catalog" data-action="close-cart">Перейти в каталог</a>
       </div>`;
 
     drawer.innerHTML = `
       <div class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="cart-title">
         <div class="drawer-head">
-          <h2 id="cart-title">Корзина${count ? ` <span class="drawer-count">${count}</span>` : ''}</h2>
+          <h2 id="cart-title">Корзина${count ? ` <span class="drawer-count">(${count})</span>` : ''}</h2>
           <button class="icon-btn" type="button" data-action="close-cart" aria-label="Закрыть корзину">${icon.close}</button>
         </div>
         <div class="drawer-body">${body}</div>
@@ -295,8 +301,10 @@ FS.ui = (function () {
         <div class="drawer-foot">
           <div class="sum-row"><span>Товары</span><span>${money(subtotal)}</span></div>
           <p class="drawer-note">Стоимость доставки рассчитается при оформлении.</p>
-          <a class="btn btn--primary btn--block" href="#checkout" data-action="close-cart" data-autofocus>Оформить заказ</a>
-          <button class="btn btn--outline btn--block" type="button" data-action="close-cart">Продолжить покупки</button>
+          <div class="drawer-actions">
+            <a class="line-link" href="#checkout" data-action="close-cart" data-autofocus>Оформить заказ</a>
+            <button class="line-link line-link--soft" type="button" data-action="close-cart">Продолжить покупки</button>
+          </div>
         </div>` : ''}
       </div>`;
   }
@@ -341,8 +349,7 @@ FS.ui = (function () {
     const host = $('[data-search-results]');
     const query = q.trim();
     if (!query) {
-      host.innerHTML = `<p class="search-hint">Часто ищут</p>
-        <div class="search-tags">${['уд', 'роза', 'ваниль', 'Tom Ford', 'сандал', 'Creed'].map((t) => `<button type="button" class="chip" data-search-tag="${esc(t)}">${esc(t)}</button>`).join('')}</div>`;
+      host.innerHTML = '';
       return;
     }
     const found = FS.api.filter({ q: query });
@@ -394,16 +401,9 @@ FS.ui = (function () {
   /* ---------- Глобальные обработчики ---------- */
   function bind() {
     document.addEventListener('click', (e) => {
-      const t = e.target.closest('[data-action], [data-add], [data-fav], [data-remove], [data-step], [data-search-tag], [data-search-all]');
+      const t = e.target.closest('[data-action], [data-add], [data-fav], [data-remove], [data-step], [data-search-all]');
       if (!t) return;
 
-      if (t.dataset.searchTag) {
-        const input = $('#search-input');
-        input.value = t.dataset.searchTag;
-        updateSearch(input.value);
-        input.focus();
-        return;
-      }
       if (t.hasAttribute('data-search-all')) {
         e.preventDefault();
         const q = $('#search-input').value.trim();
@@ -456,6 +456,7 @@ FS.ui = (function () {
           close(t.tagName === 'A');
           break;
         case 'search': renderSearch(); open('search-layer'); break;
+        case 'install': close(); FS.pwa.install(); break;
         case 'close-search': close(); break;
         default: break;
       }
@@ -509,7 +510,7 @@ FS.ui = (function () {
   }
 
   return {
-    $, $$, esc, money, plural, icon, logo, wordmark, emblem, tint, volumeLabel,
+    $, $$, esc, money, plural, icon, logo, wordmark, brandLine, est, emblem, tint, hexMix, volumeLabel,
     renderHeader, renderFooter, setActiveNav, card, stepper, toast,
     open, close, openCart, renderCart, bind, pulse,
     setStructuredData, productSchema,

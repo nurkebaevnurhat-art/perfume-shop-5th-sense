@@ -13,10 +13,15 @@ const svgData = (p) => `data:image/svg+xml;base64,${Buffer.from(read(p)).toStrin
 const css = read('assets/css/style.css').replace(/url\("\.\.\/img\/([\w-]+\.svg)"\)/g, (_, f) => `url("${svgData('assets/img/' + f)}")`);
 
 const scripts = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map((m) => m[1]);
-// Фото товаров встраиваются как data:-адреса; код находит их через FS.assetUrl(path).
+// Фото товаров и фото бренда встраиваются как data:-адреса; код находит их через FS.assetUrl(path).
 const photos = readdirSync(join(root, 'assets/products')).filter((f) => /\.(jpe?g|png|webp)$/i.test(f));
 const mime = (f) => (/\.png$/i.test(f) ? 'image/png' : /\.webp$/i.test(f) ? 'image/webp' : 'image/jpeg');
-const assets = Object.fromEntries(photos.map((f) => [`assets/products/${f}`, `data:${mime(f)};base64,${readFileSync(join(root, 'assets/products', f)).toString('base64')}`]));
+const images = readdirSync(join(root, 'assets/img')).filter((f) => /\.(jpe?g|png|webp)$/i.test(f));
+const dataUrl = (dir, f) => `data:${mime(f)};base64,${readFileSync(join(root, dir, f)).toString('base64')}`;
+const assets = Object.fromEntries([
+  ...photos.map((f) => [`assets/products/${f}`, dataUrl('assets/products', f)]),
+  ...images.map((f) => [`assets/img/${f}`, dataUrl('assets/img', f)])
+]);
 const js = `window.FS = window.FS || {};\nFS.assets = ${JSON.stringify(assets)};\n` +
   scripts.map((src) => `/* ${src} */\n${read(src)}`).join('\n');
 
@@ -26,6 +31,8 @@ const ld = html.match(/<script type="application\/ld\+json">.*<\/script>/)[0];
 const body = html
   .slice(html.indexOf('<body>') + 6, html.indexOf('</body>'))
   .replace(/<script src="[^"]+"><\/script>\n?/g, '')
+  // Картинки разметки (логотип заставки) встраиваются как data:-адреса.
+  .replace(/src="assets\/img\/([\w.-]+\.(?:png|jpe?g|webp))"/g, (_, f) => `src="${dataUrl('assets/img', f)}"`)
   .trim();
 
 const out = `${title}

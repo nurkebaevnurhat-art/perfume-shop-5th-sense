@@ -83,8 +83,8 @@ FS.views.catalog = (function () {
         <span class="check-box" aria-hidden="true"></span>
         <span class="check-label">Только в наличии</span>
       </label>
-      <button class="btn btn--outline btn--block" type="button" data-reset>Сбросить фильтры</button>
-      <button class="btn btn--primary btn--block filters-apply" type="button" data-filters-toggle>Показать ароматы</button>`;
+      <button class="line-link filters-reset" type="button" data-reset>Сбросить фильтры</button>
+      <button class="line-link line-link--lg filters-apply" type="button" data-filters-toggle>Показать ароматы</button>`;
   }
 
   function activeChips() {
@@ -111,7 +111,7 @@ FS.views.catalog = (function () {
       <div class="empty">
         <p class="empty-title">Ничего не нашлось</p>
         <p>Уберите часть фильтров или измените запрос. Можно искать по бренду, названию или ноте, например «сандал».</p>
-        <button class="btn btn--primary" type="button" data-reset>Сбросить фильтры</button>
+        <button class="line-link" type="button" data-reset>Сбросить фильтры</button>
       </div>`;
     return { list, grid };
   }
@@ -264,7 +264,7 @@ FS.views.favorites = (function () {
       return `<div class="empty">
         <p class="empty-title">Здесь появятся ароматы, которые вы отметите</p>
         <p>Нажмите на сердце на карточке аромата, чтобы сохранить его и вернуться к нему позже.</p>
-        <a class="btn btn--primary" href="#catalog">Перейти в каталог</a>
+        <a class="line-link" href="#catalog">Перейти в каталог</a>
       </div>`;
     }
     return `<p class="result-count">${list.length} ${plural(list.length, 'аромат', 'аромата', 'ароматов')}</p>

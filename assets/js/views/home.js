@@ -3,7 +3,7 @@ window.FS = window.FS || {};
 FS.views = FS.views || {};
 
 FS.views.home = (function () {
-  const { $, $$, esc, money, plural, card, tint, wordmark, emblem } = FS.ui;
+  const { $, $$, esc, money, plural, card, tint, wordmark } = FS.ui;
   const M = FS.motion;
   const P = (id) => FS.api.productSync(id);
   const pick = (ids, n) => {
@@ -30,45 +30,39 @@ FS.views.home = (function () {
       '@context': 'https://schema.org',
       '@type': 'Store',
       name: '5th SENSE',
-      description: 'Premium Perfume Boutique: селективная и нишевая парфюмерия.',
+      description: '5th SENSE Perfume Bar: селективная и нишевая парфюмерия.',
+      foundingDate: String(FS.config.founded),
       telephone: FS.config.contacts.phone
     });
 
     const family = (f, i) => {
       const list = FS.products.filter((p) => p.family === f.id);
-      const shot = list.find((p) => p.image) || list[0];
-      return `<a class="fam reveal" href="#family-${f.id}" style="--i:${i}" data-fam="${i}" data-cursor="Открыть">
+      return `<a class="fam reveal" href="#family-${f.id}" style="--i:${i}">
           <span class="fam-num">${pad(i + 1)}</span>
           <span class="fam-name">${esc(f.name)}</span>
           <span class="fam-notes">${esc(f.notes)}</span>
           <span class="fam-count">${list.length} ${plural(list.length, 'аромат', 'аромата', 'ароматов')}</span>
-          ${shot ? `<span class="fam-shot" style="--tint:${tint(shot)}">${FS.bottle.media(shot)}</span>` : ''}
         </a>`;
     };
 
     return `
       <section class="hero" data-head="light" aria-labelledby="hero-title">
         <div class="hero-pin">
-          <div class="hero-brand-bg" aria-hidden="true"></div>
           <div class="hero-scene" data-cursor="Смотреть">
             ${slides.map((p, i) => `
-              <a class="slide ${i === 0 ? 'is-active' : ''}" href="#product-${p.id}" style="--tint:${tint(p, 0.8)}" data-slide="${i}" tabindex="${i === 0 ? 0 : -1}" aria-label="${esc(p.brand)} ${esc(p.name)}">
+              <a class="slide ${i === 0 ? 'is-active' : ''}" href="#product-${p.id}" data-slide="${i}" tabindex="${i === 0 ? 0 : -1}" aria-label="${esc(p.brand)} ${esc(p.name)}">
                 <span class="slide-img">${FS.bottle.media(p, { title: '' })}</span>
               </a>`).join('')}
-          </div>
-          <div class="hero-top">
-            <span class="hero-emblem">${emblem()}</span>
           </div>
           <div class="hero-caption">
             <p class="hero-count"><span data-hero-index>01</span> / ${pad(slides.length)}</p>
             <p class="hero-now"><span data-hero-brand>${esc(first.brand)}</span><a data-hero-name href="#product-${first.id}">${esc(first.name)}</a></p>
             <div class="hero-cta">
-              <a class="pill pill--brand pill--lg" href="#catalog">Смотреть коллекцию</a>
-              <a class="pill pill--ghost pill--lg" href="#aromaty">Исследовать ароматы</a>
+              <a class="hero-link" href="#catalog">Смотреть коллекцию</a>
+              <a class="hero-link" href="#aromaty">Исследовать ароматы</a>
             </div>
           </div>
-          <h1 id="hero-title" class="hero-mark"><span class="visually-hidden">5th SENSE, premium perfume boutique</span>${wordmark('wordmark--hero')}</h1>
-          <div class="hero-frame-label" aria-hidden="true">Коллекция 2026</div>
+          <h1 id="hero-title" class="hero-mark"><span class="visually-hidden">5th SENSE Perfume Bar, бутик парфюмерии, основан в 2025 году</span>${wordmark('wordmark--hero')}</h1>
         </div>
       </section>
 
@@ -86,7 +80,7 @@ FS.views.home = (function () {
         </div>
       </section>
 
-      <section class="index" data-head="dark" aria-labelledby="index-title">
+      <section class="index" data-head="light" aria-labelledby="index-title">
         <div class="index-head">
           <p class="kicker reveal">Избранная коллекция</p>
           <h2 id="index-title" class="index-title reveal">Восемь ароматов, с которых начинается бутик</h2>
@@ -105,8 +99,8 @@ FS.views.home = (function () {
                 <a class="irow-name" href="#product-${p.id}">${esc(p.name)}</a>
                 <span class="irow-meta">${esc(p.short)}</span>
                 <span class="irow-actions">
-                  <a class="pill pill--ink" href="#product-${p.id}">Смотреть</a>
-                  <button class="pill pill--line" type="button" data-add="${p.id}" data-ml="${FS.api.mainVolume(p).ml}" ${FS.api.mainVolume(p).stock > 0 ? '' : 'disabled'}>${money(FS.api.mainVolume(p).price)}, в корзину</button>
+                  <a class="line-link" href="#product-${p.id}">Смотреть</a>
+                  <button class="line-link line-link--soft" type="button" data-add="${p.id}" data-ml="${FS.api.mainVolume(p).ml}" ${FS.api.mainVolume(p).stock > 0 ? '' : 'disabled'}>В корзину</button>
                 </span>
               </li>`).join('')}
           </ol>
@@ -118,7 +112,7 @@ FS.views.home = (function () {
           <div class="hscroll-head">
             <p class="kicker">Бестселлеры</p>
             <h2 id="best-title" class="hscroll-title">Ароматы, за которыми возвращаются</h2>
-            <a class="pill pill--line" href="#catalog-bestsellers">Все бестселлеры</a>
+            <a class="hero-link" href="#catalog-bestsellers">Все бестселлеры</a>
           </div>
           <div class="hscroll-track" tabindex="0" aria-label="Бестселлеры, прокрутите в сторону">
             ${best.map((p, i) => card(p, { index: i % 4, reveal: false })).join('')}
@@ -127,21 +121,20 @@ FS.views.home = (function () {
         </div>
       </section>
 
-      <section class="families" id="aromaty" data-head="dark" aria-labelledby="fam-title">
+      <section class="families" id="aromaty" data-head="light" aria-labelledby="fam-title">
         <div class="families-head">
           <p class="kicker reveal">Семейства ароматов</p>
           <h2 id="fam-title" class="reveal">Исследовать ароматы</h2>
           <p class="families-lead reveal">Выберите семейство, которое вам ближе. Мы покажем ароматы с похожим характером.</p>
         </div>
         <div class="fam-list">${FS.families.map(family).join('')}</div>
-        <div class="fam-float" aria-hidden="true"></div>
       </section>
 
       <section class="arrivals" data-head="light" aria-labelledby="new-title">
         <div class="arrivals-head">
           <h2 id="new-title" class="reveal">Новинки</h2>
           <p class="reveal">Последние поступления на полки бутика.</p>
-          <a class="pill pill--ink reveal" href="#catalog-new">Все новинки</a>
+          <a class="hero-link reveal" href="#catalog-new">Все новинки</a>
         </div>
         <div class="shelf-grid shelf-grid--four">${fresh.map((p, i) => card(p, { index: i % 4 })).join('')}</div>
       </section>
@@ -151,7 +144,7 @@ FS.views.home = (function () {
         <h2 id="finale-title" class="finale-title" data-chars>Найдём ваш аромат</h2>
         <p class="finale-text reveal">Расскажите консультанту о любимых нотах и поводе, и он подберёт аромат, который будет звучать именно на вас.</p>
         <div class="finale-cta reveal">
-          <a class="pill pill--brand pill--lg" href="#catalog">Перейти в каталог</a>
+          <a class="hero-link" href="#catalog">Перейти в каталог</a>
           <span class="finale-phone selectable">${esc(FS.config.contacts.phone)}</span>
         </div>
       </section>`;
@@ -197,11 +190,8 @@ FS.views.home = (function () {
         pin.style.setProperty('--my', ((e.clientY - r.top) / r.height - 0.5).toFixed(3));
       }, { signal });
     }
-    M.scene((y, h) => {
-      const p = M.progress(hero, h);
-      heroVisible = p < 0.98;
-      pin.style.setProperty('--p', p.toFixed(4));
-    });
+    // Смена флаконов идёт, только пока герой виден на экране.
+    M.scene(() => { heroVisible = hero.getBoundingClientRect().bottom > 0; });
 
     /* --- История: слова проявляются по мере прокрутки --- */
     const storyText = $('[data-words]', root);
@@ -248,7 +238,8 @@ FS.views.home = (function () {
     const track = $('.hscroll-track', hs);
     const bar = $('.hscroll-bar span', hs);
     let distance = 0;
-    const pinned = () => !reduce && window.matchMedia('(min-width: 900px)').matches;
+    // На низких экранах лента не закрепляется: карточки не поместились бы под шапкой.
+    const pinned = () => !reduce && window.matchMedia('(min-width: 900px) and (min-height: 600px)').matches;
     const measure = () => {
       if (pinned()) {
         hs.classList.add('is-pinned');
@@ -276,29 +267,6 @@ FS.views.home = (function () {
     });
     track.addEventListener('scroll', () => M.refresh(), { passive: true, signal });
 
-    /* --- Семейства: превью флакона следует за курсором --- */
-    const fam = $('.families', root);
-    const float = $('.fam-float', fam);
-    if (M.finePointer.matches && !reduce) {
-      let fx = 0; let fy = 0; let tx = 0; let ty = 0; let raf = 0;
-      const follow = () => {
-        fx += (tx - fx) * 0.14; fy += (ty - fy) * 0.14;
-        float.style.transform = `translate3d(${fx.toFixed(1)}px, ${fy.toFixed(1)}px, 0)`;
-        raf = Math.abs(tx - fx) + Math.abs(ty - fy) > 0.5 ? requestAnimationFrame(follow) : 0;
-      };
-      fam.addEventListener('pointermove', (e) => {
-        const r = fam.getBoundingClientRect();
-        tx = e.clientX - r.left; ty = e.clientY - r.top;
-        const row = e.target.closest('.fam');
-        if (row) {
-          const shot = row.querySelector('.fam-shot');
-          if (shot && float.dataset.fam !== row.dataset.fam) { float.dataset.fam = row.dataset.fam; float.innerHTML = shot.outerHTML; }
-          float.classList.add('is-on');
-        } else float.classList.remove('is-on');
-        if (!raf) raf = requestAnimationFrame(follow);
-      }, { signal });
-      fam.addEventListener('pointerleave', () => float.classList.remove('is-on'), { signal });
-    }
 
     /* --- Финал: заголовок по буквам --- */
     M.splitChars($('[data-chars]', root));
