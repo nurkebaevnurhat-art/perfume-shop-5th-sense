@@ -718,6 +718,7 @@ h1[tabindex="-1"]:focus { outline: none; }
 .success { display: grid; justify-items: center; gap: 24px; }
 .success-card { width: min(100%, 560px); padding: 24px; background: var(--ink); color: var(--on-dark); }
 .success-card .summary-sum { border-top: 0; margin: 0; }
+.co-telegram { display: grid; justify-items: center; gap: 8px; text-align: center; max-width: 46ch; color: var(--ink-soft); font-size: 14px; }
 .notice { width: min(100%, 560px); padding: 14px 18px; border: 1px solid var(--line-gold); background: rgba(176, 141, 91, 0.08); font-size: 14.5px; }
 .notice strong { color: var(--warn); font-weight: 600; }
 
@@ -924,6 +925,7 @@ h1[tabindex="-1"]:focus { outline: none; }
 .tg-chats { display: grid; gap: 4px; font-size: 14.5px; list-style: none; padding: 0; }
 .tg-chats li::before { content: "◆"; color: var(--gold); font-size: 9px; margin-right: 10px; vertical-align: 2px; }
 .tg-actions { display: flex; flex-wrap: wrap; gap: 10px 22px; }
+.tg-invite { display: grid; gap: 6px; padding: 14px 16px; border-left: 2px solid var(--gold); background: var(--paper); max-width: 100%; overflow-wrap: anywhere; }
 .panel-head { width: 100%; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 .panel-empty { display: grid; gap: 12px; justify-items: start; color: var(--ink-soft); font-size: 14.5px; padding: 8px 0; }
 .mini-list { list-style: none; margin: 0; padding: 0; width: 100%; }

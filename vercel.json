@@ -11,6 +11,10 @@
     "api/telegram.js": {
       "includeFiles": "assets/js/*.js",
       "maxDuration": 15
+    },
+    "api/bot.js": {
+      "includeFiles": "assets/js/*.js",
+      "maxDuration": 15
     }
   },
   "headers": [

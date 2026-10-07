@@ -1,7 +1,9 @@
-/* 5th SENSE — уведомления о заказах в Telegram.
+/* 5th SENSE — Telegram: уведомления сотрудникам и общие функции бота.
    TELEGRAM_BOT_TOKEN — токен бота от @BotFather.
-   Куда писать: чаты, подключённые в админ-панели (хранятся в Redis),
-   или список ID через запятую в TELEGRAM_CHAT_ID. */
+   Сотрудники (куда приходят заказы и вопросы покупателей): чаты, подключённые
+   по приглашению из админ-панели (хранятся в Redis), или список ID через
+   запятую в TELEGRAM_CHAT_ID. */
+const crypto = require('node:crypto');
 const db = require('./db');
 
 const API = 'https://api.telegram.org';
@@ -41,19 +43,31 @@ async function send(text) {
   return { sent, failed: results.length - sent };
 }
 
-// Чаты, которые писали боту: личные переписки и группы, куда его добавили.
-async function discover() {
-  const updates = await call('getUpdates', { limit: 100, allowed_updates: ['message', 'my_chat_member'] });
-  const found = new Map();
-  updates.forEach((u) => {
-    const chat = (u.message && u.message.chat) || (u.my_chat_member && u.my_chat_member.chat);
-    if (!chat) return;
-    const title = chat.title || [chat.first_name, chat.last_name].filter(Boolean).join(' ') || (chat.username ? '@' + chat.username : `ID ${chat.id}`);
-    found.set(String(chat.id), { id: String(chat.id), title, type: chat.type });
-  });
-  return [...found.values()];
+// Секрет, по которому /api/bot узнаёт запросы от Telegram (выводится из токена).
+const webhookSecret = () => crypto.createHash('sha256').update('fs-webhook:' + token()).digest('hex').slice(0, 48);
+
+async function isStaff(chatId) {
+  const { chats } = await recipients();
+  return chats.some((c) => String(c.id) === String(chatId));
+}
+
+/* Проверка данных мини-приложения (сайт открыт кнопкой «Магазин» в Telegram).
+   Возвращает пользователя Telegram, если подпись верна. */
+function verifyInitData(raw, maxAgeSeconds) {
+  if (!raw || !configured()) return null;
+  const params = new URLSearchParams(String(raw));
+  const hash = params.get('hash');
+  if (!hash) return null;
+  params.delete('hash');
+  const check = [...params.entries()].map(([k, v]) => `${k}=${v}`).sort().join('\n');
+  const secret = crypto.createHmac('sha256', 'WebAppData').update(token()).digest();
+  const calc = crypto.createHmac('sha256', secret).update(check).digest('hex');
+  if (calc.length !== hash.length || !crypto.timingSafeEqual(Buffer.from(calc), Buffer.from(hash))) return null;
+  const age = Date.now() / 1000 - Number(params.get('auth_date') || 0);
+  if (age > (maxAgeSeconds || 7 * 86400)) return null;
+  try { return JSON.parse(params.get('user')); } catch (e) { return null; }
 }
 
 const escape = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-module.exports = { configured, recipients, send, discover, call, escape };
+module.exports = { configured, recipients, send, call, escape, webhookSecret, isStaff, verifyInitData, token };

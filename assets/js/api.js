@@ -271,9 +271,11 @@ FS.api = (function () {
   function forgetOrders() { remote = null; }
 
   /* Меняет статус сразу на экране. В демо отмена возвращает товар на склад,
-     возобновление снова списывает; с сервером изменение сохраняется там
-     (onError вызывается, если сервер его не принял). */
-  function updateOrder(number, patch, onError) {
+     возобновление снова списывает; с сервером изменение сохраняется там:
+     on.saved(data) — сервер принял (data.customerNotified — сколько сообщений
+     ушло покупателю в Telegram), on.error(err, order) — не принял. */
+  function updateOrder(number, patch, on) {
+    const handlers = on || {};
     const list = orders();
     const o = list.find((x) => x.number === number);
     if (!o) return null;
@@ -281,8 +283,8 @@ FS.api = (function () {
     Object.assign(o, patch, { updatedAt: new Date().toISOString() });
     if (remoteMode()) {
       FS.backend.call('PATCH', '/api/orders', { number, ...patch }, { auth: true })
-        .then((data) => Object.assign(o, data.order))
-        .catch((err) => { Object.assign(o, before); if (onError) onError(err, o); });
+        .then((data) => { Object.assign(o, data.order); if (handlers.saved) handlers.saved(data, o); })
+        .catch((err) => { Object.assign(o, before); if (handlers.error) handlers.error(err, o); });
       return o;
     }
     const wasCancelled = before.status === 'cancelled';
