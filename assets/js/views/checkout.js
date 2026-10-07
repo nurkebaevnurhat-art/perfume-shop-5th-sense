@@ -275,7 +275,7 @@ FS.views.checkout = (function () {
         // Ответы 4xx содержат понятную причину (например, товар сняли с продажи).
         errorBox.textContent = err && err.status >= 400 && err.status < 500 && err.message
           ? err.message
-          : `Не удалось оформить заказ. Проверьте соединение и попробуйте ещё раз или позвоните в бутик: ${FS.config.contacts.phone}.`;
+          : `Не удалось оформить заказ${err && err.status ? ` (${err.message})` : ''}. Попробуйте ещё раз или позвоните в бутик: ${FS.config.contacts.phone}.`;
       }
     });
 

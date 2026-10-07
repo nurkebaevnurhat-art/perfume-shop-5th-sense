@@ -30,8 +30,11 @@ function build(input, shop) {
   const payment = shop.payments.find((m) => m.id === (body.payment && body.payment.id) && m.enabled);
   if (!payment) throw bad('Выберите способ оплаты');
 
-  const required = ['firstName', 'lastName', 'phone', 'email', 'city'].concat(delivery.id === 'pickup' ? [] : ['address']);
-  if (required.some((k) => !customer[k])) throw bad('Заполните контактные данные');
+  // При самовывозе город и адрес не спрашиваем: в форме эти поля скрыты.
+  const required = ['firstName', 'lastName', 'phone', 'email'].concat(delivery.id === 'pickup' ? [] : ['city', 'address']);
+  const labels = { firstName: 'имя', lastName: 'фамилию', phone: 'телефон', email: 'почту', city: 'город', address: 'адрес' };
+  const missing = required.filter((k) => !customer[k]);
+  if (missing.length) throw bad(`Заполните ${missing.map((k) => labels[k]).join(', ')}`);
   if (customer.phone.replace(/\D/g, '').length < 10) throw bad('Проверьте номер телефона');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email)) throw bad('Проверьте адрес почты');
   if (!body.consent || !body.consent.offer || !body.consent.privacy) throw bad('Примите условия оферты и согласие на обработку данных');
@@ -54,7 +57,7 @@ function build(input, shop) {
   const shipping = delivery.price(subtotal);
 
   return {
-    customer: delivery.id === 'pickup' ? { ...customer, address: '' } : customer,
+    customer: delivery.id === 'pickup' ? { ...customer, city: '', address: '' } : customer,
     items,
     delivery: { id: delivery.id, name: delivery.name },
     payment: { id: payment.id, name: payment.name },
