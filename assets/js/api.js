@@ -1,8 +1,8 @@
 /* 5th SENSE — слой доступа к данным.
    Весь интерфейс получает данные только через FS.api, FS.payments и FS.shipping.
-   Чтобы подключить базу данных, достаточно заменить реализацию функций ниже
-   на запросы к серверу (например, fetch('/api/products')) — сигнатуры
-   уже асинхронные там, где это понадобится. */
+   Заказы идут на сервер (FS.backend, папка api/ в корне проекта), каталог
+   пока хранится в data.js; чтобы перенести его в базу, замените FS.catalog
+   на запросы к серверу (например, fetch('/api/products')). */
 window.FS = window.FS || {};
 
 /* Пути к файлам (фото товаров). При сборке в один файл сюда подставляются
@@ -37,6 +37,69 @@ FS.catalog = (function () {
   };
 })();
 FS.catalog.load();
+
+/* Сервер (Vercel Functions в папке api/). Если сервер не отвечает (локальный
+   просмотр, сборка в один файл, хостинг без функций), сайт работает в
+   демо-режиме: заказы сохраняются только в браузере. */
+FS.backend = (function () {
+  const KEY_STORE = 'fs.admin.key';
+  const usable = /^https?:$/.test(location.protocol) && !FS.assets;
+  let pending = null;
+  let info;
+  let memoryKey = '';
+
+  function status() {
+    if (!pending) {
+      const ask = usable
+        ? fetch('/api/status', { cache: 'no-store', headers: { Accept: 'application/json' } })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((j) => (j && j.ok ? j : null))
+          .catch(() => null)
+        : Promise.resolve(null);
+      pending = ask.then((j) => { info = j; return j; });
+    }
+    return pending;
+  }
+
+  function adminKey() {
+    try { return sessionStorage.getItem(KEY_STORE) || memoryKey; } catch (e) { return memoryKey; }
+  }
+  function setAdminKey(key) {
+    memoryKey = key || '';
+    try { if (key) sessionStorage.setItem(KEY_STORE, key); else sessionStorage.removeItem(KEY_STORE); } catch (e) { /* только память */ }
+  }
+
+  async function call(method, path, body, opts) {
+    const o = opts || {};
+    const headers = { Accept: 'application/json' };
+    if (body) headers['Content-Type'] = 'application/json';
+    const key = o.key !== undefined ? o.key : (o.auth ? adminKey() : '');
+    if (key) headers.Authorization = 'Bearer ' + encodeURIComponent(key);
+    let res;
+    try {
+      res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined, cache: 'no-store' });
+    } catch (e) {
+      throw Object.assign(new Error('Нет соединения с сервером'), { code: 'network', status: 0 });
+    }
+    let data = null;
+    try { data = await res.json(); } catch (e) { /* не JSON */ }
+    if (!res.ok) {
+      throw Object.assign(new Error((data && data.message) || `Ошибка сервера (${res.status})`), { code: data && data.error, status: res.status });
+    }
+    return data;
+  }
+
+  return {
+    status,
+    // undefined — ещё проверяем, null — сервера нет (демо-режим).
+    get info() { return info; },
+    known: () => info !== undefined,
+    accepting: () => Boolean(info && info.accepting),
+    call,
+    adminKey,
+    setAdminKey
+  };
+})();
 
 FS.api = (function () {
   let byId = new Map();
@@ -161,8 +224,8 @@ FS.api = (function () {
   }
 
   /* --- Заказы ---
-     В демо-режиме заказы хранятся в localStorage этого браузера.
-     Для боевого режима замените тела функций на запросы к /api/orders. */
+     С сервером заказы уходят на /api/orders (хранилище и Telegram),
+     админка читает их оттуда же. Без сервера (демо) — localStorage этого браузера. */
   const ORDERS_KEY = 'fs.orders.v1';
   const STATUSES = [
     { id: 'new', name: 'Новый' },
@@ -176,25 +239,53 @@ FS.api = (function () {
     { id: 'paid', name: 'Оплачен' }
   ];
 
-  const orders = () => FS.storage.get(ORDERS_KEY, []);
+  let remote = null; // заказы с сервера, когда админка работает через него
+  const remoteMode = () => remote !== null;
+  const orders = () => remote || FS.storage.get(ORDERS_KEY, []);
 
   async function createOrder(order) {
+    await FS.backend.status();
+    if (FS.backend.accepting()) {
+      // Склад ведёт магазин: в браузере покупателя остатки не меняем.
+      const data = await FS.backend.call('POST', '/api/orders', order, { auth: Boolean(order.test) });
+      if (remote) remote.push(data.order);
+      return data.order;
+    }
     const number = '5S-' + Date.now().toString(36).toUpperCase().slice(-6);
     const record = { ...order, number, status: 'new', paymentStatus: 'unpaid', createdAt: new Date().toISOString() };
-    const list = orders();
+    const list = FS.storage.get(ORDERS_KEY, []);
     list.push(record);
     FS.storage.set(ORDERS_KEY, list);
     moveStock(record.items, -1);
     return record;
   }
 
-  // Отмена заказа возвращает товар на склад, возобновление снова списывает.
-  function updateOrder(number, patch) {
+  // Заказы с сервера для админки. Без хранилища на сервере список пуст.
+  async function loadOrders() {
+    const info = FS.backend.info;
+    if (!info || !info.storage) { remote = []; return remote; }
+    const data = await FS.backend.call('GET', '/api/orders', null, { auth: true });
+    remote = data.orders || [];
+    return remote;
+  }
+  function forgetOrders() { remote = null; }
+
+  /* Меняет статус сразу на экране. В демо отмена возвращает товар на склад,
+     возобновление снова списывает; с сервером изменение сохраняется там
+     (onError вызывается, если сервер его не принял). */
+  function updateOrder(number, patch, onError) {
     const list = orders();
     const o = list.find((x) => x.number === number);
     if (!o) return null;
-    const wasCancelled = o.status === 'cancelled';
+    const before = { ...o };
     Object.assign(o, patch, { updatedAt: new Date().toISOString() });
+    if (remoteMode()) {
+      FS.backend.call('PATCH', '/api/orders', { number, ...patch }, { auth: true })
+        .then((data) => Object.assign(o, data.order))
+        .catch((err) => { Object.assign(o, before); if (onError) onError(err, o); });
+      return o;
+    }
+    const wasCancelled = before.status === 'cancelled';
     const isCancelled = o.status === 'cancelled';
     if (!wasCancelled && isCancelled) moveStock(o.items, +1);
     if (wasCancelled && !isCancelled) moveStock(o.items, -1);
@@ -202,7 +293,14 @@ FS.api = (function () {
     return o;
   }
 
-  function clearOrders() { FS.storage.remove(ORDERS_KEY); }
+  async function clearOrders() {
+    if (remoteMode()) {
+      await FS.backend.call('DELETE', '/api/orders', null, { auth: true });
+      remote = [];
+      return;
+    }
+    FS.storage.remove(ORDERS_KEY);
+  }
 
   return {
     productSync: (id) => byId.get(id),
@@ -223,6 +321,9 @@ FS.api = (function () {
     createOrder,
     updateOrder,
     clearOrders,
+    loadOrders,
+    forgetOrders,
+    remoteOrders: remoteMode,
     orders,
     STATUSES,
     PAYMENT_STATUSES

@@ -71,7 +71,7 @@ FS.views.checkout = (function () {
         <p class="page-lead">Спасибо, ${esc(order.customer.firstName)}. Мы позвоним по номеру ${esc(order.customer.phone)}, чтобы подтвердить заказ и время доставки.</p>
       </section>
       <div class="page-body success">
-        ${FS.config.demoMode ? `<p class="notice"><strong>Демо-режим.</strong> Заказ сохранён только в этом браузере и не отправлен в бутик. Чтобы получать заказы, подключите сервер в assets/js/api.js.</p>` : ''}
+        ${FS.backend.accepting() ? '' : `<p class="notice"><strong>Демо-режим.</strong> Заказ сохранён только в этом браузере и не отправлен в бутик: сервер приёма заказов не подключён (см. README).</p>`}
         <div class="success-card">
           <dl class="summary-sum">
             <div><dt>Получатель</dt><dd>${esc(order.customer.firstName)} ${esc(order.customer.lastName)}</dd></div>
@@ -152,6 +152,7 @@ FS.views.checkout = (function () {
             <p class="field-error" data-consent-error></p>
           </div>
 
+          <div class="hp-field" aria-hidden="true"><label>Не заполняйте это поле <input name="website" tabindex="-1" autocomplete="off"></label></div>
           <p class="form-error" data-form-error role="alert"></p>
           <button class="line-link line-link--lg co-submit" type="submit">Подтвердить заказ</button>
         </form>
@@ -215,7 +216,7 @@ FS.views.checkout = (function () {
     form.addEventListener('input', () => {
       const data = values();
       // Согласие не сохраняем в черновик: покупатель отмечает его заново при каждом заказе.
-      FS.storage.set(DRAFT_KEY, { ...data, payment: undefined, consent: undefined });
+      FS.storage.set(DRAFT_KEY, { ...data, payment: undefined, consent: undefined, website: undefined });
       if (touched) showErrors(validate(data));
     });
     form.addEventListener('change', (e) => {
@@ -256,6 +257,7 @@ FS.views.checkout = (function () {
           payment: { id: payment.id, name: payment.name },
           comment: data.comment || '',
           gift: data.gift,
+          website: data.website || '',
           consent: { offer: true, privacy: true, at: new Date().toISOString() },
           subtotal,
           shipping,
@@ -270,7 +272,10 @@ FS.views.checkout = (function () {
       } catch (err) {
         submit.disabled = false;
         submit.textContent = 'Подтвердить заказ';
-        errorBox.textContent = 'Не удалось оформить заказ. Проверьте соединение и попробуйте ещё раз или позвоните в бутик.';
+        // Ответы 4xx содержат понятную причину (например, товар сняли с продажи).
+        errorBox.textContent = err && err.status >= 400 && err.status < 500 && err.message
+          ? err.message
+          : `Не удалось оформить заказ. Проверьте соединение и попробуйте ещё раз или позвоните в бутик: ${FS.config.contacts.phone}.`;
       }
     });
 

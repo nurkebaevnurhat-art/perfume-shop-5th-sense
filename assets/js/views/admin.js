@@ -1,8 +1,9 @@
-/* 5th SENSE — демо-админка.
-   Работает без сервера: каталог и заказы хранятся в браузере (см. FS.catalog
-   и FS.api в api.js). Пароль здесь — только заглушка для демонстрации:
-   на статическом сайте он ничего не защищает. В боевой версии вход и все
-   изменения должен проверять сервер. */
+/* 5th SENSE — админ-панель.
+   С сервером (папка api/, переменная ADMIN_PASSWORD на Vercel) вход проверяет
+   сервер, заказы читаются из хранилища, а уведомления настраиваются на вкладке
+   «Данные». Без сервера админка работает в демо-режиме: заказы хранятся в этом
+   браузере, а пароль — только заглушка. Каталог в обоих режимах пока
+   меняется только в браузере (см. FS.catalog в api.js). */
 window.FS = window.FS || {};
 FS.views = FS.views || {};
 
@@ -25,13 +26,23 @@ FS.views.admin = (function () {
   let productFilter = { q: '', category: '' };
   let draft = null; // товар в редакторе
 
+  /* ---------- Режим ---------- */
+  // Сервер с паролем админки: заказы и вход через /api. Иначе — демо в браузере.
+  const serverMode = () => Boolean(FS.backend.info && FS.backend.info.admin);
+  const serverInfo = () => FS.backend.info || {};
+  // Пока заказы с сервера не загружены, не показываем локальные демо-заказы.
+  const allOrders = () => (serverMode() && !FS.api.remoteOrders() ? [] : FS.api.orders());
+  const ordersReady = () => !serverMode() || FS.api.remoteOrders();
+
   /* ---------- Вход ---------- */
   function authed() {
+    if (serverMode()) return Boolean(FS.backend.adminKey());
     try { return sessionStorage.getItem(SESSION_KEY) === '1' || memorySession; } catch (e) { return memorySession; }
   }
   function setAuthed(on) {
     memorySession = on;
     try { if (on) sessionStorage.setItem(SESSION_KEY, '1'); else sessionStorage.removeItem(SESSION_KEY); } catch (e) { /* только память */ }
+    if (!on) { FS.backend.setAdminKey(''); FS.api.forgetOrders(); }
   }
 
   function loginView() {
@@ -46,7 +57,9 @@ FS.views.admin = (function () {
             <p class="field-error" id="admin-password-error" aria-live="polite"></p>
           </div>
           <button class="btn btn--primary btn--block" type="submit">Войти</button>
-          <p class="login-hint">Демо-пароль: <strong class="selectable">${DEMO_PASSWORD}</strong>. В демо-версии пароль ничего не защищает: на настоящем сайте вход проверяет сервер.</p>
+          ${serverMode()
+    ? '<p class="login-hint">Пароль задаётся в настройках проекта на Vercel (переменная ADMIN_PASSWORD).</p>'
+    : `<p class="login-hint">Демо-пароль: <strong class="selectable">${DEMO_PASSWORD}</strong>. В демо-версии пароль ничего не защищает: на настоящем сайте вход проверяет сервер.</p>`}
           <a class="text-link" href="#home">Вернуться на сайт</a>
         </form>
       </section>`;
@@ -59,7 +72,7 @@ FS.views.admin = (function () {
   const statusName = (id) => (FS.api.STATUSES.find((s) => s.id === id) || {}).name || id;
 
   function counts() {
-    const orders = FS.api.orders();
+    const orders = allOrders();
     return {
       orders: orders.length,
       newOrders: orders.filter((o) => o.status === 'new').length,
@@ -75,7 +88,7 @@ FS.views.admin = (function () {
       <section class="admin">
         <div class="admin-head">
           <div>
-            <p class="corner-note">демо-версия без сервера</p>
+            <p class="corner-note">${serverMode() ? 'заказы на сервере' : 'демо-версия без сервера'}</p>
             <h1>Админ-панель</h1>
           </div>
           <div class="admin-head-actions">
@@ -83,12 +96,24 @@ FS.views.admin = (function () {
             <button class="btn btn--outline btn--sm" type="button" data-admin-logout>Выйти</button>
           </div>
         </div>
-        <p class="admin-notice">Изменения сохраняются только в этом браузере и сразу видны на сайте в нём же. Другие посетители их не увидят, пока не подключён сервер.</p>
+        <p class="admin-notice">${notice()}</p>
         <nav class="admin-tabs" aria-label="Разделы админ-панели">
           ${TABS.map((t) => `<a class="admin-tab ${t.id === activeTab ? 'is-active' : ''}" href="#${t.token}" ${t.id === activeTab ? 'aria-current="page"' : ''}>${t.name}${tabCount[t.id] || ''}</a>`).join('')}
         </nav>
         <div class="admin-body" data-admin-body>${body}</div>
       </section>`;
+  }
+
+  function notice() {
+    const info = serverInfo();
+    if (serverMode()) {
+      return (info.storage
+        ? 'Заказы хранятся на сервере и видны с любого устройства.'
+        : 'Хранилище заказов не подключено: заказы приходят только в Telegram, здесь их не видно. Подключите Upstash Redis в разделе Storage на Vercel.') +
+        ' Каталог и остатки пока меняются только в этом браузере: покупатели видят каталог из assets/js/data.js.';
+    }
+    if (FS.backend.info) return 'Сервер принимает заказы, но пароль админ-панели не задан (переменная ADMIN_PASSWORD на Vercel), поэтому админка работает в демо-режиме и показывает только заказы из этого браузера.';
+    return 'Изменения сохраняются только в этом браузере и сразу видны на сайте в нём же. Другие посетители их не увидят, пока не подключён сервер.';
   }
 
   /* ---------- Обзор ---------- */
@@ -99,7 +124,7 @@ FS.views.admin = (function () {
   }
 
   function overview() {
-    const orders = FS.api.orders();
+    const orders = allOrders();
     const active = orders.filter((o) => o.status !== 'cancelled');
     const revenue = active.reduce((s, o) => s + (o.total || 0), 0);
     const out = FS.products.filter((p) => !FS.api.inStock(p)).length;
@@ -107,7 +132,7 @@ FS.views.admin = (function () {
     const latest = orders.slice().reverse().slice(0, 5);
     const stats = [
       ['Новые заказы', counts().newOrders, 'ждут подтверждения'],
-      ['Всего заказов', orders.length, 'в этом браузере'],
+      ['Всего заказов', orders.length, serverMode() ? 'на сервере' : 'в этом браузере'],
       ['Сумма заказов', money(revenue), 'без отменённых'],
       ['Товаров', FS.products.length, out ? `${out} нет в наличии` : 'все в наличии']
     ];
@@ -177,7 +202,8 @@ FS.views.admin = (function () {
   }
 
   function ordersBody() {
-    const all = FS.api.orders().slice().reverse();
+    if (serverMode() && !serverInfo().storage) return '<p class="panel-empty">Заказы приходят в Telegram. Чтобы видеть и вести их здесь, подключите хранилище Upstash Redis (Vercel → Storage) и сделайте Redeploy.</p>';
+    const all = allOrders().slice().reverse();
     const q = orderFilter.q.trim().toLowerCase();
     const list = all.filter((o) => (orderFilter.status === 'all' || o.status === orderFilter.status) &&
       (!q || [o.number, o.customer.firstName, o.customer.lastName, o.customer.phone].join(' ').toLowerCase().includes(q)));
@@ -188,6 +214,7 @@ FS.views.admin = (function () {
     return `
       <div class="admin-toolbar">
         <label class="toolbar-search"><span class="visually-hidden">Поиск заказа</span>${FS.ui.icon.search}<input id="order-search" type="search" placeholder="Номер, имя или телефон" value="${esc(orderFilter.q)}" autocomplete="off"></label>
+        ${serverMode() ? '<button class="btn btn--outline btn--sm" type="button" data-orders-refresh>Обновить</button>' : ''}
         <button class="btn btn--outline btn--sm" type="button" data-test-order>Добавить тестовый заказ</button>
       </div>
       <div class="chips admin-chips">${chip('all', 'Все')}${FS.api.STATUSES.map((s) => chip(s.id, s.name)).join('')}</div>
@@ -210,10 +237,12 @@ FS.views.admin = (function () {
       payment: { id: 'on_delivery', name: 'При получении' },
       comment: 'Пример заказа для проверки админ-панели',
       gift: false,
+      consent: { offer: true, privacy: true, at: new Date().toISOString() },
       subtotal,
       shipping,
       total: subtotal + (shipping || 0)
-    }).then((o) => { toast(`Тестовый заказ ${o.number} добавлен`); renderBody(); });
+    }).then((o) => { toast(`Тестовый заказ ${o.number} добавлен`); renderBody(); })
+      .catch((err) => toast(`Тестовый заказ не создан: ${err.message}`));
   }
 
   /* ---------- Товары ---------- */
@@ -450,7 +479,8 @@ FS.views.admin = (function () {
   /* ---------- Данные ---------- */
   function dataBody() {
     const custom = FS.catalog.isCustom();
-    const ordersCount = FS.api.orders().length;
+    const ordersCount = allOrders().length;
+    const where = serverMode() ? 'На сервере' : 'В этом браузере';
     return `
       <div class="admin-cols">
         <section class="admin-panel">
@@ -460,10 +490,14 @@ FS.views.admin = (function () {
         </section>
         <section class="admin-panel">
           <h2>Заказы</h2>
-          <p>${ordersCount ? `В этом браузере ${ordersCount} ${plural(ordersCount, 'заказ', 'заказа', 'заказов')}.` : 'Заказов пока нет.'} Удаление заказов не меняет остатки на складе.</p>
+          <p>${ordersCount ? `${where} ${ordersCount} ${plural(ordersCount, 'заказ', 'заказа', 'заказов')}.` : 'Заказов пока нет.'} Удаление заказов не меняет остатки на складе.</p>
           <button class="btn btn--outline btn--sm" type="button" data-confirm="clear-orders" ${ordersCount ? '' : 'disabled'}>Удалить все заказы</button>
         </section>
       </div>
+      ${serverMode() ? `<section class="admin-panel tg-panel">
+        <h2>Уведомления в Telegram</h2>
+        <div data-telegram>${telegramBody()}</div>
+      </section>` : ''}
       <section class="admin-panel">
         <h2>Экспорт каталога</h2>
         <p>Каталог в формате JSON. Его можно загрузить в базу данных, когда подключите сервер, или перенести в assets/js/data.js.</p>
@@ -481,6 +515,88 @@ FS.views.admin = (function () {
       </section>`;
   }
 
+  /* ---------- Telegram ---------- */
+  let tg = null; // состояние с сервера: { token, tokenValid, bot, source, chats, storage }
+  let tgError = '';
+
+  function telegramBody() {
+    if (tgError) return `<p class="field-error">${esc(tgError)}</p><button class="btn btn--outline btn--sm" type="button" data-tg="reload">Повторить</button>`;
+    if (!tg) return '<p class="panel-empty">Проверяем настройки…</p>';
+    if (!tg.token) {
+      return `<ol class="tg-steps">
+          <li>В Telegram откройте <a class="text-link" href="https://t.me/BotFather" target="_blank" rel="noopener">@BotFather</a>, отправьте команду /newbot и придумайте имя бота. BotFather пришлёт токен.</li>
+          <li>На Vercel откройте проект → Settings → Environment Variables и добавьте переменную TELEGRAM_BOT_TOKEN с этим токеном.</li>
+          <li>Deployments → Redeploy, затем вернитесь сюда.</li>
+        </ol>`;
+    }
+    if (!tg.tokenValid) return '<p>Telegram не принял токен бота. Проверьте переменную TELEGRAM_BOT_TOKEN на Vercel и сделайте Redeploy.</p>';
+    const bot = `<a class="text-link" href="https://t.me/${esc(tg.bot)}" target="_blank" rel="noopener">@${esc(tg.bot)}</a>`;
+    const chats = tg.chats.length
+      ? `<ul class="tg-chats">${tg.chats.map((c) => `<li>${esc(c.title)}</li>`).join('')}</ul>`
+      : '';
+    const actions = [];
+    if (tg.chats.length) actions.push('<button class="btn btn--outline btn--sm" type="button" data-tg="test">Отправить проверку</button>');
+    if (tg.source !== 'env' && tg.storage) actions.push(`<button class="btn btn--outline btn--sm" type="button" data-tg="connect">${tg.chats.length ? 'Подключить ещё чат' : 'Подключить чат'}</button>`);
+    if (tg.source === 'storage' && tg.chats.length) actions.push('<button class="btn btn--outline btn--sm" type="button" data-tg="disconnect">Отключить</button>');
+    let lead;
+    if (tg.chats.length) lead = `<p>Бот ${bot} присылает новые заказы ${tg.chats.length > 1 ? 'в эти чаты' : 'в этот чат'}:</p>`;
+    else if (tg.storage) lead = `<p>Бот ${bot} готов. Откройте его в Telegram и нажмите «Старт» (или добавьте бота в рабочую группу и напишите там любое сообщение), затем нажмите «Подключить чат».</p>`;
+    else lead = `<p>Бот ${bot} готов, но некуда отправлять заказы. Подключите хранилище Upstash Redis на Vercel или укажите ID чата в переменной TELEGRAM_CHAT_ID.</p>`;
+    return `${lead}${chats}${tg.source === 'env' ? '<p class="stat-note">Чаты заданы переменной TELEGRAM_CHAT_ID на Vercel.</p>' : ''}<div class="tg-actions">${actions.join('')}</div>`;
+  }
+
+  function paintTelegram() {
+    const box = root && root.querySelector('[data-telegram]');
+    if (box) box.innerHTML = telegramBody();
+  }
+
+  async function telegram(action, btn) {
+    if (btn) { btn.disabled = true; btn.textContent = 'Подождите…'; }
+    try {
+      tg = action === 'reload'
+        ? await FS.backend.call('GET', '/api/telegram', null, { auth: true })
+        : await FS.backend.call('POST', '/api/telegram', { action }, { auth: true });
+      tgError = '';
+      if (action === 'connect') toast('Чат подключён: в Telegram пришло подтверждение');
+      if (action === 'test') toast('Проверочное сообщение отправлено');
+      if (action === 'disconnect') toast('Чаты отключены');
+    } catch (err) {
+      if (err.status === 401) { expired(); return; }
+      if (action === 'reload') tgError = `Не удалось получить настройки: ${err.message}`;
+      else toast(err.message);
+    }
+    paintTelegram();
+  }
+
+  /* ---------- Синхронизация с сервером ---------- */
+  let loadError = '';
+  const loading = () => (loadError
+    ? `<div class="panel-empty"><p>Не удалось загрузить заказы: ${esc(loadError)}</p><button class="btn btn--outline btn--sm" type="button" data-orders-refresh>Повторить</button></div>`
+    : '<p class="panel-empty">Загружаем заказы…</p>');
+
+  function expired() {
+    setAuthed(false);
+    toast('Войдите снова: пароль не подошёл');
+    FS.app.go('admin');
+  }
+
+  async function sync(force) {
+    if (!serverMode() || !authed()) return;
+    const before = FS.api.remoteOrders() ? JSON.stringify(FS.api.orders()) : null;
+    try {
+      await FS.api.loadOrders();
+    } catch (err) {
+      if (err.status === 401) { expired(); return; }
+      loadError = err.message;
+      if (!FS.api.remoteOrders() && root && document.contains(root)) renderBody();
+      else toast(`Не удалось обновить заказы: ${err.message}`);
+      return;
+    }
+    loadError = '';
+    const changed = force || before !== JSON.stringify(FS.api.orders());
+    if (changed && root && document.contains(root) && ['overview', 'orders', 'data'].includes(route.tab)) renderBody();
+  }
+
   function validCatalog(list) {
     return Array.isArray(list) && list.length > 0 && list.every((p) => p && typeof p.id === 'string' && p.name && p.brand &&
       Array.isArray(p.volumes) && p.volumes.length && p.volumes.every((v) => v.ml > 0 && v.price > 0 && v.stock >= 0) &&
@@ -496,13 +612,18 @@ FS.views.admin = (function () {
     return overview();
   }
 
+  // Перерисовка сохраняет раскрытые заказы.
   function renderBody() {
-    root.innerHTML = shell(body());
+    const open = $$('.order[open]', root).map((d) => d.dataset.order);
+    root.innerHTML = shell(ordersReady() || route.tab === 'products' || route.tab === 'edit' ? body() : loading());
+    open.forEach((n) => { const d = root.querySelector(`.order[data-order="${CSS.escape(n)}"]`); if (d) d.open = true; });
   }
 
   function render(r) {
     route = r;
+    if (!FS.backend.known()) return '<section class="admin-login"><p class="panel-empty">Загрузка…</p></section>';
     if (!authed()) return loginView();
+    if (!ordersReady() && r.tab !== 'products' && r.tab !== 'edit') return shell(loading());
     if (r.tab === 'edit') {
       const existing = r.id && FS.api.productSync(r.id);
       if (r.id && !existing) return shell('<p class="panel-empty">Товар не найден. Возможно, его уже удалили. <a class="text-link" href="#admin-products">К списку товаров</a></p>');
@@ -527,11 +648,26 @@ FS.views.admin = (function () {
       if (e.target.matches('[data-login]')) {
         e.preventDefault();
         const value = $('#admin-password', el).value;
+        const error = $('#admin-password-error', el);
+        if (serverMode()) {
+          const btn = $('button[type="submit"]', e.target);
+          btn.disabled = true;
+          try {
+            const st = await FS.backend.call('GET', '/api/status', null, { key: value });
+            if (st.authorized) { FS.backend.setAdminKey(value); FS.app.go(r.key); return; }
+            error.textContent = 'Неверный пароль';
+          } catch (err) {
+            error.textContent = 'Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.';
+          }
+          btn.disabled = false;
+          $('#admin-password', el).focus();
+          return;
+        }
         if (value === DEMO_PASSWORD) {
           setAuthed(true);
           FS.app.go(r.key);
         } else {
-          $('#admin-password-error', el).textContent = `Неверный пароль. В демо-версии пароль: ${DEMO_PASSWORD}`;
+          error.textContent = `Неверный пароль. В демо-версии пароль: ${DEMO_PASSWORD}`;
           $('#admin-password', el).focus();
         }
         return;
@@ -563,6 +699,9 @@ FS.views.admin = (function () {
       const t = e.target;
       if (t.closest('[data-admin-logout]')) { setAuthed(false); toast('Вы вышли из админ-панели'); FS.app.go('admin'); return; }
       if (t.closest('[data-test-order]')) { testOrder(); return; }
+      if (t.closest('[data-orders-refresh]')) { sync(true).then(() => { if (!loadError) toast('Список заказов обновлён'); }); return; }
+      const tgBtn = t.closest('[data-tg]');
+      if (tgBtn) { telegram(tgBtn.dataset.tg, tgBtn); return; }
       const of = t.closest('[data-order-filter]');
       if (of) { orderFilter.status = of.dataset.orderFilter; renderBody(); return; }
       const open = t.closest('[data-open-order]');
@@ -606,7 +745,12 @@ FS.views.admin = (function () {
         const action = conf.dataset.confirm;
         confirmButton(conf, 'Нажмите ещё раз для подтверждения', () => {
           if (action === 'reset-catalog') { FS.api.resetCatalog(); toast('Исходный каталог восстановлен'); }
-          if (action === 'clear-orders') { FS.api.clearOrders(); toast('Все заказы удалены'); }
+          if (action === 'clear-orders') {
+            FS.api.clearOrders()
+              .then(() => { toast('Все заказы удалены'); renderBody(); })
+              .catch((err) => toast(`Заказы не удалены: ${err.message}`));
+            return;
+          }
           renderBody();
         });
         return;
@@ -633,13 +777,13 @@ FS.views.admin = (function () {
     el.addEventListener('change', (e) => {
       const t = e.target;
       if (t.dataset.orderStatus) {
-        const o = FS.api.updateOrder(t.dataset.orderStatus, { status: t.value });
-        toast(`Заказ ${o.number}: ${statusName(o.status).toLowerCase()}${o.status === 'cancelled' ? ', товар вернулся на склад' : ''}`);
+        const o = FS.api.updateOrder(t.dataset.orderStatus, { status: t.value }, saveFailed);
+        toast(`Заказ ${o.number}: ${statusName(o.status).toLowerCase()}${o.status === 'cancelled' && !serverMode() ? ', товар вернулся на склад' : ''}`);
         rerenderOrderKeepOpen(o.number);
         return;
       }
       if (t.dataset.orderPayment) {
-        const o = FS.api.updateOrder(t.dataset.orderPayment, { paymentStatus: t.value });
+        const o = FS.api.updateOrder(t.dataset.orderPayment, { paymentStatus: t.value }, saveFailed);
         toast(`Заказ ${o.number}: ${o.paymentStatus === 'paid' ? 'отмечен как оплаченный' : 'отмечен как неоплаченный'}`);
         rerenderOrderKeepOpen(o.number);
         return;
@@ -675,6 +819,25 @@ FS.views.admin = (function () {
       const first = $('.order', el);
       if (first) first.open = true;
     }
+
+    if (!FS.backend.known()) {
+      // Сервер ещё не ответил: дорисуем, когда станет ясно, в каком режиме работаем.
+      FS.backend.status().then(() => { if (document.contains(el)) { el.innerHTML = render(route); sync(); if (route.tab === 'data') telegram('reload'); } });
+      return;
+    }
+    if (serverMode() && authed()) {
+      sync();
+      if (route.tab === 'data') telegram('reload');
+      // Новые заказы появляются без перезагрузки страницы.
+      const timer = setInterval(() => { if (!document.hidden) sync(); }, 60000);
+      if (signal) signal.addEventListener('abort', () => clearInterval(timer));
+    }
+  }
+
+  function saveFailed(err, o) {
+    if (err.status === 401) { expired(); return; }
+    toast(`Заказ ${o.number}: изменение не сохранено. ${err.message}`);
+    if (root && document.contains(root)) renderBody();
   }
 
   function rerenderOrderKeepOpen(number) {
