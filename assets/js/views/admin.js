@@ -559,7 +559,7 @@ FS.views.admin = (function () {
       ${staff}${tg.source === 'env' ? '<p class="stat-note">Чаты заданы переменной TELEGRAM_CHAT_ID на Vercel.</p>' : ''}
       ${invite}
       <div class="tg-actions">${actions.join('')}</div>
-      <p class="stat-note">Чтобы ответить покупателю, ответьте (reply) на его сообщение в Telegram: бот перешлёт ответ.</p>`;
+      <p class="stat-note">Чтобы ответить покупателю, просто напишите боту ответ после его вопроса. На более старый вопрос: нажмите на него в Telegram и выберите «Ответить».</p>`;
   }
 
   function paintTelegram() {

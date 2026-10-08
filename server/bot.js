@@ -1,6 +1,6 @@
 /* 5th SENSE — бот для покупателей и сотрудников (один бот).
    Покупатель: меню, магазин внутри Telegram, статус своих заказов, вопросы консультанту.
-   Сотрудник: получает заказы и вопросы, отвечает покупателю ответом (reply) на его сообщение. */
+   Сотрудник: получает заказы и вопросы, отвечает покупателю прямо в чате с ботом. */
 const crypto = require('node:crypto');
 const db = require('./db');
 const telegram = require('./telegram');
@@ -133,17 +133,22 @@ async function relayToStaff(msg, shop) {
   const u = msg.from || {};
   const who = [u.first_name, u.last_name].filter(Boolean).join(' ') || 'Покупатель';
   const head = `💬 <b>Вопрос покупателя</b>\n${escape(who)}${u.username ? ` (@${escape(u.username)})` : ''}`;
-  const hint = '\n\n↩️ Ответьте на это сообщение, и бот перешлёт ответ покупателю.';
+  const hint = '\n\n↩️ Просто напишите ответ: бот перешлёт его покупателю.';
+  // Telegram сразу открывает «Ответить» на этот вопрос, сотруднику остаётся только написать текст.
+  const replyUi = { reply_markup: { force_reply: true, input_field_placeholder: `Ответ: ${who}`.slice(0, 64) } };
+  await db.put(`fs:tg:name:${msg.chat.id}`, who, 60 * DAY);
   for (const staff of chats) {
     try {
       const ids = [];
       if (msg.text) {
-        ids.push((await html(staff.id, `${head}\n\n${escape(msg.text)}${hint}`)).message_id);
+        ids.push((await html(staff.id, `${head}\n\n${escape(msg.text)}${hint}`, replyUi)).message_id);
       } else {
-        ids.push((await html(staff.id, head + hint)).message_id);
         ids.push((await call('copyMessage', { chat_id: staff.id, from_chat_id: msg.chat.id, message_id: msg.message_id })).message_id);
+        ids.push((await html(staff.id, head + hint, replyUi)).message_id);
       }
       await Promise.all(ids.map((id) => db.put(`fs:tg:relay:${staff.id}:${id}`, String(msg.chat.id), 60 * DAY)));
+      // Последний вопрос в этом чате: обычное сообщение сотрудника уйдёт этому покупателю.
+      await db.put(`fs:tg:last:${staff.id}`, String(msg.chat.id), 12 * 3600);
     } catch (err) { console.error(err); }
   }
   if (await db.once(`fs:tg:ack:${msg.chat.id}`, 30 * 60)) {
@@ -152,25 +157,31 @@ async function relayToStaff(msg, shop) {
   return null;
 }
 
-// Ответ сотрудника (reply на вопрос покупателя) — пересылаем покупателю.
+// Сообщение сотрудника → покупателю, с подтверждением в чате сотрудника.
+async function deliver(msg, customer) {
+  if (msg.text) {
+    await html(customer, `💬 <b>Консультант ${escape(catalog.load().config.brand)}</b>\n\n${escape(msg.text)}`);
+  } else {
+    await call('copyMessage', { chat_id: customer, from_chat_id: msg.chat.id, message_id: msg.message_id });
+  }
+  const name = await db.get(`fs:tg:name:${customer}`);
+  await html(msg.chat.id, `✓ Отправлено покупателю${name ? ` ${escape(name)}` : ''}.`, { reply_to_message_id: msg.message_id });
+  return true;
+}
+
+// Ответ сотрудника на вопрос покупателя (через «Ответить»).
 async function relayToCustomer(msg) {
   const reply = msg.reply_to_message;
   if (!reply || !db.configured()) return false;
   const customer = await db.get(`fs:tg:relay:${msg.chat.id}:${reply.message_id}`);
-  if (!customer) return false;
-  let ids = [];
-  if (msg.text) {
-    const sent = await html(customer, `💬 <b>Консультант ${escape(catalog.load().config.brand)}</b>\n\n${escape(msg.text)}`);
-    ids = [sent.message_id];
-  } else {
-    ids = [(await call('copyMessage', { chat_id: customer, from_chat_id: msg.chat.id, message_id: msg.message_id })).message_id];
-  }
-  try {
-    await call('setMessageReaction', { chat_id: msg.chat.id, message_id: msg.message_id, reaction: [{ type: 'emoji', emoji: '👍' }] });
-  } catch (err) {
-    await html(msg.chat.id, '✓ Ответ отправлен покупателю.', { reply_to_message_id: msg.message_id });
-  }
-  return ids.length > 0;
+  return customer ? deliver(msg, customer) : false;
+}
+
+// Обычное сообщение сотрудника в личном чате с ботом: отвечаем на последний вопрос.
+async function replyToLast(msg) {
+  const customer = db.configured() && !msg.reply_to_message ? await db.get(`fs:tg:last:${msg.chat.id}`) : null;
+  if (customer) return deliver(msg, customer);
+  return html(msg.chat.id, 'Новых вопросов от покупателей нет. Чтобы ответить на более старый вопрос, нажмите на него, выберите «Ответить» и напишите текст. Меню покупателя: /start');
 }
 
 /* ---------- Сотрудники ---------- */
@@ -192,7 +203,7 @@ async function acceptInvite(msg, code, shop) {
   const chat = msg.chat;
   const title = chat.title || [chat.first_name, chat.last_name].filter(Boolean).join(' ') || (chat.username ? '@' + chat.username : `ID ${chat.id}`);
   await db.addChat({ id: String(chat.id), title, type: chat.type });
-  return html(chat.id, `✅ Чат подключён к <b>${escape(shop.config.brand)}</b>. Сюда будут приходить новые заказы и вопросы покупателей.\n\nЧтобы ответить покупателю, ответьте (reply) на его сообщение.`);
+  return html(chat.id, `✅ Чат подключён к <b>${escape(shop.config.brand)}</b>. Сюда будут приходить новые заказы и вопросы покупателей.\n\nЧтобы ответить покупателю, просто напишите ответ после его вопроса. На более старый вопрос — нажмите на него и выберите «Ответить».`);
 }
 
 /* ---------- Обработка обновлений от Telegram ---------- */
@@ -238,9 +249,7 @@ async function handle(update, site) {
     return html(msg.chat.id, m.text, { reply_markup: m.markup });
   }
   if (msg.web_app_data || msg.successful_payment) return;
-  if (await telegram.isStaff(msg.chat.id)) {
-    return html(msg.chat.id, 'Это чат сотрудника. Чтобы ответить покупателю, ответьте (reply) на его сообщение. Меню покупателя: /start');
-  }
+  if (await telegram.isStaff(msg.chat.id)) return replyToLast(msg);
   return relayToStaff(msg, shop);
 }
 
