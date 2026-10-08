@@ -25,6 +25,7 @@ FS.views.admin = (function () {
   let orderFilter = { status: 'all', q: '' };
   let productFilter = { q: '', category: '' };
   let draft = null; // товар в редакторе
+  let importPlan = null; // загруженная таблица до подтверждения
 
   /* ---------- Режим ---------- */
   // Сервер с паролем админки: заказы и вход через /api. Иначе — демо в браузере.
@@ -245,6 +246,101 @@ FS.views.admin = (function () {
       .catch((err) => toast(`Тестовый заказ не создан: ${err.message}`));
   }
 
+  /* ---------- Загрузка таблицы ---------- */
+  const canPhotos = () => FS.api.remoteCatalog();
+  function importPanel() {
+    const plan = importPlan;
+    if (!plan) return '';
+    const names = (list) => list.slice(0, 12).map((p) => esc(`${p.brand} ${p.name}`)).join(', ') + (list.length > 12 ? ` и ещё ${list.length - 12}` : '');
+    const d = plan.diff;
+    const blocked = plan.errors.length > 0 || !plan.products.length;
+    return `<section class="admin-panel import-panel">
+        <h2>Таблица «${esc(plan.fileName)}»</h2>
+        ${plan.errors.length ? `<div class="import-errors"><p><strong>Нужно исправить в таблице (${plan.errors.length}):</strong></p><ul>${plan.errors.slice(0, 30).map((e) => `<li>${esc(e)}</li>`).join('')}</ul>${plan.errors.length > 30 ? `<p>…и ещё ${plan.errors.length - 30}</p>` : ''}</div>` : ''}
+        <dl class="import-sum">
+          <div><dt>Товаров в таблице</dt><dd>${plan.products.length}</dd></div>
+          <div><dt>Новые</dt><dd>${d.added.length}</dd></div>
+          <div><dt>Изменятся</dt><dd>${d.changed.length}</dd></div>
+          <div><dt>Без изменений</dt><dd>${d.same}</dd></div>
+          <div><dt>Пропадут с сайта</dt><dd>${d.removed.length}</dd></div>
+        </dl>
+        ${d.added.length ? `<p><b>Новые:</b> ${names(d.added)}</p>` : ''}
+        ${d.changed.length ? `<p><b>Изменятся:</b> ${names(d.changed)}</p>` : ''}
+        ${d.removed.length ? `<p class="import-removed"><b>Пропадут с сайта</b> (их нет в таблице): ${names(d.removed)}</p>` : ''}
+        ${plan.warnings.length ? `<details class="import-warnings"><summary>Замечания (${plan.warnings.length})</summary><ul>${plan.warnings.slice(0, 50).map((w) => `<li>${esc(w)}</li>`).join('')}</ul></details>` : ''}
+        ${plan.missingPhotos ? `<p class="stat-note">У ${plan.missingPhotos} ${plural(plan.missingPhotos, 'товара', 'товаров', 'товаров')} в колонке «Фото» указан файл, которого ещё нет: загрузите фото кнопкой «Загрузить фото».</p>` : ''}
+        <p class="stat-note">${FS.api.remoteCatalog() ? 'Каталог обновится на сервере и сразу станет виден всем покупателям.' : 'Сервер не подключён: каталог изменится только в этом браузере.'}</p>
+        <div class="tg-actions">
+          <button class="btn btn--primary btn--sm" type="button" data-import-apply ${blocked ? 'disabled' : ''}>${blocked ? 'Исправьте ошибки и загрузите снова' : 'Применить'}</button>
+          <button class="btn btn--outline btn--sm" type="button" data-import-cancel>Отмена</button>
+        </div>
+      </section>`;
+  }
+
+  async function startImport(file) {
+    toast('Читаем таблицу…');
+    try {
+      const rows = await FS.importer.read(file);
+      const result = FS.importer.toProducts(rows, FS.products);
+      const diff = FS.importer.diff(FS.products, result.products);
+      const known = new Set(FS.products.map((p) => p.photo || (p.image || '').split('/').pop().toLowerCase()));
+      const missingPhotos = result.products.filter((p) => p.photo && !p.image && !known.has(p.photo)).length;
+      importPlan = { ...result, diff, fileName: file.name, missingPhotos };
+    } catch (err) {
+      importPlan = null;
+      toast(`Не удалось прочитать файл: ${err.message}`, null, { duration: 8000 });
+    }
+    renderBody();
+    window.scrollTo({ top: 0 });
+  }
+
+  async function applyImport(btn) {
+    const plan = importPlan;
+    btn.disabled = true;
+    btn.textContent = 'Сохраняем…';
+    try {
+      const ok = await Promise.resolve(FS.api.replaceCatalog(plan.products));
+      if (ok === false) throw new Error('браузер не сохранил каталог: закончилось место');
+      importPlan = null;
+      toast(`Каталог обновлён: ${FS.products.length} ${plural(FS.products.length, 'товар', 'товара', 'товаров')}`);
+      renderBody();
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'Применить';
+      toast(`Каталог не обновлён: ${err.message}`, null, { duration: 8000 });
+    }
+  }
+
+  // Фото пачкой: имя файла = значение колонки «Фото» (или артикул товара).
+  async function uploadPhotos(files) {
+    const list = [...files].filter((f) => f.type.startsWith('image/'));
+    if (!list.length) return;
+    let done = 0;
+    let linked = 0;
+    const failed = [];
+    for (const file of list) {
+      try {
+        const name = file.name.toLowerCase(); // как в колонке «Фото»; внутри всегда сжатый JPEG
+        const res = await sendPhoto(file, name);
+        linked += res.linked;
+        done++;
+        if (done % 5 === 0 || done === list.length) toast(`Загружено фото: ${done} из ${list.length}`, null, { duration: 2500 });
+      } catch (err) {
+        failed.push(`${file.name}: ${err.message}`);
+        if (err.status === 401) { expired(); return; }
+      }
+    }
+    await FS.catalog.sync().then((changed) => changed && FS.api.refreshProducts());
+    renderBody();
+    toast(`Фото загружены: ${done}${linked ? `, подключены к ${linked} ${plural(linked, 'товару', 'товарам', 'товарам')}` : ''}${failed.length ? `. Ошибки: ${failed.length}` : ''}`, null, { duration: 9000 });
+    if (failed.length) console.warn(failed);
+  }
+
+  async function sendPhoto(file, name) {
+    const dataUrl = await loadPhoto(file, 1200);
+    return FS.backend.call('POST', '/api/image', { name, type: 'image/jpeg', data: dataUrl.split(',')[1] }, { auth: true });
+  }
+
   /* ---------- Товары ---------- */
   function productsBody() {
     const q = productFilter.q.trim().toLowerCase();
@@ -259,6 +355,13 @@ FS.views.admin = (function () {
         </label>
         <a class="btn btn--primary btn--sm" href="#admin-new">Добавить товар</a>
       </div>
+      <div class="admin-toolbar admin-toolbar--files">
+        <label class="btn btn--outline btn--sm file-btn">Загрузить таблицу<input type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" data-import-file></label>
+        <button class="btn btn--outline btn--sm" type="button" data-export-xlsx>Скачать таблицу</button>
+        ${canPhotos() ? '<label class="btn btn--outline btn--sm file-btn">Загрузить фото<input type="file" accept="image/*" multiple data-photos></label>' : ''}
+        <a class="text-link" href="assets/files/5th-sense-catalog.xlsx" download>Шаблон таблицы</a>
+      </div>
+      ${importPanel()}
       <p class="result-count">${list.length} ${plural(list.length, 'товар', 'товара', 'товаров')}</p>
       ${list.length ? `<div class="ptable" role="table" aria-label="Товары">
         <div class="ptable-row ptable-head" role="row"><span role="columnheader">Фото</span><span role="columnheader">Товар</span><span role="columnheader">Объёмы, цены и остатки</span><span role="columnheader">Действия</span></div>
@@ -450,8 +553,8 @@ FS.views.admin = (function () {
     return Object.keys(errors).length === 0 && !volError;
   }
 
-  // Уменьшаем фото до 900 px, чтобы оно поместилось в хранилище браузера.
-  function loadPhoto(file) {
+  // Уменьшаем фото (по умолчанию до 900 px), чтобы оно было лёгким и поместилось в хранилище.
+  function loadPhoto(file, maxSize) {
     return new Promise((resolve, reject) => {
       if (!file.type.startsWith('image/')) { reject(new Error('type')); return; }
       const reader = new FileReader();
@@ -460,7 +563,7 @@ FS.views.admin = (function () {
         const img = new Image();
         img.onerror = () => reject(new Error('decode'));
         img.onload = () => {
-          const scale = Math.min(1, 900 / Math.max(img.width, img.height));
+          const scale = Math.min(1, (maxSize || 900) / Math.max(img.width, img.height));
           const canvas = document.createElement('canvas');
           canvas.width = Math.round(img.width * scale);
           canvas.height = Math.round(img.height * scale);
@@ -485,7 +588,9 @@ FS.views.admin = (function () {
       <div class="admin-cols">
         <section class="admin-panel">
           <h2>Каталог</h2>
-          <p>${custom ? 'Каталог изменён в админ-панели. На сайте в этом браузере показывается изменённая версия.' : 'Каталог не менялся: на сайте показываются исходные данные из assets/js/data.js.'}</p>
+          <p>${FS.catalog.source() === 'server'
+    ? `Каталог хранится на сервере: ${FS.products.length} ${plural(FS.products.length, 'товар', 'товара', 'товаров')}. Его видят все покупатели, остатки списываются при заказе.`
+    : custom ? 'Каталог изменён в админ-панели. На сайте в этом браузере показывается изменённая версия.' : 'Каталог не менялся: на сайте показываются исходные данные из assets/js/data.js.'}</p>
           <button class="btn btn--outline btn--sm" type="button" data-confirm="reset-catalog" ${custom ? '' : 'disabled'}>Вернуть исходный каталог</button>
         </section>
         <section class="admin-panel">
@@ -718,6 +823,14 @@ FS.views.admin = (function () {
       const t = e.target;
       if (t.closest('[data-admin-logout]')) { setAuthed(false); toast('Вы вышли из админ-панели'); FS.app.go('admin'); return; }
       if (t.closest('[data-test-order]')) { testOrder(); return; }
+      if (t.closest('[data-import-cancel]')) { importPlan = null; renderBody(); return; }
+      const applyBtn = t.closest('[data-import-apply]');
+      if (applyBtn) { applyImport(applyBtn); return; }
+      const exp = t.closest('[data-export-xlsx]');
+      if (exp) {
+        FS.importer.exportFile(FS.products).catch((err) => toast(err.message, null, { duration: 8000 }));
+        return;
+      }
       if (t.closest('[data-orders-refresh]')) { sync(true).then(() => { if (!loadError) toast('Список заказов обновлён'); }); return; }
       const tgBtn = t.closest('[data-tg]');
       if (tgBtn) { telegram(tgBtn.dataset.tg, tgBtn); return; }
@@ -763,7 +876,12 @@ FS.views.admin = (function () {
       if (conf) {
         const action = conf.dataset.confirm;
         confirmButton(conf, 'Нажмите ещё раз для подтверждения', () => {
-          if (action === 'reset-catalog') { FS.api.resetCatalog(); toast('Исходный каталог восстановлен'); }
+          if (action === 'reset-catalog') {
+            Promise.resolve(FS.api.resetCatalog())
+              .then(() => { toast('Исходный каталог восстановлен'); renderBody(); })
+              .catch((err) => toast(`Каталог не восстановлен: ${err.message}`));
+            return;
+          }
           if (action === 'clear-orders') {
             FS.api.clearOrders()
               .then(() => { toast('Все заказы удалены'); renderBody(); })
@@ -787,9 +905,11 @@ FS.views.admin = (function () {
         let list;
         try { list = JSON.parse($('#import-json', el).value); } catch (err) { out.textContent = 'Это не JSON. Проверьте, что текст скопирован целиком.'; return; }
         if (!validCatalog(list)) { out.textContent = 'Формат не подходит: нужен список товаров с полями id, name, brand, volumes и notes, как в экспорте.'; return; }
-        if (!FS.api.replaceCatalog(list)) { out.textContent = 'Каталог применён, но браузер не сохранил его: закончилось место в хранилище.'; return; }
-        toast(`Каталог загружен: ${list.length} ${plural(list.length, 'товар', 'товара', 'товаров')}`);
-        renderBody();
+        Promise.resolve(FS.api.replaceCatalog(list)).then((ok) => {
+          if (ok === false) { out.textContent = 'Каталог применён, но браузер не сохранил его: закончилось место в хранилище.'; return; }
+          toast(`Каталог загружен: ${list.length} ${plural(list.length, 'товар', 'товара', 'товаров')}`);
+          renderBody();
+        }).catch((err) => { out.textContent = `Каталог не загружен: ${err.message}`; });
       }
     }, { signal });
 
@@ -808,9 +928,16 @@ FS.views.admin = (function () {
         return;
       }
       if (t.id === 'product-category') { productFilter.category = t.value; renderBody(); return; }
+      if (t.matches('[data-import-file]') && t.files && t.files[0]) { startImport(t.files[0]); return; }
+      if (t.matches('[data-photos]') && t.files && t.files.length) { uploadPhotos(t.files); return; }
       if (t.matches('[data-photo-input]') && t.files && t.files[0]) {
         const err = t.closest('.photo-actions').querySelector('[data-photo-error]');
-        loadPhoto(t.files[0]).then((url) => {
+        const file = t.files[0];
+        // С сервером фото загружается туда, без сервера хранится в браузере.
+        const upload = canPhotos()
+          ? (() => { readEditor(); const name = `${draft.id || FS.importer.slug(`${draft.brand} ${draft.name}`) || 'product'}.jpg`; return sendPhoto(file, name).then((r) => { draft.photo = r.name; return r.url; }); })()
+          : loadPhoto(file);
+        upload.then((url) => {
           readEditor();
           draft.image = url;
           t.closest('fieldset').innerHTML = '<legend>Фото</legend>' + photoBlock();

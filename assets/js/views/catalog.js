@@ -15,6 +15,9 @@ FS.views.catalog = (function () {
 
   let state = null;
   let root = null;
+  // Большой каталог показываем порциями, чтобы страница не тормозила на телефоне.
+  const PAGE = 24;
+  let shown = PAGE;
 
   function freshState(route, params) {
     return {
@@ -77,7 +80,9 @@ FS.views.catalog = (function () {
           <label><span class="visually-hidden">Цена до</span><input id="price-max" type="number" inputmode="numeric" min="0" step="1000" placeholder="до" value="${state.priceMax || ''}" name="priceMax"></label>
         </div>
       </fieldset>
-      ${checkboxGroup('brands', 'Бренд', brands, state.brands)}
+      ${brands.length > 12
+    ? checkboxGroup('brands', 'Бренд', brands, state.brands).replace('<div class="filter-options">', `<label class="brand-search"><span class="visually-hidden">Найти бренд</span><input type="search" placeholder="Найти бренд" data-brand-search autocomplete="off"></label><div class="filter-options filter-options--scroll">`)
+    : checkboxGroup('brands', 'Бренд', brands, state.brands)}
       <label class="check check--switch">
         <input type="checkbox" name="inStock" ${state.inStock ? 'checked' : ''}>
         <span class="check-box" aria-hidden="true"></span>
@@ -104,9 +109,9 @@ FS.views.catalog = (function () {
     const filtered = state.families.length + state.brands.length + state.genders.length + (state.q ? 1 : 0) + (state.priceMin ? 1 : 0) + (state.priceMax ? 1 : 0) + (state.inStock ? 1 : 0);
     const allowWide = list.length >= 5 && !filtered;
     let wideUsed = 0;
-    const grid = list.length ? list.map((p, i) => {
+    const grid = list.length ? list.slice(0, shown).map((p, i) => {
       const wide = allowWide && p.featured && wideUsed < 2 && (wideUsed += 1);
-      return card(p, { wide, index: Math.min(i, 8) });
+      return card(p, { wide, index: Math.min(i % PAGE, 8) });
     }).join('') : `
       <div class="empty">
         <p class="empty-title">Ничего не нашлось</p>
@@ -123,8 +128,10 @@ FS.views.catalog = (function () {
     const key = JSON.stringify(state);
     if (!force && key === lastKey) return;
     lastKey = key;
+    shown = PAGE;
     const { list, grid } = results();
     $('[data-grid]', root).innerHTML = grid;
+    renderMore(list.length);
     $('[data-count]', root).textContent = `${list.length} ${plural(list.length, 'аромат', 'аромата', 'ароматов')}`;
     $('[data-chips]', root).innerHTML = activeChips();
     const n = state.families.length + state.brands.length + state.genders.length + (state.priceMin ? 1 : 0) + (state.priceMax ? 1 : 0) + (state.inStock ? 1 : 0);
@@ -173,8 +180,33 @@ FS.views.catalog = (function () {
             <div class="chips" data-chips></div>
           </div>
           <div class="shelf-grid shelf-grid--catalog" data-grid></div>
+          <div class="catalog-more" data-more></div>
         </div>
       </div>`;
+  }
+
+  function renderMore(total) {
+    const left = total - shown;
+    $('[data-more]', root).innerHTML = left > 0
+      ? `<button class="line-link line-link--lg" type="button" data-show-more>Показать ещё ${Math.min(left, PAGE)}</button><p class="result-count">Показано ${shown} из ${total}</p>`
+      : '';
+  }
+
+  // Следующая порция карточек добавляется в конец, уже показанные не перерисовываются.
+  function showMore() {
+    const list = FS.api.filter(state);
+    const next = list.slice(shown, shown + PAGE);
+    const start = shown;
+    shown += next.length;
+    const tmp = document.createElement('div');
+    tmp.innerHTML = next.map((p, i) => card(p, { index: Math.min(i, 8) })).join('');
+    const grid = $('[data-grid]', root);
+    const added = [...tmp.children];
+    added.forEach((el) => grid.appendChild(el));
+    FS.motion.reveals(grid);
+    renderMore(list.length);
+    const firstNew = added[0] && added[0].querySelector('.pcard-name a');
+    if (firstNew && start) firstNew.focus({ preventScroll: true });
   }
 
   function readFilters() {
@@ -210,7 +242,13 @@ FS.views.catalog = (function () {
       t = setTimeout(() => { state.q = e.target.value.trim(); updateResults(); }, 180);
     });
     $('#catalog-sort', root).addEventListener('change', (e) => { state.sort = e.target.value; updateResults(); });
-    $('.filters', root).addEventListener('change', () => { readFilters(); updateResults(); });
+    $('.filters', root).addEventListener('change', (e) => { if (e.target.matches('[data-brand-search]')) return; readFilters(); updateResults(); });
+    // Поиск по длинному списку брендов: скрываем неподходящие, отметки сохраняются.
+    $('.filters', root).addEventListener('input', (e) => {
+      if (!e.target.matches('[data-brand-search]')) return;
+      const q = e.target.value.trim().toLowerCase();
+      $$('input[name="brands"]', root).forEach((i) => { i.closest('.check').hidden = q && !i.value.toLowerCase().includes(q); });
+    });
     root.addEventListener('click', (e) => {
       const unset = e.target.closest('[data-unset]');
       if (unset) {
@@ -232,6 +270,7 @@ FS.views.catalog = (function () {
         updateResults();
         return;
       }
+      if (e.target.closest('[data-show-more]')) { showMore(); return; }
       if (e.target.closest('[data-filters-toggle]')) toggleFilters();
     }, { signal });
     root.addEventListener('keydown', (e) => {
