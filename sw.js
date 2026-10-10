@@ -3,7 +3,7 @@
    Сайт целиком сохраняется на телефоне, поэтому каталог открывается без интернета.
    Обновления: при каждом открытии файлы тихо обновляются в фоне,
    новая версия видна при следующем запуске. */
-const VERSION = '01889b0b22';
+const VERSION = '3f50081751';
 const CACHE = `fs-${VERSION}`;
 const FONTS = 'fs-fonts';
 const PRECACHE = [
@@ -23,6 +23,7 @@ const PRECACHE = [
   "assets/js/bottle.js",
   "assets/js/config.js",
   "assets/js/data.js",
+  "assets/js/importer.js",
   "assets/js/motion.js",
   "assets/js/pwa.js",
   "assets/js/store.js",
@@ -34,32 +35,6 @@ const PRECACHE = [
   "assets/js/views/home.js",
   "assets/js/views/pages.js",
   "assets/js/views/product.js",
-  "assets/products/armani-stronger-with-you-intensely.jpg",
-  "assets/products/baccarat-rouge-540.jpg",
-  "assets/products/byredo-bal-dafrique.jpg",
-  "assets/products/byredo-blanche.jpg",
-  "assets/products/byredo-sundazed.jpg",
-  "assets/products/clive-christian-1872.jpg",
-  "assets/products/clive-christian-matsukita.jpg",
-  "assets/products/creed-green-irish-tweed.jpg",
-  "assets/products/crivelli-oud-maracuja.jpg",
-  "assets/products/dg-the-one.jpg",
-  "assets/products/dior-sauvage-elixir.jpg",
-  "assets/products/jo-malone-peony-blush-suede.jpg",
-  "assets/products/kilian-straight-to-heaven.jpg",
-  "assets/products/layton.jpg",
-  "assets/products/le-labo-the-matcha-26.jpg",
-  "assets/products/le-labo-the-noir-29.jpg",
-  "assets/products/lv-afternoon-swim.jpg",
-  "assets/products/lv-imagination.jpg",
-  "assets/products/lv-les-sables-roses.jpg",
-  "assets/products/lv-stellar-times.jpg",
-  "assets/products/lv-symphony.jpg",
-  "assets/products/marly-althair.jpg",
-  "assets/products/montale-vanilla-extasy.jpg",
-  "assets/products/oud-wood.jpg",
-  "assets/products/santal-33.jpg",
-  "assets/products/tom-ford-ombre-leather.jpg",
   "index.html",
   "manifest.webmanifest"
 ];

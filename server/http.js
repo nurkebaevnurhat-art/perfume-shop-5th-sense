@@ -3,6 +3,7 @@
 const crypto = require('node:crypto');
 
 const MAX_BODY = 64 * 1024;
+const MAX_BODY_ADMIN = 4 * 1024 * 1024; // таблица каталога и фото
 
 function send(res, code, data) {
   res.statusCode = code;
@@ -21,6 +22,7 @@ class HttpError extends Error {
 }
 
 async function readJson(req) {
+  const limit = isAdmin(req) ? MAX_BODY_ADMIN : MAX_BODY;
   // Vercel сам разбирает JSON в req.body; на других серверах читаем поток.
   if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) return req.body;
   let raw = '';
@@ -29,10 +31,10 @@ async function readJson(req) {
   } else {
     for await (const chunk of req) {
       raw += chunk;
-      if (raw.length > MAX_BODY) throw new HttpError(413, 'too_large', 'Слишком большой запрос');
+      if (raw.length > limit) throw new HttpError(413, 'too_large', 'Слишком большой запрос');
     }
   }
-  if (raw.length > MAX_BODY) throw new HttpError(413, 'too_large', 'Слишком большой запрос');
+  if (raw.length > limit) throw new HttpError(413, 'too_large', 'Слишком большой запрос');
   try { return raw ? JSON.parse(raw) : {}; } catch (e) { throw new HttpError(400, 'bad_json', 'Некорректный запрос'); }
 }
 

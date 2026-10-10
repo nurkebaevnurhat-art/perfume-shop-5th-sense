@@ -9,31 +9,86 @@ window.FS = window.FS || {};
    встроенные данные; на обычном хостинге путь возвращается как есть. */
 FS.assetUrl = (path) => (path && FS.assets && FS.assets[path]) || path;
 
-/* Каталог. Исходные данные — FS.defaultProducts (data.js). Изменения из
-   админ-панели сохраняются в браузере и при следующей загрузке заменяют исходник.
-   С сервером эти функции превращаются в GET/PUT /api/products. */
+/* Каталог. Источники по порядку:
+   1) сервер (/api/products), когда каталог загружен из админки, — последняя копия
+      хранится в браузере, чтобы сайт открывался сразу и без интернета;
+   2) правки из демо-админки в этом браузере (если сервера нет);
+   3) исходные данные FS.defaultProducts (data.js). */
 FS.catalog = (function () {
   const KEY = 'fs.catalog.v1';
+  const SERVER_KEY = 'fs.catalog.server';
   // Товары, снятые с продажи: убираются и из каталога, сохранённого в браузере через админку.
   const REMOVED = ['set-five-senses', 'set-evening'];
   const clone = (x) => JSON.parse(JSON.stringify(x));
+  let source = 'file';
+  let version = null;
+
+  function fromServerCache() {
+    const cached = FS.storage.get(SERVER_KEY, null);
+    return cached && Array.isArray(cached.products) && cached.products.length ? cached : null;
+  }
+
   return {
     load() {
+      const server = fromServerCache();
+      if (server) {
+        source = 'server';
+        version = server.version;
+        FS.products = server.products;
+        return FS.products;
+      }
       const saved = FS.storage.get(KEY, null);
       const list = Array.isArray(saved) ? saved.filter((p) => !REMOVED.includes(p.id)) : [];
+      source = list.length ? 'local' : 'file';
       FS.products = list.length ? list : clone(FS.defaultProducts);
       return FS.products;
     },
     save(list) {
+      if (source === 'server') { // правки админки уже ушли на сервер, обновляем копию в браузере
+        FS.products = list;
+        return FS.storage.set(SERVER_KEY, { version, products: list }) || true;
+      }
       const ok = FS.storage.set(KEY, list);
       FS.products = list;
+      if (ok) source = 'local';
       return ok;
     },
     reset() {
       FS.storage.remove(KEY);
+      FS.storage.remove(SERVER_KEY);
+      source = 'file';
+      version = null;
       FS.products = clone(FS.defaultProducts);
     },
-    isCustom: () => FS.storage.get(KEY, null) !== null
+    isCustom: () => source !== 'file',
+    source: () => source,
+    hasCache: () => Boolean(fromServerCache()),
+
+    /* Свежий каталог с сервера. true — каталог изменился (нужно перерисовать). */
+    async sync() {
+      if (!FS.backend.usable) return false;
+      let data;
+      try { data = await FS.backend.call('GET', '/api/products'); } catch (e) { return false; }
+      if (!data) return false;
+      if (!data.products) { // на сервере каталога нет — работаем по data.js
+        if (source !== 'server') return false;
+        FS.storage.remove(SERVER_KEY);
+        this.load();
+        return true;
+      }
+      if (source === 'server' && data.version && data.version === version) return false;
+      source = 'server';
+      version = data.version;
+      FS.products = data.products;
+      FS.storage.set(SERVER_KEY, { version, products: data.products });
+      return true;
+    },
+    // Ответ сервера после правки из админки.
+    serverSaved(meta) {
+      source = 'server';
+      if (meta && meta.version) version = meta.version;
+      FS.storage.set(SERVER_KEY, { version, products: FS.products });
+    }
   };
 })();
 FS.catalog.load();
@@ -90,6 +145,7 @@ FS.backend = (function () {
   }
 
   return {
+    usable,
     status,
     // undefined — ещё проверяем, null — сервера нет (демо-режим).
     get info() { return info; },
@@ -183,34 +239,75 @@ FS.api = (function () {
     return [...new Set(FS.products.map((p) => p.brand))].sort((a, b) => a.localeCompare(b));
   }
 
-  /* --- Изменение каталога (админ-панель) --- */
+  /* --- Изменение каталога (админ-панель) ---
+     С сервером (есть хранилище и вход по паролю) правки сохраняются на сервере
+     и сразу видны всем покупателям; без сервера — только в этом браузере. */
+  const remoteCatalog = () => Boolean(FS.backend.info && FS.backend.info.storage && FS.backend.info.admin && FS.backend.adminKey());
+  const notify = () => listeners.forEach((fn) => fn());
+
   function commit() {
     const ok = FS.catalog.save(FS.products);
     rebuild();
-    listeners.forEach((fn) => fn());
+    notify();
     return ok;
   }
 
+  function saveRemote(method, path, body) {
+    return FS.backend.call(method, path, body, { auth: true })
+      .then((data) => { FS.catalog.serverSaved(data && (data.meta || data)); return data; })
+      .catch((err) => {
+        FS.ui.toast(`Изменение не сохранено на сервере: ${err.message}`, null, { duration: 8000 });
+        throw err;
+      });
+  }
+
+  // Возвращает true сразу; с сервером onSaved/ошибка приходят позже.
   function upsertProduct(product) {
     const i = FS.products.findIndex((p) => p.id === product.id);
     if (i >= 0) FS.products[i] = product; else FS.products.unshift(product);
-    return commit();
+    const ok = commit();
+    if (remoteCatalog()) {
+      return saveRemote('PATCH', '/api/products', { product }).then((data) => {
+        // Сервер мог подставить фото по имени файла.
+        const j = FS.products.findIndex((p) => p.id === product.id);
+        if (j >= 0 && data.product) { FS.products[j] = data.product; commit(); }
+        return true;
+      }).catch(() => false);
+    }
+    return ok;
   }
 
   function deleteProduct(id) {
     FS.products = FS.products.filter((p) => p.id !== id);
-    return commit();
+    const ok = commit();
+    if (remoteCatalog()) return saveRemote('DELETE', `/api/products?id=${encodeURIComponent(id)}`).then(() => true).catch(() => false);
+    return ok;
   }
 
   function replaceCatalog(list) {
+    if (remoteCatalog()) {
+      return FS.backend.call('PUT', '/api/products', { products: list }, { auth: true }).then(async () => {
+        await FS.catalog.sync(); // забираем каталог с подставленными фото
+        rebuild();
+        notify();
+        return true;
+      });
+    }
     FS.products = list;
     return commit();
   }
 
   function resetCatalog() {
-    FS.catalog.reset();
+    const done = () => { FS.catalog.reset(); rebuild(); notify(); };
+    if (remoteCatalog()) return FS.backend.call('POST', '/api/products', { action: 'reset' }, { auth: true }).then(done);
+    done();
+    return true;
+  }
+
+  // Каталог пришёл с сервера (при открытии сайта).
+  function refreshProducts() {
     rebuild();
-    listeners.forEach((fn) => fn());
+    notify();
   }
 
   // Изменение остатка по позициям заказа: sign = -1 списать, +1 вернуть.
@@ -319,6 +416,8 @@ FS.api = (function () {
     deleteProduct,
     resetCatalog,
     replaceCatalog,
+    refreshProducts,
+    remoteCatalog,
     onChange(fn) { listeners.add(fn); return () => listeners.delete(fn); },
     createOrder,
     updateOrder,

@@ -9,6 +9,7 @@ const telegram = require('../server/telegram');
 const catalog = require('../server/catalog');
 const orders = require('../server/orders');
 const botApi = require('../server/bot');
+const products = require('../server/products');
 
 function requireStorage() {
   if (!db.configured()) throw new HttpError(503, 'storage_not_configured', 'Хранилище заказов не подключено');
@@ -25,9 +26,21 @@ module.exports = handler({
       throw new HttpError(429, 'rate_limited', 'Слишком много заказов подряд. Подождите несколько минут или позвоните в бутик.');
     }
 
-    const shop = catalog.load();
+    const shop = { ...catalog.load(), products: await products.map() };
     const body = await readJson(req);
     const order = orders.build(body, shop);
+    // Когда каталог на сервере, остатки точные: не продаём больше, чем есть.
+    const tracked = Boolean(await products.stored());
+    if (tracked) {
+      order.items.forEach((i) => {
+        const v = shop.products.get(i.id).volumes.find((x) => x.ml === i.ml);
+        if (v.stock < i.qty) {
+          throw new HttpError(409, 'out_of_stock', v.stock
+            ? `${i.brand} ${i.name}, ${i.ml} мл: осталось только ${v.stock} шт. Уменьшите количество в корзине.`
+            : `${i.brand} ${i.name}, ${i.ml} мл: закончился. Уберите его из корзины.`);
+        }
+      });
+    }
     const seq = storage ? await db.nextNumber() : null;
     const record = {
       number: seq ? `5S-${1000 + seq}` : '5S-' + Date.now().toString(36).toUpperCase().slice(-6),
@@ -49,6 +62,7 @@ module.exports = handler({
       try {
         await db.saveOrder(record);
         saved = true;
+        if (tracked) await products.moveStock(record.items, -1);
         await db.put(`fs:order:track:${record.track}`, record.number);
         if (record.telegram) await db.addToSet(`fs:tg:orders:${record.telegram[0]}`, record.number);
       } catch (err) { console.error(err); }
@@ -80,6 +94,9 @@ module.exports = handler({
     if (!current) throw new HttpError(404, 'not_found', 'Заказ не найден');
     const next = orders.patch(current, body);
     await db.saveOrder(next);
+    // Отмена возвращает товар на склад, возобновление снова списывает.
+    if (current.status !== 'cancelled' && next.status === 'cancelled') await products.moveStock(next.items, +1);
+    if (current.status === 'cancelled' && next.status !== 'cancelled') await products.moveStock(next.items, -1);
     // Покупатель, который следит за заказом в Telegram, получает сообщение о новом статусе.
     let customerNotified = 0;
     try { customerNotified = await botApi.notifyCustomer(current, next); } catch (err) { console.error(err); }

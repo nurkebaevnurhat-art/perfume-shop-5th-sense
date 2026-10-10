@@ -11,7 +11,9 @@ const walk = (dir) => readdirSync(join(root, dir)).flatMap((f) => {
   return statSync(join(root, p)).isDirectory() ? walk(p) : [p];
 });
 const files = ['index.html', 'manifest.webmanifest', ...walk('assets')]
-  .filter((f) => !/\.(md|DS_Store)$/.test(f) && !f.includes('brand-sign'))
+  // Фото товаров и файлы для скачивания не скачиваем заранее: при сотнях товаров это десятки мегабайт.
+  // Они сохраняются в телефон по мере просмотра (см. sw.template.js).
+  .filter((f) => !/\.(md|DS_Store)$/.test(f) && !f.includes('brand-sign') && !/^assets[\\/](products|files)[\\/]/.test(f))
   .map((f) => f.split('\\').join('/'))
   .sort();
 const hash = createHash('sha256');

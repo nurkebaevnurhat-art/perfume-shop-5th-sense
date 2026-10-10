@@ -15,6 +15,14 @@
     "api/bot.js": {
       "includeFiles": "assets/js/*.js",
       "maxDuration": 15
+    },
+    "api/products.js": {
+      "includeFiles": "assets/js/*.js",
+      "maxDuration": 30
+    },
+    "api/image.js": {
+      "includeFiles": "assets/js/*.js",
+      "maxDuration": 30
     }
   },
   "headers": [
@@ -71,7 +79,7 @@
       ]
     },
     {
-      "source": "/api/(.*)",
+      "source": "/api/((?!products|image).*)",
       "headers": [
         {
           "key": "Cache-Control",

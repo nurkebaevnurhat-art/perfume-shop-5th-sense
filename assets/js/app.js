@@ -57,7 +57,8 @@ FS.app = (function () {
     return true;
   }
 
-  function render(route, force) {
+  // quiet — тихая перерисовка той же страницы (обновился каталог): без шторки и прокрутки.
+  function render(route, force, quiet) {
     const view = $('#view');
     const params = pending;
     pending = {};
@@ -70,11 +71,12 @@ FS.app = (function () {
 
     const impl = FS.views[route.name] || FS.views.notfound;
     const first = !current;
-    const animate = !first && !reduceMotion.matches;
+    const animate = !first && !quiet && !reduceMotion.matches;
     if (busy) clearTimeout(busy);
     if (current && current.impl.unmount) current.impl.unmount();
 
     const swap = () => {
+      const y = window.scrollY;
       FS.motion.clearScenes();
       document.body.className = document.body.className.replace(/\broute-\S+/g, '').trim();
       document.body.classList.add('route-' + route.name);
@@ -86,16 +88,17 @@ FS.app = (function () {
       if (impl.mount) impl.mount(view, route, params, mountCtl.signal);
       FS.ui.setActiveNav(route.key);
       FS.motion.fit(view);
-      if (!(route.anchor && scrollToAnchor(route.anchor, false))) window.scrollTo(0, 0);
+      if (quiet) window.scrollTo(0, y);
+      else if (!(route.anchor && scrollToAnchor(route.anchor, false))) window.scrollTo(0, 0);
       FS.motion.reveals(view);
       FS.ui.refreshHeader();
-      if (!first) {
+      if (!first && !quiet) {
         const h1 = view.querySelector('h1');
         if (h1) { h1.setAttribute('tabindex', '-1'); h1.focus({ preventScroll: true }); }
       }
     };
 
-    current = { key: route.key, impl };
+    current = { key: route.key, impl, name: route.name };
     // Переход: шторка с логотипом закрывает экран, страница меняется, шторка уходит вверх.
     const curtain = $('#curtain');
     if (animate && curtain) {
@@ -140,7 +143,19 @@ FS.app = (function () {
       e.preventDefault();
       go(token);
     });
-    render(resolve(currentToken()));
+    // Каталог с сервера. При первом визите ждём его (не дольше 2,5 с), чтобы не показать
+    // устаревший список; дальше сайт открывается сразу из копии в браузере и обновляется в фоне.
+    const sync = FS.catalog.sync().then((changed) => {
+      if (changed) FS.api.refreshProducts();
+      return changed;
+    });
+    // Новый каталог: перерисовываем страницы со списками товаров, формы не трогаем.
+    FS.api.onChange(() => {
+      if (current && ['home', 'catalog', 'product', 'favorites'].includes(current.name)) render(resolve(currentToken()), true, true);
+    });
+    const first = () => { if (!current) render(resolve(currentToken())); };
+    if (FS.catalog.hasCache() || !FS.backend.usable) first();
+    else Promise.race([sync, new Promise((r) => setTimeout(r, 2500))]).then(first);
     FS.motion.intro(() => { document.body.classList.add('is-ready'); FS.motion.refresh(); });
   }
 
