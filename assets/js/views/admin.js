@@ -24,6 +24,8 @@ FS.views.admin = (function () {
   let route = null;
   let memorySession = false;
   let orderFilter = { status: 'all', q: '' };
+  let orderLimit = 30; // сколько заказов показано («Показать ещё» добавляет)
+  let ordersExport = null; // панель «Скачать в Excel»: { period, from, to }
   let productFilter = { q: '', category: '' };
   let draft = null; // товар в редакторе
   let importPlan = null; // загруженная таблица до подтверждения
@@ -213,25 +215,102 @@ FS.views.admin = (function () {
       </details>`;
   }
 
+  /* Архив: выполненные и отменённые заказы, к которым не возвращались неделю.
+     Они не мешают в работе, но хранятся и находятся поиском. */
+  const ARCHIVE_DAYS = 7;
+  function archived(o) {
+    if (o.status !== 'done' && o.status !== 'cancelled') return false;
+    const t = Date.parse(o.updatedAt || o.createdAt);
+    return Number.isFinite(t) && Date.now() - t > ARCHIVE_DAYS * 86400000;
+  }
+
   function ordersBody() {
     if (serverMode() && !serverInfo().storage) return '<p class="panel-empty">Заказы приходят в Telegram. Чтобы видеть и вести их здесь, подключите хранилище Upstash Redis (Vercel → Storage) и сделайте Redeploy.</p>';
     const all = allOrders().slice().reverse();
+    const work = all.filter((o) => !archived(o));
+    const archive = all.filter(archived);
     const q = orderFilter.q.trim().toLowerCase();
-    const list = all.filter((o) => (orderFilter.status === 'all' || o.status === orderFilter.status) &&
-      (!q || [o.number, o.customer.firstName, o.customer.lastName, o.customer.phone].join(' ').toLowerCase().includes(q)));
-    const chip = (id, name) => {
-      const n = id === 'all' ? all.length : all.filter((o) => o.status === id).length;
-      return `<button type="button" class="chip ${orderFilter.status === id ? 'chip--active' : ''}" data-order-filter="${id}" aria-pressed="${orderFilter.status === id}">${name} <span class="chip-count">${n}</span></button>`;
-    };
+    const st = orderFilter.status;
+    // Поиск ищет везде, включая архив; без поиска — вкладка «Архив» или заказы в работе по статусу.
+    const list = q
+      ? all.filter((o) => [o.number, o.customer.firstName, o.customer.lastName, o.customer.phone].join(' ').toLowerCase().includes(q))
+      : st === 'archive' ? archive : work.filter((o) => st === 'all' || o.status === st);
+    const shown = list.slice(0, orderLimit);
+    const chip = (id, name, n) => `<button type="button" class="chip ${!q && st === id ? 'chip--active' : ''}" data-order-filter="${id}" aria-pressed="${!q && st === id}">${name} <span class="chip-count">${n}</span></button>`;
+    const empty = q ? 'По этому запросу заказов нет, в том числе в архиве.'
+      : st === 'archive' ? `Архив пуст. Сюда попадают выполненные и отменённые заказы через ${ARCHIVE_DAYS} дней.`
+      : 'Нет заказов с таким статусом.';
     return `
       <div class="admin-toolbar">
         <label class="toolbar-search"><span class="visually-hidden">Поиск заказа</span>${FS.ui.icon.search}<input id="order-search" type="search" placeholder="Номер, имя или телефон" value="${esc(orderFilter.q)}" autocomplete="off"></label>
         ${serverMode() ? '<button class="btn btn--outline btn--sm" type="button" data-orders-refresh>Обновить</button>' : ''}
+        ${all.length ? `<button class="btn btn--outline btn--sm" type="button" data-orders-export>Скачать в Excel</button>` : ''}
         <button class="btn btn--outline btn--sm" type="button" data-test-order>Добавить тестовый заказ</button>
       </div>
-      <div class="chips admin-chips">${chip('all', 'Все')}${FS.api.STATUSES.map((s) => chip(s.id, s.name)).join('')}</div>
-      <div data-order-list>${list.length ? `<div class="orders">${list.map(orderRow).join('')}</div>` : (all.length ? '<p class="panel-empty">Нет заказов с таким статусом или по такому запросу.</p>' : emptyOrders())}</div>`;
+      ${ordersExportPanel(all)}
+      <div class="chips admin-chips">${chip('all', 'В работе', work.length)}${FS.api.STATUSES.map((s) => chip(s.id, s.name, work.filter((o) => o.status === s.id).length)).join('')}${chip('archive', 'Архив', archive.length)}</div>
+      ${q ? '<p class="stat-note orders-note">Поиск по всем заказам, включая архив.</p>' : st === 'archive' ? `<p class="stat-note orders-note">Выполненные и отменённые заказы старше ${ARCHIVE_DAYS} дней. Они хранятся и учитываются в подарках за покупки.</p>` : ''}
+      <div data-order-list>${shown.length ? `<div class="orders">${shown.map(orderRow).join('')}</div>
+        ${list.length > shown.length ? `<div class="orders-more"><button class="btn btn--outline btn--sm" type="button" data-orders-more>Показать ещё</button><span class="stat-note">Показано ${shown.length} из ${list.length}</span></div>` : ''}`
+        : (all.length ? `<p class="panel-empty">${empty}</p>` : emptyOrders())}</div>`;
   }
+
+  /* ---------- Скачать заказы в Excel за период ---------- */
+  const isoDay = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  function periodRange(period, from, to) {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth();
+    if (period === 'month') return [new Date(y, m, 1), new Date(y, m + 1, 1)];
+    if (period === 'prev') return [new Date(y, m - 1, 1), new Date(y, m, 1)];
+    if (period === 'year') return [new Date(y, 0, 1), new Date(y + 1, 0, 1)];
+    if (period === 'range') {
+      const a = from ? new Date(`${from}T00:00:00`) : new Date(0);
+      const b = to ? new Date(`${to}T00:00:00`) : now;
+      b.setDate(b.getDate() + 1);
+      return [a, b];
+    }
+    return [new Date(0), new Date(8.64e15)];
+  }
+  const inPeriod = (o, range) => { const t = new Date(o.createdAt); return t >= range[0] && t < range[1]; };
+
+  function ordersExportPanel(all) {
+    const ex = ordersExport;
+    if (!ex) return '';
+    const range = periodRange(ex.period, ex.from, ex.to);
+    const n = all.filter((o) => inPeriod(o, range)).length;
+    const opt = (id, name) => `<option value="${id}" ${ex.period === id ? 'selected' : ''}>${name}</option>`;
+    return `<section class="admin-panel import-panel orders-export">
+        <h2>Заказы в Excel</h2>
+        <form class="orders-export-form" data-orders-export-form novalidate>
+          <label class="field"><span>Период</span>
+            <select name="period" data-export-period>${opt('month', 'Этот месяц')}${opt('prev', 'Прошлый месяц')}${opt('year', 'Этот год')}${opt('all', 'За всё время')}${opt('range', 'Выбрать даты')}</select></label>
+          ${ex.period === 'range' ? `<label class="field"><span>С</span><input type="date" name="from" value="${esc(ex.from || '')}" data-export-date></label>
+          <label class="field"><span>По</span><input type="date" name="to" value="${esc(ex.to || isoDay(new Date()))}" data-export-date></label>` : ''}
+        </form>
+        <p class="stat-note">Заказов за период: <b data-export-count>${n}</b>. Два листа: «Заказы» (строка на заказ) и «Позиции» (строка на каждый аромат в заказе). В файл попадают и заказы из архива.</p>
+        <div class="tg-actions">
+          <button class="btn btn--primary btn--sm" type="button" data-orders-export-go ${n ? '' : 'disabled'}>Скачать</button>
+          <button class="btn btn--outline btn--sm" type="button" data-orders-export-close>Закрыть</button>
+        </div>
+      </section>`;
+  }
+
+  async function exportOrders(btn) {
+    const ex = ordersExport;
+    const range = periodRange(ex.period, ex.from, ex.to);
+    const list = allOrders().filter((o) => inPeriod(o, range));
+    const label = ex.period === 'range' ? `${ex.from || 'начало'}_${ex.to || isoDay(new Date())}` : ex.period === 'all' ? 'все' : isoDay(range[0]).slice(0, ex.period === 'year' ? 4 : 7);
+    btn.disabled = true;
+    try {
+      await FS.importer.exportOrders(list, `5th-sense-zakazy-${label}.xlsx`, { status: statusName });
+      toast(`Скачано заказов: ${list.length}`);
+    } catch (err) {
+      toast(err.message, null, { duration: 8000 });
+    }
+    btn.disabled = false;
+  }
+
 
   function testOrder() {
     const pool = FS.products.filter((p) => p.type === 'perfume' && FS.api.inStock(p));
@@ -1267,7 +1346,12 @@ FS.views.admin = (function () {
       const tgBtn = t.closest('[data-tg]');
       if (tgBtn) { telegram(tgBtn.dataset.tg, tgBtn); return; }
       const of = t.closest('[data-order-filter]');
-      if (of) { orderFilter.status = of.dataset.orderFilter; renderBody(); return; }
+      if (of) { orderFilter.status = of.dataset.orderFilter; orderFilter.q = ''; orderLimit = 30; renderBody(); return; }
+      if (t.closest('[data-orders-more]')) { orderLimit += 30; renderBody(); return; }
+      if (t.closest('[data-orders-export]')) { ordersExport = ordersExport ? null : { period: 'month', from: '', to: '' }; renderBody(); return; }
+      if (t.closest('[data-orders-export-close]')) { ordersExport = null; renderBody(); return; }
+      const exGo = t.closest('[data-orders-export-go]');
+      if (exGo && ordersExport) { exportOrders(exGo); return; }
       const open = t.closest('[data-open-order]');
       if (open) { orderFilter = { status: 'all', q: open.dataset.openOrder }; return; }
       if (t.closest('[data-vol-add]')) {
@@ -1347,6 +1431,14 @@ FS.views.admin = (function () {
 
     el.addEventListener('change', (e) => {
       const t = e.target;
+      if ((t.matches('[data-export-period]') || t.matches('[data-export-date]')) && ordersExport) {
+        const f = t.form;
+        ordersExport = { period: f.elements.period.value, from: f.elements.from ? f.elements.from.value : ordersExport.from, to: f.elements.to ? f.elements.to.value : ordersExport.to };
+        renderBody();
+        const again = $(t.matches('[data-export-period]') ? '[data-export-period]' : `[name="${t.name}"]`, el);
+        if (again) again.focus();
+        return;
+      }
       if (t.dataset.pick && priceEdit) {
         if (t.checked) priceEdit.picked.add(t.dataset.pick); else priceEdit.picked.delete(t.dataset.pick);
         const row = t.closest('.ptable-row');
@@ -1444,7 +1536,7 @@ FS.views.admin = (function () {
       if (t.id !== 'order-search' && t.id !== 'product-search' && t.id !== 'client-search') return;
       clearTimeout(timer);
       timer = setTimeout(() => {
-        if (t.id === 'order-search') orderFilter.q = t.value;
+        if (t.id === 'order-search') { orderFilter.q = t.value; orderLimit = 30; }
         else if (t.id === 'client-search') clientQ = t.value;
         else productFilter.q = t.value;
         const pos = t.selectionStart;
