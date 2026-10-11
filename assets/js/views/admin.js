@@ -27,6 +27,7 @@ FS.views.admin = (function () {
   let productFilter = { q: '', category: '' };
   let draft = null; // товар в редакторе
   let importPlan = null; // загруженная таблица до подтверждения
+  let priceTool = null; // «Изменить цены»: { brand, pct, plan }
 
   /* ---------- Режим ---------- */
   // Сервер с паролем админки: заказы и вход через /api. Иначе — демо в браузере.
@@ -480,9 +481,11 @@ FS.views.admin = (function () {
         <label class="btn btn--outline btn--sm file-btn">Загрузить таблицу<input type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" data-import-file></label>
         <button class="btn btn--outline btn--sm" type="button" data-export-xlsx>Скачать таблицу</button>
         ${canPhotos() ? '<label class="btn btn--outline btn--sm file-btn">Загрузить фото<input type="file" accept="image/*" multiple data-photos></label>' : ''}
+        <button class="btn btn--outline btn--sm" type="button" data-price-open>Изменить цены</button>
         <a class="text-link" href="assets/files/5th-sense-catalog.xlsx" download>Шаблон таблицы</a>
       </div>
       ${importPanel()}
+      ${pricePanel()}
       <p class="result-count">${list.length} ${plural(list.length, 'товар', 'товара', 'товаров')}</p>
       ${list.length ? `<div class="ptable" role="table" aria-label="Товары">
         <div class="ptable-row ptable-head" role="row"><span role="columnheader">Фото</span><span role="columnheader">Товар</span><span role="columnheader">Объёмы, цены и остатки</span><span role="columnheader">Действия</span></div>
@@ -490,10 +493,75 @@ FS.views.admin = (function () {
           <div class="ptable-row" role="row">
             <span class="ptable-thumb" role="cell">${FS.bottle.media(p, { style: 'blueprint' })}</span>
             <span class="ptable-name" role="cell"><em>${esc(p.brand)}</em><strong>${esc(p.name)}</strong><span class="ptable-flags">${flags(p)}</span></span>
-            <span class="ptable-vols" role="cell">${p.volumes.map((v) => `<span><b>${esc(volumeLabel(v))}</b> ${money(v.price)} <span class="stock-pill ${v.stock > 2 ? '' : v.stock ? 'is-low' : 'is-out'}">${v.stock} шт.</span></span>`).join('')}</span>
+            <span class="ptable-vols" role="cell">${p.perMl ? `<span class="ptable-perml"><b>1 мл</b> ${money(p.perMl)}</span>` : ''}${p.volumes.map((v) => `<span><b>${esc(volumeLabel(v))}</b> ${money(v.price)} <span class="stock-pill ${v.stock > 2 ? '' : v.stock ? 'is-low' : 'is-out'}">${v.stock} шт.</span></span>`).join('')}</span>
             <span class="ptable-actions" role="cell"><a class="btn btn--outline btn--sm" href="#admin-edit-${p.id}">Редактировать</a><a class="link-btn" href="#product-${p.id}">На сайте</a></span>
           </div>`).join('')}
       </div>` : '<p class="panel-empty">Товары не найдены. Измените запрос или выберите другую коллекцию.</p>'}`;
+  }
+
+  /* ---------- Изменить цены: все ароматы или один бренд на N % ---------- */
+  function withPercent(p, pct) {
+    const perMl = Math.max(1, Math.round(FS.api.perMl(p) * (1 + pct / 100)));
+    return { ...p, perMl, volumes: p.volumes.map((v) => ({ ...v, price: FS.api.priceFor(perMl, v.ml) })) };
+  }
+
+  function pricePlan(brand, pct) {
+    const match = (p) => p.type !== 'set' && (!brand || p.brand === brand);
+    const list = FS.products.map((p) => (match(p) ? withPercent(p, pct) : p));
+    const changed = list.filter((p, i) => p !== FS.products[i] && JSON.stringify(p.volumes) !== JSON.stringify(FS.products[i].volumes));
+    return { brand, pct, list, changed, before: new Map(FS.products.map((p) => [p.id, p])) };
+  }
+
+  function pricePanel() {
+    if (!priceTool) return '';
+    const brands = [...new Set(FS.products.map((p) => p.brand))].sort((a, b) => a.localeCompare(b));
+    const count = (b) => FS.products.filter((p) => p.brand === b && p.type !== 'set').length;
+    const plan = priceTool.plan;
+    const example = (p) => {
+      const was = plan.before.get(p.id);
+      const v = p.volumes[0];
+      const old = was.volumes.find((x) => x.ml === v.ml);
+      return `<li><b>${esc(`${p.brand} ${p.name}`)}</b>: 1 мл ${money(FS.api.perMl(was))} → ${money(p.perMl)}; ${esc(volumeLabel(v))} ${money(old ? old.price : 0)} → ${money(v.price)}</li>`;
+    };
+    return `<section class="admin-panel import-panel price-panel">
+        <h2>Изменить цены</h2>
+        <p class="co-hint">Цена за 1 мл меняется на указанный процент и округляется до целого тенге, цены всех объёмов пересчитываются по ней. Чтобы снизить цены, напишите минус, например −5.</p>
+        <form class="price-form" data-price-form novalidate>
+          <div class="field"><label for="pp-brand">Какие ароматы</label>
+            <select id="pp-brand" name="brand"><option value="">Все ароматы</option>${brands.map((b) => `<option value="${esc(b)}" ${b === priceTool.brand ? 'selected' : ''}>${esc(b)} (${count(b)})</option>`).join('')}</select></div>
+          <div class="field"><label for="pp-pct">На сколько процентов</label>
+            <input id="pp-pct" name="pct" type="text" inputmode="decimal" placeholder="Например 10 или -5" value="${esc(priceTool.pct)}" autocomplete="off">
+            <p class="field-error" data-price-error></p></div>
+          <button class="btn btn--outline btn--sm" type="submit">Показать, что изменится</button>
+        </form>
+        ${plan ? `<div class="price-preview">
+          <p><b>${plan.changed.length ? `Изменятся цены у ${plan.changed.length} ${plural(plan.changed.length, 'аромата', 'ароматов', 'ароматов')}` : 'Цены не изменятся'}</b>${plan.brand ? ` бренда ${esc(plan.brand)}` : ''}: ${plan.pct > 0 ? '+' : ''}${plan.pct}%.</p>
+          ${plan.changed.length ? `<ul>${plan.changed.slice(0, 8).map(example).join('')}</ul>${plan.changed.length > 8 ? `<p>…и ещё ${plan.changed.length - 8}</p>` : ''}` : ''}
+          <p class="stat-note">${FS.api.remoteCatalog() ? 'Новые цены сразу увидят все покупатели.' : 'Сервер не подключён: цены изменятся только в этом браузере.'}</p>
+        </div>` : ''}
+        <div class="tg-actions">
+          ${plan && plan.changed.length ? '<button class="btn btn--primary btn--sm" type="button" data-price-apply>Применить</button>' : ''}
+          <button class="btn btn--outline btn--sm" type="button" data-price-close>${plan ? 'Отмена' : 'Закрыть'}</button>
+        </div>
+      </section>`;
+  }
+
+  async function applyPrices(btn) {
+    const plan = priceTool && priceTool.plan;
+    if (!plan) return;
+    btn.disabled = true;
+    btn.textContent = 'Сохраняем…';
+    try {
+      const ok = await Promise.resolve(FS.api.replaceCatalog(plan.list));
+      if (ok === false) throw new Error('браузер не сохранил каталог: закончилось место');
+      priceTool = null;
+      toast(`Цены обновлены у ${plan.changed.length} ${plural(plan.changed.length, 'аромата', 'ароматов', 'ароматов')}`);
+      renderBody();
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'Применить';
+      toast(`Цены не обновлены: ${err.message}`, null, { duration: 8000 });
+    }
   }
 
   /* ---------- Редактор товара ---------- */
@@ -512,7 +580,7 @@ FS.views.admin = (function () {
       id: '', type: 'perfume', name: '', brand: '', gender: 'unisex', family: 'woody', concentration: 'EDP',
       year: new Date().getFullYear(), perfumer: '', country: '',
       niche: false, bestseller: false, isNew: true, featured: false,
-      volumes: [{ ml: 50, price: 0, stock: 0 }], main: 50,
+      perMl: '', volumes: FS.config.decants.volumes.map((ml) => ({ ml, price: 0, stock: 0 })), main: FS.config.decants.volumes[0],
       short: '', description: '',
       notes: { top: [], heart: [], base: [] },
       longevity: 3, sillage: 3,
@@ -532,7 +600,7 @@ FS.views.admin = (function () {
         <label class="vol-main" title="Показывать этот объём в карточке"><input type="radio" name="main" value="${i}" ${v.ml === draft.main ? 'checked' : ''}><span class="visually-hidden">Показывать в карточке</span></label>
         <label><span>Объём, мл</span><input type="number" min="1" step="1" inputmode="numeric" data-vol-field="ml" value="${v.ml || ''}"></label>
         <label><span>Подпись</span><input type="text" data-vol-field="label" value="${esc(v.label || '')}" placeholder="5 × 10 мл"></label>
-        <label><span>Цена, ${esc(FS.config.currency)}</span><input type="number" min="0" step="500" inputmode="numeric" data-vol-field="price" value="${v.price || ''}"></label>
+        <label><span>Цена, ${esc(FS.config.currency)}</span><input type="number" min="0" step="1" inputmode="numeric" data-vol-field="price" value="${draft.perMl > 0 && v.ml ? FS.api.priceFor(draft.perMl, v.ml) : v.price || ''}" ${draft.perMl > 0 ? 'readonly title="Считается из цены за 1 мл"' : ''}></label>
         <label><span>Остаток, шт.</span><input type="number" min="0" step="1" inputmode="numeric" data-vol-field="stock" value="${v.stock}"></label>
         <button class="icon-btn" type="button" data-vol-remove="${i}" aria-label="Удалить объём ${v.ml || ''} мл" ${draft.volumes.length < 2 ? 'disabled' : ''}>${FS.ui.icon.close}</button>
       </div>`).join('');
@@ -581,6 +649,12 @@ FS.views.admin = (function () {
         <fieldset class="co-step"><legend>Фото</legend>${photoBlock()}</fieldset>
 
         <fieldset class="co-step"><legend>Объёмы, цены и остатки</legend>
+          <div class="field perml-field" data-field="perMl">
+            <label for="pe-perMl">Цена за 1 мл, ${esc(FS.config.currency)}</label>
+            <input id="pe-perMl" name="perMl" type="number" min="0" step="1" inputmode="numeric" value="${p.perMl > 0 ? p.perMl : ''}">
+            <p class="co-hint">Цены объёмов считаются сами: цена за 1 мл × миллилитры, без скидок. Оставьте поле пустым, чтобы вписать цены вручную.</p>
+            <p class="field-error" id="pe-perMl-error"></p>
+          </div>
           <p class="co-hint">Отмеченный кружком объём показывается в карточке каталога.</p>
           <div class="vol-rows" data-vol-rows>${volumeRows()}</div>
           <button class="btn btn--outline btn--sm" type="button" data-vol-add>Добавить объём</button>
@@ -641,9 +715,12 @@ FS.views.admin = (function () {
     draft.sillage = Number(val('sillage'));
     draft.bottle = { ...draft.bottle, shape: draft.type === 'set' ? 'set' : val('shape'), count: draft.type === 'set' ? 3 : undefined, label: draft.bottle.label || draft.brand.toUpperCase().slice(0, 14) };
     ['niche', 'bestseller', 'isNew', 'featured'].forEach((k) => { draft[k] = f.elements[k].checked; });
+    const perMl = Number(val('perMl'));
+    if (perMl > 0) draft.perMl = perMl; else delete draft.perMl;
     draft.volumes = $$('.vol-row', f).map((row) => {
       const get = (k) => $(`[data-vol-field="${k}"]`, row).value.trim();
-      const v = { ml: Number(get('ml')) || 0, price: Number(get('price')) || 0, stock: Math.max(0, Math.floor(Number(get('stock')) || 0)) };
+      const ml = Number(get('ml')) || 0;
+      const v = { ml, price: perMl > 0 ? FS.api.priceFor(perMl, ml) : Number(get('price')) || 0, stock: Math.max(0, Math.floor(Number(get('stock')) || 0)) };
       if (get('label')) v.label = get('label');
       return v;
     });
@@ -947,6 +1024,23 @@ FS.views.admin = (function () {
         if (data) toast('Правила подарков сохранены');
         return;
       }
+      if (e.target.matches('[data-price-form]')) {
+        e.preventDefault();
+        const f = e.target;
+        const raw = f.elements.pct.value.trim().replace(',', '.').replace(/[−–—]/g, '-').replace(/[%\s]/g, '');
+        const pct = Number(raw);
+        priceTool = { ...priceTool, brand: f.elements.brand.value, pct: f.elements.pct.value, plan: null };
+        if (!raw || !Number.isFinite(pct) || pct === 0 || pct <= -90 || pct > 300) {
+          renderBody();
+          $('[data-price-error]', el).textContent = 'Напишите процент числом, например 10 или -5.';
+          $('#pp-pct', el).focus();
+          return;
+        }
+        priceTool.plan = pricePlan(priceTool.brand, pct);
+        renderBody();
+        $('.price-panel', el).scrollIntoView({ block: 'start' });
+        return;
+      }
       if (e.target.matches('[data-editor]')) {
         e.preventDefault();
         readEditor();
@@ -975,6 +1069,10 @@ FS.views.admin = (function () {
       if (t.closest('[data-admin-logout]')) { setAuthed(false); toast('Вы вышли из админ-панели'); FS.app.go('admin'); return; }
       if (t.closest('[data-test-order]')) { testOrder(); return; }
       if (t.closest('[data-import-cancel]')) { importPlan = null; renderBody(); return; }
+      if (t.closest('[data-price-open]')) { priceTool = priceTool || { brand: '', pct: '', plan: null }; renderBody(); $('#pp-pct', el).focus(); return; }
+      if (t.closest('[data-price-close]')) { priceTool = null; renderBody(); return; }
+      const priceApply = t.closest('[data-price-apply]');
+      if (priceApply) { applyPrices(priceApply); return; }
       if (t.closest('[data-lp-reload]')) { loyaltyError = ''; loyaltyData = null; renderBody(); loadClients(); return; }
       const lpDel = t.closest('[data-lp-del]');
       if (lpDel) {
@@ -1111,6 +1209,17 @@ FS.views.admin = (function () {
     let timer = null;
     el.addEventListener('input', (e) => {
       const t = e.target;
+      // Редактор: цена за 1 мл или объём изменились — пересчитываем цены объёмов.
+      if (t.id === 'pe-perMl' || (t.matches('[data-vol-field="ml"]') && $('#pe-perMl', el))) {
+        const perMl = Number($('#pe-perMl', el).value);
+        $$('.vol-row', el).forEach((row) => {
+          const price = $('[data-vol-field="price"]', row);
+          const ml = Number($('[data-vol-field="ml"]', row).value);
+          price.readOnly = perMl > 0;
+          if (perMl > 0) price.value = ml > 0 ? FS.api.priceFor(perMl, ml) : '';
+        });
+        return;
+      }
       if (t.id !== 'order-search' && t.id !== 'product-search' && t.id !== 'client-search') return;
       clearTimeout(timer);
       timer = setTimeout(() => {

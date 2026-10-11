@@ -1,6 +1,7 @@
 /* 5th SENSE — загрузка каталога из таблицы Excel/CSV и выгрузка обратно.
-   Формат — шаблон assets/files/5th-sense-catalog.xlsx: одна строка = один объём
-   аромата. Таблицы читает библиотека SheetJS, она загружается только когда
+   Формат — шаблон assets/files/5th-sense-catalog.xlsx: одна строка = один аромат,
+   цена задаётся за 1 мл, цены объёмов распива считаются умножением (без скидок).
+   Старый формат (одна строка = один объём, колонки «Объём» и «Цена») тоже читается. Таблицы читает библиотека SheetJS, она загружается только когда
    в админке нажимают «Загрузить таблицу» или «Скачать таблицу». */
 window.FS = window.FS || {};
 
@@ -29,6 +30,8 @@ FS.importer = (function () {
     ['name', 'Название', ['название', 'наименование', 'аромат', 'name', 'товар']],
     ['concentration', 'Концентрация', ['концентрация', 'тип', 'concentration']],
     ['gender', 'Пол', ['пол', 'gender', 'для кого']],
+    ['perMl', 'Цена за 1 мл, ₸', ['цена за 1 мл', 'цена за мл', 'цена 1 мл', 'за 1 мл', '1 мл', 'per ml', 'perml']],
+    ['mls', 'Объёмы, мл', ['объёмы', 'объемы', 'объёмы распива', 'объемы распива', 'volumes']],
     ['ml', 'Объём, мл', ['объём', 'объем', 'мл', 'volume', 'объём, мл', 'объем, мл']],
     ['price', 'Цена, ₸', ['цена', 'price', 'стоимость', 'цена, ₸', 'цена, тг']],
     ['stock', 'Остаток, шт.', ['остаток', 'остатки', 'количество', 'кол-во', 'stock', 'наличие', 'остаток, шт.']],
@@ -71,6 +74,28 @@ FS.importer = (function () {
     else s = s.replace(',', '.');
     return s ? Number(s) : NaN;
   };
+  // «5, 10, 15, 20» → [5, 10, 15, 20]; пусто → объёмы по умолчанию.
+  function mlList(v) {
+    if (typeof v === 'number') return v > 0 ? [v] : null;
+    const s = text(v);
+    if (!s) return FS.config.decants.volumes.slice();
+    const list = s.replace(/мл/gi, '').split(/[;,\s/]+/).filter(Boolean).map(Number);
+    if (!list.length || list.some((x) => !(x > 0))) return null;
+    return [...new Set(list)].sort((a, b) => a - b);
+  }
+  // Остаток: одно число на все объёмы или по объёмам «5: 3, 10: 2». null — не разобрали.
+  function stockList(v, mls) {
+    const s = text(v);
+    if (typeof v === 'number' || /^\d+$/.test(s) || !s) {
+      const n = s ? Math.floor(Number(v)) : 0;
+      return n >= 0 ? new Map(mls.map((ml) => [ml, n])) : null;
+    }
+    const pairs = [...s.matchAll(/(\d+(?:[.,]\d+)?)\s*(?:мл)?\s*[:=—–-]\s*(\d+)/gi)];
+    if (!pairs.length) return null;
+    const map = new Map(mls.map((ml) => [ml, 0]));
+    pairs.forEach((m) => { const ml = Number(m[1].replace(',', '.')); if (map.has(ml)) map.set(ml, Number(m[2])); });
+    return map;
+  }
   const yes = (v) => /^(да|yes|1|true|\+|x|х|✓)$/i.test(text(v));
   const words = (v) => text(v).split(/[,;]/).map((x) => x.trim().toLowerCase()).filter(Boolean);
 
@@ -119,7 +144,9 @@ FS.importer = (function () {
     const headIdx = rows.findIndex((r) => { const m = headerMap(r || []); return m.brand !== undefined && m.name !== undefined; });
     if (headIdx < 0) return { errors: ['Не нашли строку заголовков: нужны колонки «Бренд» и «Название». Используйте шаблон.'], warnings, products: [] };
     const col = headerMap(rows[headIdx]);
-    ['ml', 'price'].forEach((k) => { if (col[k] === undefined) errors.push(`Нет колонки «${COLUMNS.find((c) => c[0] === k)[1]}».`); });
+    // Новый формат: «Цена за 1 мл», одна строка на аромат. Старый: строка на каждый объём.
+    const perMlMode = col.perMl !== undefined;
+    if (!perMlMode) ['ml', 'price'].forEach((k) => { if (col[k] === undefined) errors.push(`Нет колонки «${k === 'price' ? 'Цена за 1 мл, ₸' : COLUMNS.find((c) => c[0] === k)[1]}».`); });
     if (errors.length) return { errors, warnings, products: [] };
     const has = (k) => col[k] !== undefined;
     const byId = new Map(existing.map((p) => [p.id, p]));
@@ -139,6 +166,18 @@ FS.importer = (function () {
       const key = slug(`${brand} ${name} ${conc || 'EDP'}`);
       if (!id) id = (byKey.get(key) || {}).id || slug(`${brand} ${name}${conc && conc !== 'EDP' ? ' ' + conc : ''}`);
       if (!id) { errors.push(`Строка ${line}: не получилось составить артикул.`); return; }
+      if (perMlMode) {
+        const per = number(get('perMl'));
+        if (!(per > 0)) { errors.push(`Строка ${line} (${name}): цена за 1 мл должна быть числом больше нуля.`); return; }
+        const mls = mlList(get('mls'));
+        if (!mls) { errors.push(`Строка ${line} (${name}): объёмы напишите числами через запятую, например 5, 10, 15, 20.`); return; }
+        const stock = stockList(get('stock'), mls);
+        if (!stock) { errors.push(`Строка ${line} (${name}): остаток — одно число (на каждый объём) или по объёмам, например «5: 3, 10: 2».`); return; }
+        if (groups.has(id)) { errors.push(`Строка ${line} (${name}): этот аромат уже есть в строке ${groups.get(id).line}.`); return; }
+        const perMl = Math.round(per * 100) / 100;
+        groups.set(id, { id, line, perMl, rows: mls.map((ml) => ({ line, ml, price: FS.api.priceFor(perMl, ml), stock: stock.get(ml), brand, name, conc, cells: (k) => get(k) })) });
+        return;
+      }
       const ml = number(get('ml'));
       const price = Math.round(number(get('price')));
       const stockRaw = get('stock');
@@ -173,6 +212,8 @@ FS.importer = (function () {
       ['niche', 'bestseller', 'isNew'].forEach((k) => { if (has(k)) { if (yes(first(k))) p[k] = true; else delete p[k]; } });
       if (has('year') && Number(first('year')) > 1700) p.year = Number(first('year'));
       if (has('fullMl')) { const f = number(first('fullMl')); if (f > 0) p.fullMl = f; else delete p.fullMl; }
+      // Цена за 1 мл: в старом формате цены объёмов заданы вручную, формулу убираем.
+      if (g.perMl) p.perMl = g.perMl; else delete p.perMl;
       p.volumes = g.rows.map((x) => {
         const old = base && base.volumes.find((v) => v.ml === x.ml);
         const v = { ml: x.ml, price: x.price, stock: x.stock };
@@ -198,7 +239,10 @@ FS.importer = (function () {
   /* ---------- Что изменится ---------- */
   // Фото сравниваем по имени файла: путь к картинке на сайте и на сервере разный.
   const photoName = (p) => (p.photo || (p.image || '').split(/[/=&]/).filter((x) => /\.\w+$/.test(x)).pop() || '').toLowerCase();
-  const comparable = (p) => JSON.stringify({ ...p, pos: undefined, image: undefined, photo: photoName(p) });
+  // Порядок полей не важен: сравниваем по отсортированным ключам.
+  const sorted = (x) => (Array.isArray(x) ? x.map(sorted) : x && typeof x === 'object'
+    ? Object.keys(x).sort().reduce((o, k) => { if (x[k] !== undefined) o[k] = sorted(x[k]); return o; }, {}) : x);
+  const comparable = (p) => JSON.stringify(sorted({ ...p, pos: undefined, image: undefined, photo: photoName(p) }));
   function diff(current, next) {
     const before = new Map(current.map((p) => [p.id, p]));
     const after = new Set(next.map((p) => p.id));
@@ -223,24 +267,38 @@ FS.importer = (function () {
   }
 
   /* ---------- Товары → таблица (для правки и повторной загрузки) ---------- */
+  // Одна строка на аромат. Колонки «Цена N мл» — формулы Excel для проверки, при загрузке не читаются.
   async function exportFile(products) {
     const XLSX = await lib();
     const fam = (id) => (FS.families.find((f) => f.id === id) || {}).name || '';
-    const head = COLUMNS.map((c) => c[1]);
+    const shown = FS.config.decants.volumes;
+    const head = ['Артикул', 'Бренд *', 'Название *', 'Концентрация', 'Пол *', 'Цена за 1 мл, ₸ *',
+      ...shown.map((ml) => `Цена ${ml} мл`), 'Объёмы, мл', 'Остаток, шт.', 'Семейство', 'Верхние ноты', 'Ноты сердца', 'Базовые ноты',
+      'Кратко', 'Описание', 'Нишевая', 'Бестселлер', 'Новинка', 'Год', 'Страна', 'Парфюмер', 'Фото', 'Полный флакон, мл'];
     const rows = [head];
-    products.forEach((p) => p.volumes.forEach((v, i) => {
-      const f = i === 0;
+    products.forEach((p) => {
       const photo = p.photo || (p.image && p.image.startsWith('assets/') ? p.image.split('/').pop() : '');
+      const vols = p.volumes.slice().sort((a, b) => a.ml - b.ml);
+      const stocks = vols.map((v) => v.stock);
+      const stock = stocks.every((x) => x === stocks[0]) ? stocks[0] : vols.map((v) => `${v.ml}: ${v.stock}`).join(', ');
+      const mls = vols.map((v) => v.ml).join(', ');
       rows.push([
-        p.id, p.brand, p.name, p.concentration || '', FS.genderLabel[p.gender] || '', v.ml, v.price, v.stock,
-        f ? fam(p.family) : '', f ? p.notes.top.join(', ') : '', f ? p.notes.heart.join(', ') : '', f ? p.notes.base.join(', ') : '',
-        f ? p.short || '' : '', f ? p.description || '' : '',
-        f && p.niche ? 'да' : '', f && p.bestseller ? 'да' : '', f && p.isNew ? 'да' : '',
-        f ? p.year || '' : '', f ? p.country || '' : '', f ? p.perfumer || '' : '', f ? photo : '', f ? p.fullMl || '' : ''
+        p.id, p.brand, p.name, p.concentration || '', FS.genderLabel[p.gender] || '', FS.api.perMl(p),
+        ...shown.map(() => ''), mls === shown.join(', ') ? '' : mls, stock,
+        fam(p.family), p.notes.top.join(', '), p.notes.heart.join(', '), p.notes.base.join(', '),
+        p.short || '', p.description || '', p.niche ? 'да' : '', p.bestseller ? 'да' : '', p.isNew ? 'да' : '',
+        p.year || '', p.country || '', p.perfumer || '', photo, p.fullMl || ''
       ]);
-    }));
+    });
     const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols'] = [22, 24, 26, 12, 11, 10, 11, 11, 13, 28, 28, 28, 40, 60, 9, 10, 9, 7, 13, 22, 28, 14].map((w) => ({ wch: w }));
+    // Формулы «цена за 1 мл × объём», чтобы цены были видны прямо в таблице.
+    for (let r = 1; r < rows.length; r++) {
+      shown.forEach((ml, i) => {
+        const ref = XLSX.utils.encode_cell({ r, c: 6 + i });
+        ws[ref] = { t: 'n', f: `ROUND(F${r + 1}*${ml},0)`, v: FS.api.priceFor(rows[r][5], ml) };
+      });
+    }
+    ws['!cols'] = [22, 24, 26, 12, 11, 12, ...shown.map(() => 10), 14, 12, 13, 28, 28, 28, 40, 60, 9, 10, 9, 7, 13, 22, 28, 14].map((w) => ({ wch: w }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Товары');
     XLSX.writeFile(wb, `5th-sense-catalog-${new Date().toISOString().slice(0, 10)}.xlsx`);
