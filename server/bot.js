@@ -243,16 +243,73 @@ async function staffCommand(msg, name, args, shop) {
     return html(msg.chat.id, clientCard(c, loyalty.status(c, s), s, showGifts));
   }
   const p = parsePurchase(args);
-  if (!loyalty.phoneKey(p.phone) || !p.amount) {
-    return html(msg.chat.id, 'Чтобы записать покупку из бутика, напишите:\n<code>/buy 87011234567 45000 Baccarat 10 мл</code>\n(телефон, сумма, что купили — необязательно)');
+  const phone = loyalty.phoneKey(p.phone);
+  if (phone && p.amount) return recordPurchase(msg.chat.id, who, s, showGifts, { phone, amount: p.amount, note: p.note });
+  // Не всё указано — спрашиваем по шагам: номер → сумма.
+  return askStep(msg.chat.id, phone ? { step: 'amount', phone } : { step: 'phone' }, s, showGifts);
+}
+
+/* ---------- Пошаговая запись покупки: /buy без данных ---------- */
+const BUY_TTL = 15 * 60;
+const buyKey = (chatId) => `fs:tg:buy:${chatId}`;
+const replyUi = (placeholder) => ({ reply_markup: { force_reply: true, input_field_placeholder: placeholder } });
+
+async function askStep(chatId, state, s, showGifts) {
+  await db.put(buyKey(chatId), state, BUY_TTL);
+  const cancel = '\n<i>Отменить: /cancel</i>';
+  if (state.step === 'phone') return html(chatId, `🧾 <b>Запись покупки</b>\nШаг 1 из 2. Номер телефона клиента?${cancel}`, replyUi('+7 701 123 45 67'));
+  if (state.step === 'amount') {
+    const c = await loyalty.getClient(state.phone);
+    const st = loyalty.status(c, s);
+    const info = c && c.purchases.length
+      ? `${escape(c.name || 'Клиент')}: покупок ${st.count}.${st.nextIsGift ? (showGifts ? ` 🎁 Эта покупка — с подарком: ${escape(st.nextGift)}.` : ' 🎁 Эта покупка — с подарком.') : ''}`
+      : 'Новый клиент: покупок пока нет.';
+    return html(chatId, `${info}\nШаг 2 из 2. Сумма покупки, ₸?${cancel}`, replyUi('45000'));
   }
+}
+
+// Ответ сотрудника на очередной вопрос бота. true — сообщение относилось к записи покупки.
+async function continueBuy(msg) {
+  if (!msg.text || !db.configured()) return false;
+  const state = parseJson(await db.get(buyKey(msg.chat.id)));
+  if (!state) return false;
+  const text = msg.text.trim();
+  if (/^\/(cancel|otmena|отмена)(@\w+)?$/i.test(text)) {
+    await db.command('DEL', buyKey(msg.chat.id));
+    await html(msg.chat.id, 'Запись покупки отменена.');
+    return true;
+  }
+  if (text.startsWith('/')) return false; // другая команда — не мешаем
+  const s = await loyalty.settings();
+  const showGifts = s.notify !== 'owner' || String(msg.chat.id) === String(s.ownerChat);
+  if (state.step === 'phone') {
+    const phone = loyalty.phoneKey(text);
+    if (!phone) { await html(msg.chat.id, 'Не похоже на номер телефона. Напишите, например, 87011234567.', replyUi('+7 701 123 45 67')); return true; }
+    await askStep(msg.chat.id, { step: 'amount', phone }, s, showGifts);
+    return true;
+  }
+  if (state.step === 'amount') {
+    const amount = parsePurchase(`0000000000 ${text}`).amount;
+    // Номер телефона вместо суммы или явно лишние цифры — переспрашиваем.
+    if (!(Number(amount) > 0) || Number(amount) > 50000000) { await html(msg.chat.id, 'Напишите сумму числом, например 45000.', replyUi('45000')); return true; }
+    await db.command('DEL', buyKey(msg.chat.id));
+    const who = [msg.from && msg.from.first_name, msg.from && msg.from.last_name].filter(Boolean).join(' ') || 'сотрудник';
+    await recordPurchase(msg.chat.id, who, s, showGifts, { phone: state.phone, amount, note: '' });
+    return true;
+  }
+  await db.command('DEL', buyKey(msg.chat.id)); // устаревшее состояние
+  return false;
+}
+const parseJson = (raw) => { try { return raw ? JSON.parse(raw) : null; } catch (e) { return null; } };
+
+async function recordPurchase(chatId, who, s, showGifts, p) {
   const { client } = await loyalty.addPurchase({ phone: p.phone, amount: p.amount, note: p.note, source: 'boutique' }, who);
   const st = loyalty.status(client, s);
   const justGift = st.gifts.length && st.gifts[st.gifts.length - 1].number === st.count ? st.gifts[st.gifts.length - 1] : null;
   const giftLine = justGift
     ? (showGifts ? `\n\n🎁 <b>Это ${justGift.number}-я покупка — положен подарок: ${escape(justGift.gift)}</b> (за ${s.every - 1} предыдущие — ${money(justGift.base, '₸')}).` : '\n\n🎁 <b>Это покупка с подарком.</b> Уточните подарок у владельца.')
     : '';
-  return html(msg.chat.id, `✅ Покупка записана: ${money(Number(p.amount), '₸')}.${giftLine}\n\n${clientCard(client, st, s, showGifts)}`);
+  return html(chatId, `✅ Покупка записана: ${money(Number(p.amount), '₸')}.${giftLine}\n\n${clientCard(client, st, s, showGifts)}`);
 }
 
 /* ---------- Сотрудники ---------- */
@@ -317,6 +374,8 @@ async function handle(update, site) {
 
   // Ответ сотрудника покупателю.
   if (msg.reply_to_message && (await relayToCustomer(msg))) return;
+  // Пошаговая запись покупки (/buy без данных): ответ на вопрос бота.
+  if (await continueBuy(msg)) return;
   if (!privateChat) return; // в группах сотрудников бот отвечает только на приглашения и ответы
 
   if (cmd) {
@@ -327,7 +386,11 @@ async function handle(update, site) {
     return html(msg.chat.id, m.text, { reply_markup: m.markup });
   }
   if (msg.web_app_data || msg.successful_payment) return;
-  if (await telegram.isStaff(msg.chat.id)) return replyToLast(msg);
+  if (await telegram.isStaff(msg.chat.id)) {
+    // Один номер телефона — это проверка клиента, а не ответ покупателю (иначе номер ушёл бы ему).
+    if (msg.text && /^[+\d\s().-]{10,22}$/.test(msg.text.trim()) && loyalty.phoneKey(msg.text)) return staffCommand(msg, 'client', msg.text, shop);
+    return replyToLast(msg);
+  }
   return relayToStaff(msg, shop);
 }
 
