@@ -1079,6 +1079,30 @@ h1[tabindex="-1"]:focus { outline: none; }
 .import-sum dd { font-family: var(--ff-serif); font-size: 26px; }
 .import-panel p { font-size: 14px; max-width: 90ch; overflow-wrap: anywhere; }
 /* Изменить цены и цена за 1 мл */
+.ptable-pick { position: relative; cursor: pointer; }
+.ptable-pick input { position: absolute; top: 4px; left: 4px; width: 18px; height: 18px; margin: 0; accent-color: var(--ink); cursor: pointer; }
+.ptable-row.is-picked { background: var(--paper); }
+.ptable-row.is-edited { box-shadow: inset 3px 0 0 var(--gold); }
+.ptable-vols--edit { gap: 6px; }
+.perml-edit { display: grid; gap: 4px; max-width: 220px; font-size: 12px; color: var(--ink-soft); letter-spacing: 0.02em; }
+.perml-edit input { width: 100%; min-width: 0; min-height: 42px; padding: 8px 10px; border: 1px solid var(--line-strong); border-radius: 0; background: var(--sheet); color: var(--ink); font-size: 16px; font-variant-numeric: tabular-nums; outline: 0; }
+.perml-edit input:focus { border-color: var(--ink); box-shadow: 0 0 0 3px var(--focus-ring); }
+.is-edited .perml-edit input { border-color: var(--gold); }
+.perml-calc { font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.price-edit-hint { margin: 4px 0 10px; max-width: 90ch; }
+.price-bar { position: sticky; bottom: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 24px; margin-top: 16px; padding: 12px 14px; background: var(--sheet); border: 1px solid var(--gold-soft); box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.06); }
+.price-bar-group { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.price-bar-count { font-size: 14px; font-variant-numeric: tabular-nums; }
+.price-bar-pct input { width: 200px; min-height: 40px; padding: 8px 10px; border: 1px solid var(--line-strong); border-radius: 0; background: var(--sheet); color: var(--ink); outline: 0; }
+.price-bar-pct input:focus { border-color: var(--ink); box-shadow: 0 0 0 3px var(--focus-ring); }
+.price-bar .link-btn[disabled] { opacity: 0.4; cursor: default; }
+@media (max-width: 700px) {
+  .price-bar { gap: 10px; padding: 10px 12px; }
+  .price-bar-group { width: 100%; }
+  .price-bar-pct { flex-wrap: nowrap; }
+  .price-bar-pct label { flex: 1; min-width: 0; }
+  .price-bar-pct input { width: 100%; }
+}
 .price-form { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto; gap: 12px 16px; align-items: start; width: 100%; margin: 6px 0 4px; }
 .price-form .field { margin: 0; }
 .price-form select, .price-form input { width: 100%; min-width: 0; }
