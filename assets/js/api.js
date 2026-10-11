@@ -175,6 +175,14 @@ FS.api = (function () {
     if (!cfg || !cfg.enabled || !p || p.type === 'set' || p.full === false) return null;
     return { ml: 0, full: true, label: cfg.label, fullMl: p.fullMl || null, price: null, stock: 99 };
   }
+  // Цена объёма по цене за 1 мл: ровно по миллилитрам, без скидок (так же считает сервер).
+  function priceFor(perMl, ml) { return Math.round(Number(perMl) * Number(ml)); }
+  // Цена за 1 мл товара: задана явно или получается из самого маленького объёма.
+  function perMl(p) {
+    if (Number(p.perMl) > 0) return Number(p.perMl);
+    const v = p.volumes.slice().sort((a, b) => a.ml - b.ml)[0];
+    return v ? Math.round(v.price / v.ml) : 0;
+  }
   function variants(p) { const f = fullBottle(p); return f ? p.volumes.concat(f) : p.volumes; }
   function variant(p, ml) {
     if (Number(ml) === 0) return fullBottle(p);
@@ -422,6 +430,8 @@ FS.api = (function () {
     variants,
     variant,
     fullBottle,
+    priceFor,
+    perMl,
     async product(id) { return byId.get(id) || null; },
     async products(query) { return filter(query); },
     filter,

@@ -23,6 +23,9 @@ const words = (v) => (Array.isArray(v) ? v : []).map((x) => str(x, 60)).filter(B
 
 /* Приводит товар к допустимому виду. Неизвестные поля отбрасываются,
    ошибки описываются понятным текстом. */
+// Цена объёма по цене за 1 мл (так же считает сайт: FS.api.priceFor).
+const priceFor = (perMl, ml) => Math.round(perMl * ml);
+
 function normalize(p, pos) {
   const bad = (msg) => new HttpError(400, 'invalid_product', `Товар «${str(p && p.name, 60) || (p && p.id) || pos + 1}»: ${msg}`);
   if (!p || typeof p !== 'object') throw bad('нет данных');
@@ -37,6 +40,10 @@ function normalize(p, pos) {
     return out;
   });
   if (!volumes.length) throw bad('нет ни одного объёма');
+  // Цена за 1 мл: цены объёмов считаются из неё, ровно по миллилитрам.
+  const perMl = Math.round(Number(p.perMl) * 100) / 100;
+  if (p.perMl !== undefined && p.perMl !== null && p.perMl !== '' && !(perMl > 0)) throw bad('цена за 1 мл должна быть больше нуля');
+  if (perMl > 0) volumes.forEach((v) => { v.price = priceFor(perMl, v.ml); });
   if (volumes.some((v) => !(v.ml > 0) || !(v.price > 0))) throw bad('у каждого объёма должны быть миллилитры и цена больше нуля');
   if (new Set(volumes.map((v) => v.ml)).size !== volumes.length) throw bad('объёмы повторяются');
   volumes.sort((a, b) => a.ml - b.ml);
@@ -48,6 +55,7 @@ function normalize(p, pos) {
     gender: GENDERS.includes(p.gender) ? p.gender : 'unisex',
     family: str(p.family, 30) || 'woody',
     concentration: CONCENTRATIONS.includes(p.concentration) ? p.concentration : 'EDP',
+    ...(perMl > 0 ? { perMl } : {}),
     volumes,
     main: volumes.some((v) => v.ml === Number(p.main)) ? Number(p.main) : volumes[Math.floor((volumes.length - 1) / 2)].ml,
     short: str(p.short, 160),
