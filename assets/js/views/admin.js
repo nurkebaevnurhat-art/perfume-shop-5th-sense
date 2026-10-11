@@ -497,7 +497,7 @@ FS.views.admin = (function () {
         <button class="btn btn--outline btn--sm" type="button" data-export-xlsx>Скачать таблицу</button>
         ${canPhotos() ? '<label class="btn btn--outline btn--sm file-btn">Загрузить фото<input type="file" accept="image/*" multiple data-photos></label>' : ''}
         <button class="btn btn--outline btn--sm" type="button" data-price-open>Изменить цены</button>
-        <a class="text-link" href="assets/files/5th-sense-catalog.xlsx" download>Шаблон таблицы</a>
+        <a class="btn btn--outline btn--sm" href="assets/files/5th-sense-catalog.xlsx" download>Шаблон таблицы</a>
       </div>
       ${importPanel()}
       ${pricePanel()}
