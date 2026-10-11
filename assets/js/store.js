@@ -41,7 +41,8 @@ FS.store = (function () {
   function variant(productId, ml) {
     const p = FS.api.productSync(productId);
     if (!p) return null;
-    return { product: p, volume: p.volumes.find((v) => v.ml === ml) || p.volumes[0] };
+    const v = FS.api.variant(p, ml);
+    return v ? { product: p, volume: v } : null;
   }
 
   // Убираем из сохранённой корзины позиции, которых больше нет в каталоге.
@@ -58,11 +59,13 @@ FS.store = (function () {
       sanitize();
       return cart.map((line) => {
         const v = variant(line.id, line.ml);
-        return { ...line, product: v.product, volume: v.volume, total: v.volume.price * line.qty };
+        // У полноразмерного флакона цены нет: её подтверждает менеджер.
+        return { ...line, product: v.product, volume: v.volume, total: v.volume.price == null ? null : v.volume.price * line.qty };
       });
     },
     count() { return cart.reduce((n, l) => n + l.qty, 0); },
-    subtotal() { return this.lines().reduce((s, l) => s + l.total, 0); },
+    subtotal() { return this.lines().reduce((s, l) => s + (l.total || 0), 0); },
+    hasFullBottle() { return this.lines().some((l) => l.volume.full); },
 
     maxQty(productId, ml) {
       const v = variant(productId, ml);

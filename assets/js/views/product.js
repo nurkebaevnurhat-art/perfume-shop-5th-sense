@@ -31,9 +31,10 @@ FS.views.product = (function () {
   }
 
   function stockText(v) {
+    if (v.full) return { cls: 'is-in', text: FS.config.fullBottle.note };
     if (v.stock <= 0) return { cls: 'is-out', text: 'Нет в наличии. Оставьте заявку по телефону, и мы сообщим о поступлении.' };
-    if (v.stock <= 2) return { cls: 'is-low', text: `В наличии, осталось ${v.stock} шт.` };
-    return { cls: 'is-in', text: 'В наличии в бутике и на складе' };
+    if (v.stock <= 2) return { cls: 'is-low', text: `Осталось ${v.stock} шт.` };
+    return null; // в наличии — без лишней строки
   }
 
   function stage(view) {
@@ -49,18 +50,19 @@ FS.views.product = (function () {
     qty = Math.max(1, Math.min(qty, max || 1));
     return `
       <div class="buy-price">
-        <span class="price price--lg">${money(v.price)}</span>
-        <span class="buy-vol">${esc(volumeLabel(v))}</span>
+        <span class="price price--lg">${v.full ? 'Цена по запросу' : money(v.price)}</span>
+        <span class="buy-vol">${esc(volumeLabel(v))}${v.full && v.fullMl ? `, ${v.fullMl} мл` : ''}</span>
       </div>
-      <p class="stock ${s.cls}"><span class="stock-dot" aria-hidden="true"></span>${s.text}</p>
+      ${s ? `<p class="stock ${s.cls}"><span class="stock-dot" aria-hidden="true"></span>${s.text}</p>` : ''}
       <div class="buy-row">
         ${stepper(qty, max, 'data-qty', product.name)}
         <button class="fav-btn fav-btn--inline ${FS.store.isFavorite(product.id) ? 'is-on' : ''}" type="button" data-fav="${product.id}" aria-pressed="${FS.store.isFavorite(product.id)}" aria-label="В избранное: ${esc(product.name)}">${icon.heart}</button>
       </div>
       <div class="buy-actions">
         <button class="line-link line-link--lg" type="button" data-buy="add" ${v.stock > 0 ? '' : 'disabled'}>Добавить в корзину</button>
-        <button class="line-link line-link--lg line-link--gold" type="button" data-buy="now" ${v.stock > 0 ? '' : 'disabled'}>Купить сейчас</button>
-      </div>`;
+        <button class="line-link line-link--lg line-link--gold" type="button" data-buy="now" ${v.stock > 0 ? '' : 'disabled'}>${v.full ? 'Заказать флакон' : 'Купить сейчас'}</button>
+      </div>
+      ${v.full ? `<p class="buy-note">Менеджер свяжется с вами, подтвердит цену и срок поставки. Вопросы: ${FS.ui.managerLinks('text-link')}</p>` : ''}`;
   }
 
   function render(route) {
@@ -117,13 +119,14 @@ FS.views.product = (function () {
             <p class="pd-lead">${esc(product.short)}</p>
 
             <fieldset class="volumes">
-              <legend>Объём</legend>
+              <legend>Объём на распив</legend>
+              <p class="volumes-note">Парфюмерия на распив от ${Math.min(...product.volumes.map((v) => v.ml))} мл: разливаем из оригинального флакона.</p>
               <div class="volume-list">
-                ${product.volumes.map((v) => `
-                  <label class="volume ${v.stock <= 0 ? 'is-out' : ''}">
+                ${FS.api.variants(product).map((v) => `
+                  <label class="volume ${v.stock <= 0 ? 'is-out' : ''} ${v.full ? 'volume--full' : ''}">
                     <input type="radio" name="volume" value="${v.ml}" ${v.ml === selected.ml ? 'checked' : ''}>
                     <span class="volume-ml">${esc(volumeLabel(v))}</span>
-                    <span class="volume-price">${money(v.price)}</span>
+                    <span class="volume-price">${v.full ? 'цена по запросу' : money(v.price)}</span>
                   </label>`).join('')}
               </div>
             </fieldset>
@@ -131,8 +134,8 @@ FS.views.product = (function () {
             <div class="buy" data-buy-box>${buyBox()}</div>
 
             <ul class="perks">
-              <li>Бесплатная доставка курьером от ${money(FS.config.freeShippingFrom)}</li>
-              <li>Пробник в подарок к каждому заказу</li>
+              <li>Доставка курьером по городу в день заказа</li>
+              <li><a class="text-link" href="#gifts">Каждая ${FS.config.gifts.every}-я покупка — с подарком</a></li>
               <li>Фирменная упаковка бутика</li>
             </ul>
           </div>
@@ -183,7 +186,7 @@ FS.views.product = (function () {
     requestAnimationFrame(() => requestAnimationFrame(() => $('.pd', root).classList.add('is-in')));
 
     $$('input[name="volume"]', root).forEach((input) => input.addEventListener('change', () => {
-      selected = product.volumes.find((v) => v.ml === Number(input.value));
+      selected = FS.api.variant(product, input.value);
       refreshBuy();
     }));
 

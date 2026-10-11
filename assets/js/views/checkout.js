@@ -31,9 +31,10 @@ FS.views.checkout = (function () {
   function summary(values) {
     const lines = FS.store.lines();
     const subtotal = FS.store.subtotal();
-    const method = values.delivery || FS.delivery[0].id;
+    const method = deliveryId(values);
     const ship = FS.shipping.quote(method, subtotal);
     const total = subtotal + (ship || 0);
+    const full = lines.some((l) => l.volume.full);
     return `
       <h2>Ваш заказ</h2>
       <ul class="summary-lines">
@@ -48,9 +49,17 @@ FS.views.checkout = (function () {
       <dl class="summary-sum">
         <div><dt>Товары</dt><dd>${money(subtotal)}</dd></div>
         <div><dt>Доставка</dt><dd>${ship === null ? 'рассчитает менеджер' : ship === 0 ? 'бесплатно' : money(ship)}</dd></div>
-        <div class="summary-total"><dt>Итого</dt><dd>${money(total)}${ship === null ? '<small>без учёта доставки</small>' : ''}</dd></div>
+        <div class="summary-total"><dt>Итого</dt><dd>${money(total)}${unpriced(full, ship === null)}</dd></div>
       </dl>`;
   }
+
+  // Что не входит в итог: цена полноразмерного флакона и доставка подтверждаются менеджером.
+  function unpriced(full, noShip) {
+    const parts = [full && 'полноразмерного флакона', noShip && 'доставки'].filter(Boolean);
+    return parts.length ? `<small>без учёта ${parts.join(' и ')}</small>` : '';
+  }
+  // Сохранённый черновик мог ссылаться на способ доставки, которого больше нет.
+  const deliveryId = (values) => (FS.delivery.some((d) => d.id === values.delivery) ? values.delivery : FS.delivery[0].id);
 
   function emptyState() {
     return `<section class="page-head">
@@ -78,7 +87,7 @@ FS.views.checkout = (function () {
             <div><dt>Доставка</dt><dd>${esc(order.delivery.name)}</dd></div>
             ${order.delivery.id === 'pickup' ? '' : `<div><dt>Адрес</dt><dd>${esc(order.customer.city)}, ${esc(order.customer.address)}</dd></div>`}
             <div><dt>Оплата</dt><dd>${esc(order.payment.name)}, заказ не оплачен</dd></div>
-            <div class="summary-total"><dt>Итого</dt><dd>${money(order.total)}${order.shipping === null ? '<small>без учёта доставки</small>' : ''}</dd></div>
+            <div class="summary-total"><dt>Итого</dt><dd>${money(order.total)}${unpriced(order.items.some((i) => i.full), order.shipping === null)}</dd></div>
           </dl>
         </div>
         ${telegramNote(order)}
@@ -107,7 +116,7 @@ FS.views.checkout = (function () {
     // В магазине внутри Telegram подставляем имя из профиля, если форма ещё пустая.
     const u = FS.tg.user;
     if (u && !values.firstName && !values.lastName) { values.firstName = u.first_name || ''; values.lastName = u.last_name || ''; }
-    const method = values.delivery || FS.delivery[0].id;
+    const method = deliveryId(values);
     return `
       <section class="page-head">
         <nav class="crumbs" aria-label="Навигационная цепочка"><a href="#home">Главная</a><span aria-hidden="true">/</span><span aria-current="page">Оформление заказа</span></nav>
@@ -118,6 +127,7 @@ FS.views.checkout = (function () {
           <fieldset class="co-step">
             <legend>Покупатель</legend>
             <div class="field-grid">${FIELDS.slice(0, 4).map((f) => field(f, values)).join('')}</div>
+            <p class="co-hint">По номеру телефона мы считаем ваши покупки: каждая ${FS.config.gifts.every}-я — с подарком. <a class="text-link" href="#gifts" target="_blank" rel="noopener">Подробнее</a></p>
           </fieldset>
 
           <fieldset class="co-step">
@@ -141,7 +151,7 @@ FS.views.checkout = (function () {
                   <span class="option-body"><span class="option-name">${esc(m.name)}</span><span class="option-note">${esc(m.note)}</span></span>
                 </label>`).join('')}
             </div>
-            <p class="co-hint">Онлайн-оплата пока не подключена. Заказ оплачивается при получении: картой или наличными.</p>
+            <p class="co-hint">Менеджер позвонит или напишет, подтвердит заказ и подскажет, как оплатить.${FS.store.hasFullBottle() ? ' Цену и срок поставки полноразмерного флакона он подтвердит у оптового поставщика.' : ''}</p>
           </fieldset>
 
           <fieldset class="co-step">
@@ -266,7 +276,7 @@ FS.views.checkout = (function () {
       try {
         const order = await FS.api.createOrder({
           customer: { firstName: data.firstName.trim(), lastName: data.lastName.trim(), phone: data.phone.trim(), email: data.email.trim(), city: data.city.trim(), address: (data.address || '').trim() },
-          items: lines.map((l) => ({ id: l.product.id, name: l.product.name, brand: l.product.brand, ml: l.ml, qty: l.qty, price: l.volume.price })),
+          items: lines.map((l) => ({ id: l.product.id, name: l.product.name, brand: l.product.brand, ml: l.ml, qty: l.qty, price: l.volume.price, ...(l.volume.full ? { full: true } : {}) })),
           delivery: { id: delivery.id, name: delivery.name },
           payment: { id: payment.id, name: payment.name },
           comment: data.comment || '',

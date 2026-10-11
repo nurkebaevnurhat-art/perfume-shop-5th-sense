@@ -787,7 +787,7 @@ h1[tabindex="-1"]:focus { outline: none; }
   .hero-cta { grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: flex-start; gap: 22px; }
   .hero-now a { max-width: none; }
   .menu-grid { grid-template-columns: minmax(0, 1fr); }
-  .menu-shots { display: none; }
+  .menu-shots, .menu-logo { display: none; }
   .index-grid { grid-template-columns: minmax(0, 1fr); }
   .index-num, .index-stack { display: none; }
   .irow { min-height: 0; opacity: 1; padding-block: 36px; grid-template-columns: minmax(0, 1fr); }
@@ -1069,3 +1069,57 @@ h1[tabindex="-1"]:focus { outline: none; }
   .flag-grid { grid-template-columns: minmax(0, 1fr); }
   .stat-value { font-size: 26px; }
 }
+
+/* Загрузка каталога из таблицы (админка) */
+.admin-toolbar--files { margin-top: -6px; align-items: center; }
+.import-panel { margin: 18px 0; border-color: var(--gold-soft); }
+.import-sum { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px 18px; width: 100%; margin: 4px 0; }
+.import-sum div { display: grid; gap: 2px; }
+.import-sum dt { font-size: 12px; color: var(--ink-soft); letter-spacing: 0.04em; }
+.import-sum dd { font-family: var(--ff-serif); font-size: 26px; }
+.import-panel p { font-size: 14px; max-width: 90ch; overflow-wrap: anywhere; }
+.import-errors { width: 100%; padding: 12px 16px; border-left: 2px solid var(--error); background: var(--paper); font-size: 14px; }
+.import-errors ul, .import-warnings ul { margin: 6px 0 0; padding-left: 1.2em; display: grid; gap: 3px; font-size: 13.5px; color: var(--ink-soft); }
+.import-removed { color: var(--error); }
+.import-warnings summary { cursor: pointer; font-size: 14px; }
+
+/* Каталог: «Показать ещё» и поиск по брендам */
+.catalog-more { display: grid; justify-items: center; gap: 8px; margin: 40px 0 10px; }
+.catalog-more:empty { display: none; }
+.brand-search input { width: 100%; padding: 8px 0; border: 0; border-bottom: 1px solid var(--line); background: transparent; font: inherit; font-size: 14px; color: inherit; }
+.brand-search input:focus { outline: none; border-bottom-color: var(--gold); }
+.filter-options--scroll { max-height: 280px; overflow-y: auto; padding-right: 6px; }
+.filter-options .check[hidden] { display: none; }
+
+/* Распив и полноразмерный флакон */
+.volumes-note { font-size: 13.5px; color: var(--ink-soft); margin: -2px 0 10px; }
+.volume--full .volume-price { font-size: 12px; letter-spacing: 0.02em; }
+.buy-note { font-size: 13.5px; color: var(--ink-soft); line-height: 1.6; }
+.buy-note .text-link { margin-right: 10px; }
+.manager-links { display: flex; flex-wrap: wrap; gap: 10px 26px; }
+.order-full { color: var(--brand); }
+/* Четыре объёма распива в ряд, полноразмерный флакон — строкой ниже */
+.volume-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; max-width: 520px; }
+.volume-list .volume { min-width: 0; padding: 12px 10px; }
+.volume-list .volume-ml { font-size: clamp(17px, 4.6vw, 22px); white-space: nowrap; }
+.volume--full { grid-column: 1 / -1; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.volume--full .volume-ml { font-size: 15px; letter-spacing: 0.08em; white-space: normal; }
+.info h2 { hyphens: auto; overflow-wrap: break-word; }
+
+/* Меню: справа логотип вместо меняющихся фото */
+.menu-logo { justify-self: end; align-self: center; display: grid; place-items: center; width: min(100%, 260px); }
+.menu-logo img { width: 100%; height: auto; max-height: 58vh; object-fit: contain; }
+@media (max-width: 1000px) { .menu-logo { display: none; } }
+
+/* Подарки за покупки */
+.gift-steps { display: grid; gap: 10px; padding-left: 1.3em; }
+.order-loyalty { margin: 10px 0 0; padding: 10px 14px; border-left: 2px solid var(--gold); background: var(--paper); font-size: 14px; }
+.lp-add, .lp-settings { display: grid; gap: 12px; width: 100%; }
+.lp-add { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lp-add .btn { justify-self: start; }
+.lp-tiers { display: grid; gap: 8px; }
+.lp-tier { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 10px; }
+.lp-tier label, .lp-add label { display: grid; gap: 4px; font-size: 12.5px; color: var(--ink-soft); }
+.lp-tier input, .lp-add input, .lp-add select, .lp-settings select, .lp-settings input { width: 100%; min-width: 0; }
+.client .order-sum .status { white-space: normal; }
+@media (max-width: 600px) { .lp-add { grid-template-columns: minmax(0, 1fr); } .lp-tier { grid-template-columns: 110px minmax(0, 1fr); } }

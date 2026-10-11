@@ -19,6 +19,13 @@ FS.ui = (function () {
   }
 
   const volumeLabel = (v) => v.label || v.ml + ' мл';
+  // Ссылки на менеджера: позвонить и написать в WhatsApp (номер — FS.config.contacts.manager).
+  const managerDigits = () => String(FS.config.contacts.manager || FS.config.contacts.phone || '').replace(/\D/g, '');
+  const managerLinks = (cls) => {
+    const d = managerDigits();
+    const phone = FS.config.contacts.manager || FS.config.contacts.phone;
+    return `<a class="${cls || 'line-link'}" href="tel:+${d}">${esc(phone)}</a> <a class="${cls || 'line-link'}" href="https://wa.me/${d}" target="_blank" rel="noopener">Написать в WhatsApp</a>`;
+  };
 
   const icon = {
     search: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>',
@@ -80,12 +87,9 @@ FS.ui = (function () {
         </div>
       </div>`;
 
-    const menuItems = [{ href: '#catalog', name: 'Вся коллекция', id: null }].concat(FS.categories.map((c) => ({ href: `#catalog-${c.id}`, name: c.name, id: c.id })));
-    const preview = (item) => {
-      const list = item.id ? FS.products.filter(FS.categories.find((c) => c.id === item.id).match) : FS.products;
-      const p = list.find((x) => x.image) || list[0];
-      return p ? `<span class="menu-shot" style="--tint:${tint(p)}">${FS.bottle.media(p, { title: '' })}</span>` : '';
-    };
+    const menuItems = [{ href: '#catalog', name: 'Вся коллекция' }]
+      .concat(FS.categories.map((c) => ({ href: `#catalog-${c.id}`, name: c.name })))
+      .concat({ href: '#delivery', name: 'Доставка и оплата' }, { href: '#gifts', name: 'Подарки за покупки' });
     $('#site-menu').innerHTML = `
       <div class="menu-panel" role="dialog" aria-modal="true" aria-label="Меню">
         <div class="menu-top">
@@ -94,25 +98,19 @@ FS.ui = (function () {
         </div>
         <div class="menu-grid">
           <nav class="menu-links" aria-label="Разделы">
-            ${menuItems.map((m, i) => `<a href="${m.href}" style="--i:${i}" data-menu-shot="${i}"><span class="menu-num">${String(i + 1).padStart(2, '0')}</span><span class="menu-name">${esc(m.name)}</span></a>`).join('')}
+            ${menuItems.map((m, i) => `<a href="${m.href}" style="--i:${i}"><span class="menu-num">${String(i + 1).padStart(2, '0')}</span><span class="menu-name">${esc(m.name)}</span></a>`).join('')}
           </nav>
-          <div class="menu-shots" aria-hidden="true">${menuItems.map((m, i) => `<span class="menu-shot-wrap ${i === 0 ? 'is-on' : ''}" data-shot="${i}">${preview(m)}</span>`).join('')}</div>
+          <div class="menu-logo" aria-hidden="true"><img src="${FS.assetUrl('assets/img/logo-intro.png')}" alt="" width="520" height="962" decoding="async"></div>
         </div>
         <div class="menu-foot">
           <button type="button" data-action="search">Поиск</button>
           <a href="#aromaty">Исследовать ароматы</a>
           <a href="#favorites">Избранное</a>
-          <a href="#delivery">Доставка и оплата</a>
           <a href="#admin">Вход для сотрудников</a>
           <button class="install-btn" type="button" data-action="install">Установить приложение</button>
           <span class="selectable">${esc(FS.config.contacts.phone)}</span>
         </div>
       </div>`;
-    $('#site-menu').addEventListener('pointerover', (e) => {
-      const a = e.target.closest('[data-menu-shot]');
-      if (!a) return;
-      $$('.menu-shot-wrap').forEach((s) => s.classList.toggle('is-on', s.dataset.shot === a.dataset.menuShot));
-    });
 
     FS.ui.refreshHeader = () => FS.motion.refresh();
     updateCounts();
@@ -153,6 +151,7 @@ FS.ui = (function () {
         <nav class="footer-col" aria-label="Покупателям">
           <h2>Покупателям</h2>
           <a href="#delivery">Доставка и оплата</a>
+          <a href="#gifts">Подарки за покупки</a>
           <a href="#returns">Возврат и обмен</a>
           <a href="#offer">Публичная оферта</a>
           <a href="#privacy">Политика конфиденциальности</a>
@@ -179,7 +178,9 @@ FS.ui = (function () {
     const fav = FS.store.isFavorite(p.id);
     const available = v.stock > 0;
     const conc = FS.concentrationLabel[p.concentration] || '';
-    const meta = p.type === 'set' ? volumeLabel(v) : `${conc}, ${volumeLabel(v)}`;
+    // Ароматы на распив: «от 5 мл».
+    const minMl = Math.min(...p.volumes.map((x) => x.ml));
+    const meta = p.type === 'set' ? volumeLabel(v) : `${conc}, распив от ${minMl} мл`;
     return `
       <article class="pcard ${o.wide ? 'pcard--wide' : ''} ${o.reveal === false ? '' : 'reveal'}" style="--i:${o.index || 0};--tint:${tint(p)}">
         <a class="pcard-media" href="#product-${p.id}" tabindex="-1" aria-hidden="true" data-cursor="Смотреть">
@@ -258,15 +259,11 @@ FS.ui = (function () {
     const drawer = $('#cart-drawer');
     const lines = FS.store.lines();
     const subtotal = FS.store.subtotal();
-    const freeFrom = FS.config.freeShippingFrom;
-    const left = Math.max(0, freeFrom - subtotal);
-    const progress = Math.min(100, (subtotal / freeFrom) * 100);
     const count = FS.store.count();
 
     const body = lines.length ? `
       <div class="cart-ship">
-        <p>${left ? `До бесплатной доставки курьером: <strong>${money(left)}</strong>` : 'Доставка курьером по городу бесплатна'}</p>
-        <div class="cart-ship-bar"><span style="width:${progress}%"></span></div>
+        <p>Доставка курьером по городу в день заказа. Стоимость и оплату подтвердит менеджер.</p>
       </div>
       <ul class="cart-lines">
         ${lines.map((l) => `
@@ -275,7 +272,7 @@ FS.ui = (function () {
             <div class="cart-info">
               <p class="cart-brand">${esc(l.product.brand)}</p>
               <a class="cart-name" href="#product-${l.product.id}">${esc(l.product.name)}</a>
-              <p class="cart-vol">${esc(volumeLabel(l.volume))}, ${money(l.volume.price)} за шт.</p>
+              <p class="cart-vol">${l.volume.full ? `${esc(volumeLabel(l.volume))}, цену подтвердит менеджер` : `${esc(volumeLabel(l.volume))}, ${money(l.volume.price)} за шт.`}</p>
               <div class="cart-row">
                 ${stepper(l.qty, FS.store.maxQty(l.product.id, l.ml), `data-line="${l.product.id}" data-ml="${l.ml}"`, l.product.name)}
                 <span class="cart-total">${money(l.total)}</span>
@@ -300,7 +297,7 @@ FS.ui = (function () {
         ${lines.length ? `
         <div class="drawer-foot">
           <div class="sum-row"><span>Товары</span><span>${money(subtotal)}</span></div>
-          <p class="drawer-note">Стоимость доставки рассчитается при оформлении.</p>
+          <p class="drawer-note">${FS.store.hasFullBottle() ? 'Цену полноразмерного флакона и стоимость доставки подтвердит менеджер.' : 'Стоимость доставки подтвердит менеджер.'}</p>
           <div class="drawer-actions">
             <a class="line-link" href="#checkout" data-action="close-cart" data-autofocus>Оформить заказ</a>
             <button class="line-link line-link--soft" type="button" data-action="close-cart">Продолжить покупки</button>
@@ -387,7 +384,7 @@ FS.ui = (function () {
       brand: { '@type': 'Brand', name: p.brand },
       description: p.description,
       category: FS.genderLabel[p.gender] + ' парфюм',
-      offers: p.volumes.map((v) => ({
+      offers: p.volumes.filter((v) => v.price != null).map((v) => ({
         '@type': 'Offer',
         sku: `${p.id}-${v.ml}`,
         name: `${p.name}, ${volumeLabel(v)}`,
@@ -510,7 +507,7 @@ FS.ui = (function () {
   }
 
   return {
-    $, $$, esc, money, plural, icon, logo, wordmark, brandLine, est, emblem, tint, hexMix, volumeLabel,
+    $, $$, esc, money, plural, icon, managerLinks, logo, wordmark, brandLine, est, emblem, tint, hexMix, volumeLabel,
     renderHeader, renderFooter, setActiveNav, card, stepper, toast,
     open, close, openCart, renderCart, bind, pulse,
     setStructuredData, productSchema,

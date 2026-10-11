@@ -6,6 +6,7 @@ const db = require('./db');
 const telegram = require('./telegram');
 const catalog = require('./catalog');
 const { STATUS_NAMES, money } = require('./orders');
+const loyalty = require('./loyalty');
 
 const { call, escape } = telegram;
 const DAY = 86400;
@@ -94,7 +95,7 @@ function menu(site, shop) {
       inline_keyboard: [
         [{ text: '🛍 Открыть магазин', web_app: { url: site + '/' } }],
         [{ text: '📦 Мои заказы', callback_data: 'orders' }, { text: '💬 Консультация', callback_data: 'consult' }],
-        [{ text: '📍 Контакты', callback_data: 'contacts' }]
+        [{ text: '🎁 Подарки за покупки', callback_data: 'bonus' }, { text: '📍 Контакты', callback_data: 'contacts' }]
       ]
     }
   };
@@ -184,6 +185,76 @@ async function replyToLast(msg) {
   return html(msg.chat.id, 'Новых вопросов от покупателей нет. Чтобы ответить на более старый вопрос, нажмите на него, выберите «Ответить» и напишите текст. Меню покупателя: /start');
 }
 
+/* ---------- Подарки за покупки ---------- */
+const STAFF_CMDS = new Set(['buy', 'pokupka', 'покупка', 'client', 'klient', 'клиент']);
+const SOURCES = { site: 'сайт', boutique: 'бутик', instagram: 'Instagram', whatsapp: 'WhatsApp', phone: 'звонок', other: 'другое' };
+
+// Покупателю: правило и его прогресс (по заказам, привязанным к этому чату). Уровни не раскрываем.
+async function bonusForCustomer(chatId) {
+  const s = await loyalty.settings();
+  const rule = `🎁 <b>Каждая ${s.every}-я покупка — с подарком от бутика.</b> Чем больше вы покупаете, тем ценнее подарок. Покупки считаются по номеру телефона: на сайте, в бутике и через WhatsApp.`;
+  if (!db.configured()) return rule;
+  const numbers = await db.members(`fs:tg:orders:${chatId}`);
+  const phones = new Set();
+  for (const n of numbers) { const o = await db.getOrder(n); if (o) phones.add(loyalty.phoneKey(o.customer.phone)); }
+  const lines = [];
+  for (const p of [...phones].filter(Boolean)) {
+    const st = loyalty.status(await loyalty.getClient(p), s);
+    lines.push(st.nextIsGift
+      ? `У вас ${st.count} ${st.count === 1 ? 'покупка' : st.count < 5 ? 'покупки' : 'покупок'}. <b>Следующая покупка — с подарком!</b>`
+      : `У вас ${st.count} ${st.count === 1 ? 'покупка' : st.count < 5 && st.count ? 'покупки' : 'покупок'}. До покупки с подарком: ещё ${st.left}.`);
+  }
+  return lines.length ? `${rule}\n\n${lines.join('\n')}` : `${rule}\n\nЧтобы видеть здесь свой прогресс, оформите заказ в магазине или нажмите «Следить за заказом в Telegram» на странице заказа.`;
+}
+
+// «/buy 87011234567 45000 Baccarat 10 мл» → телефон, сумма, описание.
+function parsePurchase(args) {
+  const tokens = args.trim().split(/\s+/);
+  let phone = '';
+  while (tokens.length && phone.replace(/\D/g, '').length < 10) phone += tokens.shift();
+  let amount = '';
+  if (tokens.length && /^\d[\d.,]*$/.test(tokens[0])) amount = tokens.shift();
+  // «45 000» записано группами: первая группа до трёх цифр, дальше по три. «45000 100 мл» не склеиваем.
+  if (amount.length <= 3) while (tokens.length && /^\d{3}$/.test(tokens[0])) amount += tokens.shift();
+  if (tokens[0] && /^(₸|тг|tg|kzt)$/i.test(tokens[0])) tokens.shift();
+  return { phone, amount: amount.replace(/[.,]\d{1,2}$/, '').replace(/\D/g, ''), note: tokens.join(' ') };
+}
+
+function clientCard(c, st, s, showGifts) {
+  const name = c.name ? `${escape(c.name)}, ` : '';
+  const head = `👤 ${name}${escape(loyalty.prettyPhone(c.phone))}\nПокупок: <b>${st.count}</b>${showGifts ? ` на ${money(st.total, '₸')}` : ''}`;
+  const last = c.purchases.slice(-3).reverse().map((p) => `• ${new Date(p.date).toLocaleDateString('ru-RU')} — ${showGifts ? money(p.amount, '₸') + ', ' : ''}${SOURCES[p.source] || p.source}${p.note ? `: ${escape(p.note)}` : ''}`).join('\n');
+  const next = st.nextIsGift
+    ? (showGifts ? `🎁 <b>Следующая (${st.nextNumber}-я) покупка — с подарком: ${escape(st.nextGift)}</b> (за ${s.every - 1} предыдущие — ${money(st.base, '₸')}).` : `🎁 <b>Следующая покупка — с подарком.</b>`)
+    : `До покупки с подарком: ещё ${st.left}.`;
+  return [head, last, next].filter(Boolean).join('\n\n');
+}
+
+async function staffCommand(msg, name, args, shop) {
+  if (!db.configured()) return html(msg.chat.id, 'Подарки за покупки работают, когда подключено хранилище.');
+  const s = await loyalty.settings();
+  // В режиме «только владелец» суммы и подарки видны только в чате владельца.
+  const showGifts = s.notify !== 'owner' || String(msg.chat.id) === String(s.ownerChat);
+  const who = [msg.from && msg.from.first_name, msg.from && msg.from.last_name].filter(Boolean).join(' ') || 'сотрудник';
+  if (['client', 'klient', 'клиент'].includes(name)) {
+    const c = await loyalty.getClient(args);
+    if (!c) return html(msg.chat.id, 'Напишите номер телефона клиента, например:\n<code>/client 87011234567</code>');
+    if (!c.purchases.length) return html(msg.chat.id, `По номеру ${escape(loyalty.prettyPhone(c.phone))} покупок пока нет. До покупки с подарком: ещё ${s.every - 1}.`);
+    return html(msg.chat.id, clientCard(c, loyalty.status(c, s), s, showGifts));
+  }
+  const p = parsePurchase(args);
+  if (!loyalty.phoneKey(p.phone) || !p.amount) {
+    return html(msg.chat.id, 'Чтобы записать покупку из бутика, напишите:\n<code>/buy 87011234567 45000 Baccarat 10 мл</code>\n(телефон, сумма, что купили — необязательно)');
+  }
+  const { client } = await loyalty.addPurchase({ phone: p.phone, amount: p.amount, note: p.note, source: 'boutique' }, who);
+  const st = loyalty.status(client, s);
+  const justGift = st.gifts.length && st.gifts[st.gifts.length - 1].number === st.count ? st.gifts[st.gifts.length - 1] : null;
+  const giftLine = justGift
+    ? (showGifts ? `\n\n🎁 <b>Это ${justGift.number}-я покупка — положен подарок: ${escape(justGift.gift)}</b> (за ${s.every - 1} предыдущие — ${money(justGift.base, '₸')}).` : '\n\n🎁 <b>Это покупка с подарком.</b> Уточните подарок у владельца.')
+    : '';
+  return html(msg.chat.id, `✅ Покупка записана: ${money(Number(p.amount), '₸')}.${giftLine}\n\n${clientCard(client, st, s, showGifts)}`);
+}
+
 /* ---------- Сотрудники ---------- */
 async function createInvite() {
   const code = crypto.randomBytes(9).toString('base64url');
@@ -218,6 +289,7 @@ async function handle(update, site) {
     if (q.data === 'orders') return html(chatId, await myOrders(chatId, shop));
     if (q.data === 'consult') return html(chatId, 'Напишите вопрос прямо сюда: какой аромат ищете, для какого случая или в подарок кому. Консультант ответит в этом чате.');
     if (q.data === 'contacts') return html(chatId, contacts(shop));
+    if (q.data === 'bonus') return html(chatId, await bonusForCustomer(chatId));
     return;
   }
 
@@ -225,7 +297,7 @@ async function handle(update, site) {
   if (!msg || !msg.chat || (msg.from && msg.from.is_bot)) return;
   const privateChat = msg.chat.type === 'private';
   const text = msg.text || '';
-  const cmd = /^\/(\w+)(?:@\w+)?(?:\s+(.+))?$/.exec(text.trim());
+  const cmd = /^\/([\wа-яё]+)(?:@\w+)?(?:\s+([\s\S]+))?$/i.exec(text.trim());
 
   if (cmd && cmd[1] === 'start' && cmd[2]) {
     const payload = cmd[2].trim();
@@ -238,6 +310,11 @@ async function handle(update, site) {
     }
   }
 
+  // Команды сотрудников: покупки вне сайта и проверка клиента (в личке и в группе сотрудников).
+  if (cmd && STAFF_CMDS.has(cmd[1].toLowerCase()) && (await telegram.isStaff(msg.chat.id))) {
+    return staffCommand(msg, cmd[1].toLowerCase(), cmd[2] || '', shop);
+  }
+
   // Ответ сотрудника покупателю.
   if (msg.reply_to_message && (await relayToCustomer(msg))) return;
   if (!privateChat) return; // в группах сотрудников бот отвечает только на приглашения и ответы
@@ -245,6 +322,7 @@ async function handle(update, site) {
   if (cmd) {
     if (cmd[1] === 'orders') return html(msg.chat.id, await myOrders(msg.chat.id, shop));
     if (cmd[1] === 'contacts') return html(msg.chat.id, contacts(shop));
+    if (cmd[1] === 'bonus') return html(msg.chat.id, await bonusForCustomer(msg.chat.id));
     const m = menu(site, shop);
     return html(msg.chat.id, m.text, { reply_markup: m.markup });
   }
@@ -266,7 +344,8 @@ async function enable(site) {
     commands: [
       { command: 'start', description: 'Меню' },
       { command: 'orders', description: 'Мои заказы' },
-      { command: 'contacts', description: 'Адрес и телефон' }
+      { command: 'contacts', description: 'Адрес и телефон' },
+      { command: 'bonus', description: 'Подарки за покупки' }
     ]
   });
   await call('setChatMenuButton', { menu_button: { type: 'web_app', text: 'Магазин', web_app: { url: site + '/' } } });

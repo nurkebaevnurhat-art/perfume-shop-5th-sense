@@ -14,6 +14,7 @@ FS.views.admin = (function () {
   const TABS = [
     { id: 'overview', token: 'admin', name: 'Обзор' },
     { id: 'orders', token: 'admin-orders', name: 'Заказы' },
+    { id: 'clients', token: 'admin-clients', name: 'Клиенты' },
     { id: 'products', token: 'admin-products', name: 'Товары' },
     { id: 'data', token: 'admin-data', name: 'Данные' }
   ];
@@ -25,6 +26,7 @@ FS.views.admin = (function () {
   let orderFilter = { status: 'all', q: '' };
   let productFilter = { q: '', category: '' };
   let draft = null; // товар в редакторе
+  let importPlan = null; // загруженная таблица до подтверждения
 
   /* ---------- Режим ---------- */
   // Сервер с паролем админки: заказы и вход через /api. Иначе — демо в браузере.
@@ -167,11 +169,13 @@ FS.views.admin = (function () {
 
   /* ---------- Заказы ---------- */
   function orderRow(o) {
-    const items = o.items.map((i) => `<li><span>${esc(i.brand)} ${esc(i.name)}, ${i.ml}&nbsp;мл × ${i.qty}</span><span>${money(i.price * i.qty)}</span></li>`).join('');
+    const items = o.items.map((i) => (i.full
+      ? `<li class="order-full"><span>🧴 <b>Полноразмерный флакон</b>${i.fullMl ? ` ${i.fullMl}&nbsp;мл` : ''}: ${esc(i.brand)} ${esc(i.name)} × ${i.qty}</span><span>цена по запросу</span></li>`
+      : `<li><span>${esc(i.brand)} ${esc(i.name)}, ${i.ml}&nbsp;мл × ${i.qty}</span><span>${money(i.price * i.qty)}</span></li>`)).join('');
     return `
       <details class="order" data-order="${esc(o.number)}">
         <summary>
-          <span class="order-num"><strong>${esc(o.number)}</strong>${o.test ? '<span class="tag">тест</span>' : ''}<em>${fmtDate(o.createdAt)}</em></span>
+          <span class="order-num"><strong>${esc(o.number)}</strong>${o.test ? '<span class="tag">тест</span>' : ''}${o.items.some((i) => i.full) ? '<span class="tag">флакон</span>' : ''}<em>${fmtDate(o.createdAt)}</em></span>
           <span class="order-who">${esc(o.customer.firstName)} ${esc(o.customer.lastName)}<em>${esc(o.customer.phone)}</em></span>
           <span class="order-sum">${money(o.total)}<em>${o.items.reduce((n, i) => n + i.qty, 0)} шт.</em></span>
           <span class="order-badges"><span class="status status--${o.status}">${statusName(o.status)}</span><span class="pay pay--${o.paymentStatus}">${o.paymentStatus === 'paid' ? 'Оплачен' : 'Не оплачен'}</span></span>
@@ -184,7 +188,13 @@ FS.views.admin = (function () {
             <label class="field"><span>Оплата</span>
               <select data-order-payment="${esc(o.number)}">${FS.api.PAYMENT_STATUSES.map((s) => `<option value="${s.id}" ${s.id === o.paymentStatus ? 'selected' : ''}>${s.name}</option>`).join('')}</select>
             </label>
+            ${serverMode() ? `<label class="field"><span>Оплачено, ${esc(FS.config.currency)}</span>
+              <input type="number" min="0" step="1" inputmode="numeric" data-order-paid="${esc(o.number)}" value="${o.paidAmount || ''}" placeholder="${o.total}">
+            </label>` : ''}
           </div>
+          ${o.loyalty ? `<p class="order-loyalty">${o.loyalty.gift
+    ? `🎁 <b>${o.loyalty.nextNumber}-я покупка клиента — положен подарок: ${esc(o.loyalty.gift)}</b>`
+    : `Клиент: ${o.loyalty.count} ${plural(o.loyalty.count, 'покупка', 'покупки', 'покупок')} до этого заказа`}. Сумма для подарков — «Оплачено» (если пусто, берётся итог заказа), засчитывается при статусе «Выполнен».</p>` : ''}
           <div class="order-grid">
             <div><h3>Состав</h3><ul class="order-items">${items}</ul>
               <dl class="order-sums"><div><dt>Товары</dt><dd>${money(o.subtotal)}</dd></div><div><dt>Доставка</dt><dd>${o.shipping === null ? 'рассчитает менеджер' : o.shipping === 0 ? 'бесплатно' : money(o.shipping)}</dd></div><div><dt>Итого</dt><dd>${money(o.total)}</dd></div></dl>
@@ -227,7 +237,7 @@ FS.views.admin = (function () {
     const picks = pool.sort(() => Math.random() - 0.5).slice(0, Math.min(2, pool.length));
     const items = picks.map((p) => { const v = p.volumes.find((x) => x.stock > 0); return { id: p.id, name: p.name, brand: p.brand, ml: v.ml, qty: 1, price: v.price }; });
     const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
-    const delivery = FS.delivery[1];
+    const delivery = FS.delivery.find((d) => d.id === 'courier') || FS.delivery[0];
     const shipping = FS.shipping.quote(delivery.id, subtotal);
     FS.api.createOrder({
       test: true,
@@ -245,6 +255,213 @@ FS.views.admin = (function () {
       .catch((err) => toast(`Тестовый заказ не создан: ${err.message}`));
   }
 
+  /* ---------- Загрузка таблицы ---------- */
+  const canPhotos = () => FS.api.remoteCatalog();
+  function importPanel() {
+    const plan = importPlan;
+    if (!plan) return '';
+    const names = (list) => list.slice(0, 12).map((p) => esc(`${p.brand} ${p.name}`)).join(', ') + (list.length > 12 ? ` и ещё ${list.length - 12}` : '');
+    const d = plan.diff;
+    const blocked = plan.errors.length > 0 || !plan.products.length;
+    return `<section class="admin-panel import-panel">
+        <h2>Таблица «${esc(plan.fileName)}»</h2>
+        ${plan.errors.length ? `<div class="import-errors"><p><strong>Нужно исправить в таблице (${plan.errors.length}):</strong></p><ul>${plan.errors.slice(0, 30).map((e) => `<li>${esc(e)}</li>`).join('')}</ul>${plan.errors.length > 30 ? `<p>…и ещё ${plan.errors.length - 30}</p>` : ''}</div>` : ''}
+        <dl class="import-sum">
+          <div><dt>Товаров в таблице</dt><dd>${plan.products.length}</dd></div>
+          <div><dt>Новые</dt><dd>${d.added.length}</dd></div>
+          <div><dt>Изменятся</dt><dd>${d.changed.length}</dd></div>
+          <div><dt>Без изменений</dt><dd>${d.same}</dd></div>
+          <div><dt>Пропадут с сайта</dt><dd>${d.removed.length}</dd></div>
+        </dl>
+        ${d.added.length ? `<p><b>Новые:</b> ${names(d.added)}</p>` : ''}
+        ${d.changed.length ? `<p><b>Изменятся:</b> ${names(d.changed)}</p>` : ''}
+        ${d.removed.length ? `<p class="import-removed"><b>Пропадут с сайта</b> (их нет в таблице): ${names(d.removed)}</p>` : ''}
+        ${plan.warnings.length ? `<details class="import-warnings"><summary>Замечания (${plan.warnings.length})</summary><ul>${plan.warnings.slice(0, 50).map((w) => `<li>${esc(w)}</li>`).join('')}</ul></details>` : ''}
+        ${plan.missingPhotos ? `<p class="stat-note">У ${plan.missingPhotos} ${plural(plan.missingPhotos, 'товара', 'товаров', 'товаров')} в колонке «Фото» указан файл, которого ещё нет: загрузите фото кнопкой «Загрузить фото».</p>` : ''}
+        <p class="stat-note">${FS.api.remoteCatalog() ? 'Каталог обновится на сервере и сразу станет виден всем покупателям.' : 'Сервер не подключён: каталог изменится только в этом браузере.'}</p>
+        <div class="tg-actions">
+          <button class="btn btn--primary btn--sm" type="button" data-import-apply ${blocked ? 'disabled' : ''}>${blocked ? 'Исправьте ошибки и загрузите снова' : 'Применить'}</button>
+          <button class="btn btn--outline btn--sm" type="button" data-import-cancel>Отмена</button>
+        </div>
+      </section>`;
+  }
+
+  async function startImport(file) {
+    toast('Читаем таблицу…');
+    try {
+      const rows = await FS.importer.read(file);
+      const result = FS.importer.toProducts(rows, FS.products);
+      const diff = FS.importer.diff(FS.products, result.products);
+      const known = new Set(FS.products.map((p) => p.photo || (p.image || '').split('/').pop().toLowerCase()));
+      const missingPhotos = result.products.filter((p) => p.photo && !p.image && !known.has(p.photo)).length;
+      importPlan = { ...result, diff, fileName: file.name, missingPhotos };
+    } catch (err) {
+      importPlan = null;
+      toast(`Не удалось прочитать файл: ${err.message}`, null, { duration: 8000 });
+    }
+    renderBody();
+    window.scrollTo({ top: 0 });
+  }
+
+  async function applyImport(btn) {
+    const plan = importPlan;
+    btn.disabled = true;
+    btn.textContent = 'Сохраняем…';
+    try {
+      const ok = await Promise.resolve(FS.api.replaceCatalog(plan.products));
+      if (ok === false) throw new Error('браузер не сохранил каталог: закончилось место');
+      importPlan = null;
+      toast(`Каталог обновлён: ${FS.products.length} ${plural(FS.products.length, 'товар', 'товара', 'товаров')}`);
+      renderBody();
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'Применить';
+      toast(`Каталог не обновлён: ${err.message}`, null, { duration: 8000 });
+    }
+  }
+
+  // Фото пачкой: имя файла = значение колонки «Фото» (или артикул товара).
+  async function uploadPhotos(files) {
+    const list = [...files].filter((f) => f.type.startsWith('image/'));
+    if (!list.length) return;
+    let done = 0;
+    let linked = 0;
+    const failed = [];
+    for (const file of list) {
+      try {
+        const name = file.name.toLowerCase(); // как в колонке «Фото»; внутри всегда сжатый JPEG
+        const res = await sendPhoto(file, name);
+        linked += res.linked;
+        done++;
+        if (done % 5 === 0 || done === list.length) toast(`Загружено фото: ${done} из ${list.length}`, null, { duration: 2500 });
+      } catch (err) {
+        failed.push(`${file.name}: ${err.message}`);
+        if (err.status === 401) { expired(); return; }
+      }
+    }
+    await FS.catalog.sync().then((changed) => changed && FS.api.refreshProducts());
+    renderBody();
+    toast(`Фото загружены: ${done}${linked ? `, подключены к ${linked} ${plural(linked, 'товару', 'товарам', 'товарам')}` : ''}${failed.length ? `. Ошибки: ${failed.length}` : ''}`, null, { duration: 9000 });
+    if (failed.length) console.warn(failed);
+  }
+
+  async function sendPhoto(file, name) {
+    const dataUrl = await loadPhoto(file, 1200);
+    return FS.backend.call('POST', '/api/image', { name, type: 'image/jpeg', data: dataUrl.split(',')[1] }, { auth: true });
+  }
+
+  /* ---------- Клиенты: подарки за покупки ---------- */
+  let loyaltyData = null; // { settings, clients }
+  let loyaltyError = '';
+  let clientQ = '';
+  const SOURCES = [['boutique', 'Бутик'], ['instagram', 'Instagram'], ['whatsapp', 'WhatsApp'], ['phone', 'Звонок'], ['site', 'Сайт'], ['other', 'Другое']];
+  const sourceName = (id) => (SOURCES.find((x) => x[0] === id) || [id, id])[1];
+  const prettyPhone = (k) => (k && k.length === 11 ? `+${k[0]} ${k.slice(1, 4)} ${k.slice(4, 7)} ${k.slice(7, 9)} ${k.slice(9)}` : `+${k}`);
+
+  async function loadClients() {
+    try {
+      loyaltyData = await FS.backend.call('GET', '/api/loyalty', null, { auth: true });
+      loyaltyError = '';
+    } catch (err) {
+      if (err.status === 401) { expired(); return; }
+      loyaltyError = err.message;
+    }
+    if (root && document.contains(root) && route.tab === 'clients') renderBody();
+  }
+
+  function progress(st, every) {
+    if (st.nextIsGift) return `<span class="status status--done">🎁 Следующая — подарок: ${esc(st.nextGift)}</span>`;
+    return `<span class="status">до подарка ещё ${st.left}</span>`;
+  }
+
+  function clientRow(c, s) {
+    const st = c.status;
+    const giftNums = new Set(st.gifts.map((g) => g.number));
+    const rows = c.purchases.map((p, i) => `<li><span>${giftNums.has(i + 1) ? '🎁 ' : ''}${i + 1}. ${fmtDate(p.date)} · ${esc(sourceName(p.source))}${p.order ? ` · заказ ${esc(p.order)}` : ''}${p.note ? ` · ${esc(p.note)}` : ''}${p.by ? ` <em>(${esc(p.by)})</em>` : ''}</span>
+        <span>${money(p.amount)} ${p.order ? '' : `<button class="link-btn" type="button" data-lp-del="${esc(p.id)}" data-phone="${esc(c.phone)}">Удалить</button>`}</span></li>`).join('');
+    return `<details class="order client" data-client="${esc(c.phone)}">
+        <summary>
+          <span class="order-num"><strong>${esc(c.name || 'Без имени')}</strong><em class="selectable">${esc(prettyPhone(c.phone))}</em></span>
+          <span class="order-who">${st.count} ${plural(st.count, 'покупка', 'покупки', 'покупок')}<em>на ${money(st.total)}</em></span>
+          <span class="order-sum">${progress(st, s.every)}</span>
+        </summary>
+        <div class="order-body">
+          <ul class="order-items">${rows}</ul>
+          ${st.gifts.length ? `<p><b>Подарки:</b> ${st.gifts.map((g) => `${g.number}-я покупка — ${esc(g.gift)} (за ${money(g.base)})`).join('; ')}</p>` : ''}
+          ${st.nextIsGift ? `<p>Следующая, ${st.nextNumber}-я покупка — с подарком: <b>${esc(st.nextGift)}</b> (за ${s.every - 1} предыдущие — ${money(st.base)}).</p>` : ''}
+        </div>
+      </details>`;
+  }
+
+  function settingsForm(s) {
+    const tiers = s.tiers.concat({ upTo: '', gift: '' });
+    const chats = (tg && tg.chats) || [];
+    return `<form class="lp-settings" data-lp-settings>
+        <label class="field"><span>Подарок за каждую … покупку</span><input type="number" min="2" max="20" name="every" value="${s.every}"></label>
+        <p class="stat-note">Подарок зависит от суммы ${s.every - 1} предыдущих покупок. Покупатели видят только правило «каждая ${s.every}-я — с подарком».</p>
+        <div class="lp-tiers">${tiers.map((t, i) => `<div class="lp-tier">
+            <label><span>${i === tiers.length - 1 ? 'Новый уровень: до, ₸' : 'До, ₸ (пусто = больше)'}</span><input type="number" min="0" step="1" name="upTo" value="${t.upTo == null ? '' : t.upTo}"></label>
+            <label><span>Подарок</span><input type="text" name="gift" value="${esc(t.gift)}" placeholder="Например, распив 10 мл"></label>
+          </div>`).join('')}</div>
+        <label class="field"><span>Кто видит подсказку «Положен подарок» в Telegram</span>
+          <select name="notify"><option value="all" ${s.notify !== 'owner' ? 'selected' : ''}>Все сотрудники</option><option value="owner" ${s.notify === 'owner' ? 'selected' : ''}>Только владелец</option></select>
+        </label>
+        <label class="field"><span>Чат владельца</span>
+          <select name="ownerChat"><option value="">— выберите —</option>${chats.map((c) => `<option value="${esc(c.id)}" ${String(c.id) === String(s.ownerChat) ? 'selected' : ''}>${esc(c.title)}</option>`).join('')}</select>
+        </label>
+        <button class="btn btn--outline btn--sm" type="submit">Сохранить правила</button>
+      </form>`;
+  }
+
+  function clientsBody() {
+    if (!serverMode() || !serverInfo().storage) return '<p class="panel-empty">Подарки за покупки работают, когда подключены сервер и хранилище Upstash Redis.</p>';
+    if (loyaltyError) return `<div class="panel-empty"><p>Не удалось загрузить клиентов: ${esc(loyaltyError)}</p><button class="btn btn--outline btn--sm" type="button" data-lp-reload>Повторить</button></div>`;
+    if (!loyaltyData) return '<p class="panel-empty">Загружаем клиентов…</p>';
+    const s = loyaltyData.settings;
+    const q = clientQ.trim().toLowerCase();
+    const digits = q.replace(/\D/g, '');
+    const list = loyaltyData.clients.filter((c) => !q || (c.name || '').toLowerCase().includes(q) || (digits.length >= 3 && c.phone.includes(digits)));
+    const due = loyaltyData.clients.filter((c) => c.status.nextIsGift).length;
+    return `
+      <div class="admin-cols">
+        <section class="admin-panel">
+          <h2>Добавить покупку</h2>
+          <p>Покупка в бутике, через Instagram, WhatsApp или по звонку. Заказы с сайта засчитываются сами при статусе «Выполнен».</p>
+          <form class="lp-add" data-lp-add>
+            <label class="field"><span>Телефон</span><input name="phone" type="tel" placeholder="+7 701 123 45 67" required></label>
+            <label class="field"><span>Имя</span><input name="name" type="text"></label>
+            <label class="field"><span>Сумма, ${esc(FS.config.currency)}</span><input name="amount" type="number" min="1" step="1" inputmode="numeric" required></label>
+            <label class="field"><span>Где купили</span><select name="source">${SOURCES.filter((x) => x[0] !== 'site').map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>
+            <label class="field"><span>Что купили</span><input name="note" type="text" placeholder="Baccarat 10 мл"></label>
+            <label class="field"><span>Дата</span><input name="date" type="date" value="${new Date().toISOString().slice(0, 10)}"></label>
+            <button class="btn btn--primary btn--sm" type="submit">Записать покупку</button>
+          </form>
+          <p class="stat-note">Быстрее через бота: <code>/buy 87011234567 45000 Baccarat 10 мл</code>, проверить клиента: <code>/client 87011234567</code>.</p>
+        </section>
+        <section class="admin-panel">
+          <h2>Правила подарков</h2>
+          ${settingsForm(s)}
+        </section>
+      </div>
+      <div class="admin-toolbar">
+        <label class="toolbar-search"><span class="visually-hidden">Поиск клиента</span>${FS.ui.icon.search}<input id="client-search" type="search" placeholder="Имя или телефон" value="${esc(clientQ)}" autocomplete="off"></label>
+      </div>
+      <p class="result-count">${loyaltyData.clients.length} ${plural(loyaltyData.clients.length, 'клиент', 'клиента', 'клиентов')}${due ? ` · у ${due} следующая покупка с подарком` : ''}</p>
+      ${list.length ? `<div class="orders">${list.map((c) => clientRow(c, s)).join('')}</div>` : `<p class="panel-empty">${loyaltyData.clients.length ? 'Никого не нашли.' : 'Покупок пока нет. Они появятся, когда заказы с сайта станут «Выполнен» или вы запишете покупку из бутика.'}</p>`}`;
+  }
+
+  async function loyaltyAction(body, okText) {
+    try {
+      const data = await FS.backend.call('POST', '/api/loyalty', body, { auth: true });
+      await loadClients();
+      return data;
+    } catch (err) {
+      if (err.status === 401) { expired(); return null; }
+      toast(err.message, null, { duration: 8000 });
+      return null;
+    }
+  }
+
   /* ---------- Товары ---------- */
   function productsBody() {
     const q = productFilter.q.trim().toLowerCase();
@@ -259,6 +476,13 @@ FS.views.admin = (function () {
         </label>
         <a class="btn btn--primary btn--sm" href="#admin-new">Добавить товар</a>
       </div>
+      <div class="admin-toolbar admin-toolbar--files">
+        <label class="btn btn--outline btn--sm file-btn">Загрузить таблицу<input type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" data-import-file></label>
+        <button class="btn btn--outline btn--sm" type="button" data-export-xlsx>Скачать таблицу</button>
+        ${canPhotos() ? '<label class="btn btn--outline btn--sm file-btn">Загрузить фото<input type="file" accept="image/*" multiple data-photos></label>' : ''}
+        <a class="text-link" href="assets/files/5th-sense-catalog.xlsx" download>Шаблон таблицы</a>
+      </div>
+      ${importPanel()}
       <p class="result-count">${list.length} ${plural(list.length, 'товар', 'товара', 'товаров')}</p>
       ${list.length ? `<div class="ptable" role="table" aria-label="Товары">
         <div class="ptable-row ptable-head" role="row"><span role="columnheader">Фото</span><span role="columnheader">Товар</span><span role="columnheader">Объёмы, цены и остатки</span><span role="columnheader">Действия</span></div>
@@ -450,8 +674,8 @@ FS.views.admin = (function () {
     return Object.keys(errors).length === 0 && !volError;
   }
 
-  // Уменьшаем фото до 900 px, чтобы оно поместилось в хранилище браузера.
-  function loadPhoto(file) {
+  // Уменьшаем фото (по умолчанию до 900 px), чтобы оно было лёгким и поместилось в хранилище.
+  function loadPhoto(file, maxSize) {
     return new Promise((resolve, reject) => {
       if (!file.type.startsWith('image/')) { reject(new Error('type')); return; }
       const reader = new FileReader();
@@ -460,7 +684,7 @@ FS.views.admin = (function () {
         const img = new Image();
         img.onerror = () => reject(new Error('decode'));
         img.onload = () => {
-          const scale = Math.min(1, 900 / Math.max(img.width, img.height));
+          const scale = Math.min(1, (maxSize || 900) / Math.max(img.width, img.height));
           const canvas = document.createElement('canvas');
           canvas.width = Math.round(img.width * scale);
           canvas.height = Math.round(img.height * scale);
@@ -485,7 +709,9 @@ FS.views.admin = (function () {
       <div class="admin-cols">
         <section class="admin-panel">
           <h2>Каталог</h2>
-          <p>${custom ? 'Каталог изменён в админ-панели. На сайте в этом браузере показывается изменённая версия.' : 'Каталог не менялся: на сайте показываются исходные данные из assets/js/data.js.'}</p>
+          <p>${FS.catalog.source() === 'server'
+    ? `Каталог хранится на сервере: ${FS.products.length} ${plural(FS.products.length, 'товар', 'товара', 'товаров')}. Его видят все покупатели, остатки списываются при заказе.`
+    : custom ? 'Каталог изменён в админ-панели. На сайте в этом браузере показывается изменённая версия.' : 'Каталог не менялся: на сайте показываются исходные данные из assets/js/data.js.'}</p>
           <button class="btn btn--outline btn--sm" type="button" data-confirm="reset-catalog" ${custom ? '' : 'disabled'}>Вернуть исходный каталог</button>
         </section>
         <section class="admin-panel">
@@ -565,6 +791,12 @@ FS.views.admin = (function () {
   function paintTelegram() {
     const box = root && root.querySelector('[data-telegram]');
     if (box) box.innerHTML = telegramBody();
+    // Вкладка «Клиенты»: список чатов для выбора чата владельца (форму не перерисовываем).
+    const owner = root && root.querySelector('[data-lp-settings] select[name="ownerChat"]');
+    if (owner && tg && tg.chats) {
+      const current = owner.value || (loyaltyData && loyaltyData.settings.ownerChat) || '';
+      owner.innerHTML = '<option value="">— выберите —</option>' + tg.chats.map((c) => `<option value="${esc(c.id)}" ${String(c.id) === String(current) ? 'selected' : ''}>${esc(c.title)}</option>`).join('');
+    }
   }
 
   async function telegram(action, btn) {
@@ -625,6 +857,7 @@ FS.views.admin = (function () {
   /* ---------- Рендер ---------- */
   function body() {
     if (route.tab === 'orders') return ordersBody();
+    if (route.tab === 'clients') return clientsBody();
     if (route.tab === 'products') return productsBody();
     if (route.tab === 'data') return dataBody();
     if (route.tab === 'edit') return editBody();
@@ -691,6 +924,29 @@ FS.views.admin = (function () {
         }
         return;
       }
+      if (e.target.matches('[data-lp-add]')) {
+        e.preventDefault();
+        const f = e.target;
+        const v = (n) => f.elements[n].value.trim();
+        const btn = $('button[type="submit"]', f);
+        btn.disabled = true;
+        const data = await loyaltyAction({ action: 'add', phone: v('phone'), name: v('name'), amount: v('amount'), source: v('source'), note: v('note'), date: v('date') });
+        btn.disabled = false;
+        if (data && data.client) {
+          const st = data.client.status;
+          const g = st.gifts.length && st.gifts[st.gifts.length - 1].number === st.count ? st.gifts[st.gifts.length - 1] : null;
+          toast(g ? `🎁 Это ${g.number}-я покупка — положен подарок: ${g.gift}` : `Покупка записана. ${st.nextIsGift ? 'Следующая — с подарком' : `До подарка ещё ${st.left}`}`, null, { duration: 9000 });
+        }
+        return;
+      }
+      if (e.target.matches('[data-lp-settings]')) {
+        e.preventDefault();
+        const f = e.target;
+        const tiers = $$('.lp-tier', f).map((row) => ({ upTo: $('[name="upTo"]', row).value.trim(), gift: $('[name="gift"]', row).value.trim() })).filter((t) => t.gift);
+        const data = await loyaltyAction({ action: 'settings', settings: { every: f.elements.every.value, tiers: tiers.map((t) => ({ upTo: t.upTo === '' ? null : Number(t.upTo), gift: t.gift })), notify: f.elements.notify.value, ownerChat: f.elements.ownerChat.value || null } });
+        if (data) toast('Правила подарков сохранены');
+        return;
+      }
       if (e.target.matches('[data-editor]')) {
         e.preventDefault();
         readEditor();
@@ -718,6 +974,20 @@ FS.views.admin = (function () {
       const t = e.target;
       if (t.closest('[data-admin-logout]')) { setAuthed(false); toast('Вы вышли из админ-панели'); FS.app.go('admin'); return; }
       if (t.closest('[data-test-order]')) { testOrder(); return; }
+      if (t.closest('[data-import-cancel]')) { importPlan = null; renderBody(); return; }
+      if (t.closest('[data-lp-reload]')) { loyaltyError = ''; loyaltyData = null; renderBody(); loadClients(); return; }
+      const lpDel = t.closest('[data-lp-del]');
+      if (lpDel) {
+        confirmButton(lpDel, 'Точно удалить?', () => loyaltyAction({ action: 'delete', phone: lpDel.dataset.phone, id: lpDel.dataset.lpDel }).then((d) => d && toast('Покупка удалена')));
+        return;
+      }
+      const applyBtn = t.closest('[data-import-apply]');
+      if (applyBtn) { applyImport(applyBtn); return; }
+      const exp = t.closest('[data-export-xlsx]');
+      if (exp) {
+        FS.importer.exportFile(FS.products).catch((err) => toast(err.message, null, { duration: 8000 }));
+        return;
+      }
       if (t.closest('[data-orders-refresh]')) { sync(true).then(() => { if (!loadError) toast('Список заказов обновлён'); }); return; }
       const tgBtn = t.closest('[data-tg]');
       if (tgBtn) { telegram(tgBtn.dataset.tg, tgBtn); return; }
@@ -763,7 +1033,12 @@ FS.views.admin = (function () {
       if (conf) {
         const action = conf.dataset.confirm;
         confirmButton(conf, 'Нажмите ещё раз для подтверждения', () => {
-          if (action === 'reset-catalog') { FS.api.resetCatalog(); toast('Исходный каталог восстановлен'); }
+          if (action === 'reset-catalog') {
+            Promise.resolve(FS.api.resetCatalog())
+              .then(() => { toast('Исходный каталог восстановлен'); renderBody(); })
+              .catch((err) => toast(`Каталог не восстановлен: ${err.message}`));
+            return;
+          }
           if (action === 'clear-orders') {
             FS.api.clearOrders()
               .then(() => { toast('Все заказы удалены'); renderBody(); })
@@ -787,9 +1062,11 @@ FS.views.admin = (function () {
         let list;
         try { list = JSON.parse($('#import-json', el).value); } catch (err) { out.textContent = 'Это не JSON. Проверьте, что текст скопирован целиком.'; return; }
         if (!validCatalog(list)) { out.textContent = 'Формат не подходит: нужен список товаров с полями id, name, brand, volumes и notes, как в экспорте.'; return; }
-        if (!FS.api.replaceCatalog(list)) { out.textContent = 'Каталог применён, но браузер не сохранил его: закончилось место в хранилище.'; return; }
-        toast(`Каталог загружен: ${list.length} ${plural(list.length, 'товар', 'товара', 'товаров')}`);
-        renderBody();
+        Promise.resolve(FS.api.replaceCatalog(list)).then((ok) => {
+          if (ok === false) { out.textContent = 'Каталог применён, но браузер не сохранил его: закончилось место в хранилище.'; return; }
+          toast(`Каталог загружен: ${list.length} ${plural(list.length, 'товар', 'товара', 'товаров')}`);
+          renderBody();
+        }).catch((err) => { out.textContent = `Каталог не загружен: ${err.message}`; });
       }
     }, { signal });
 
@@ -801,6 +1078,12 @@ FS.views.admin = (function () {
         rerenderOrderKeepOpen(o.number);
         return;
       }
+      if (t.dataset.orderPaid) {
+        const v = t.value.trim();
+        const o = FS.api.updateOrder(t.dataset.orderPaid, { paidAmount: v ? Number(v) : null }, { error: saveFailed, saved: () => toast(`Заказ ${t.dataset.orderPaid}: сумма оплаты сохранена`) });
+        if (!o) toast('Заказ не найден');
+        return;
+      }
       if (t.dataset.orderPayment) {
         const o = FS.api.updateOrder(t.dataset.orderPayment, { paymentStatus: t.value }, { error: saveFailed, saved: customerToast });
         toast(`Заказ ${o.number}: ${o.paymentStatus === 'paid' ? 'отмечен как оплаченный' : 'отмечен как неоплаченный'}`);
@@ -808,9 +1091,16 @@ FS.views.admin = (function () {
         return;
       }
       if (t.id === 'product-category') { productFilter.category = t.value; renderBody(); return; }
+      if (t.matches('[data-import-file]') && t.files && t.files[0]) { startImport(t.files[0]); return; }
+      if (t.matches('[data-photos]') && t.files && t.files.length) { uploadPhotos(t.files); return; }
       if (t.matches('[data-photo-input]') && t.files && t.files[0]) {
         const err = t.closest('.photo-actions').querySelector('[data-photo-error]');
-        loadPhoto(t.files[0]).then((url) => {
+        const file = t.files[0];
+        // С сервером фото загружается туда, без сервера хранится в браузере.
+        const upload = canPhotos()
+          ? (() => { readEditor(); const name = `${draft.id || FS.importer.slug(`${draft.brand} ${draft.name}`) || 'product'}.jpg`; return sendPhoto(file, name).then((r) => { draft.photo = r.name; return r.url; }); })()
+          : loadPhoto(file);
+        upload.then((url) => {
           readEditor();
           draft.image = url;
           t.closest('fieldset').innerHTML = '<legend>Фото</legend>' + photoBlock();
@@ -821,10 +1111,11 @@ FS.views.admin = (function () {
     let timer = null;
     el.addEventListener('input', (e) => {
       const t = e.target;
-      if (t.id !== 'order-search' && t.id !== 'product-search') return;
+      if (t.id !== 'order-search' && t.id !== 'product-search' && t.id !== 'client-search') return;
       clearTimeout(timer);
       timer = setTimeout(() => {
         if (t.id === 'order-search') orderFilter.q = t.value;
+        else if (t.id === 'client-search') clientQ = t.value;
         else productFilter.q = t.value;
         const pos = t.selectionStart;
         renderBody();
@@ -841,12 +1132,13 @@ FS.views.admin = (function () {
 
     if (!FS.backend.known()) {
       // Сервер ещё не ответил: дорисуем, когда станет ясно, в каком режиме работаем.
-      FS.backend.status().then(() => { if (document.contains(el)) { el.innerHTML = render(route); sync(); if (route.tab === 'data') telegram('reload'); } });
+      FS.backend.status().then(() => { if (document.contains(el)) { el.innerHTML = render(route); sync(); if (route.tab === 'data') telegram('reload'); if (route.tab === 'clients') { loadClients(); telegram('reload'); } } });
       return;
     }
     if (serverMode() && authed()) {
       sync();
       if (route.tab === 'data') telegram('reload');
+      if (route.tab === 'clients' && serverInfo().storage) { loadClients(); telegram('reload'); }
       // Новые заказы появляются без перезагрузки страницы.
       const timer = setInterval(() => { if (!document.hidden) sync(); }, 60000);
       if (signal) signal.addEventListener('abort', () => clearInterval(timer));

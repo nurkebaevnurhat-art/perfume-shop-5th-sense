@@ -42,8 +42,18 @@ function build(input, shop) {
   const lines = Array.isArray(body.items) ? body.items.slice(0, MAX_LINES) : [];
   if (!lines.length) throw bad('Корзина пуста');
   const merged = new Map();
+  const fullCfg = shop.config.fullBottle;
   lines.forEach((l) => {
     const p = shop.products.get(String(l && l.id));
+    // Полноразмерный флакон (ml: 0): без цены, её подтверждает менеджер у оптовика.
+    if (p && Number(l.ml) === 0 && fullCfg && fullCfg.enabled && p.type !== 'set' && p.full !== false) {
+      const qty = Math.floor(Number(l.qty));
+      if (!(qty >= 1)) throw bad('Проверьте количество товаров');
+      const key = `${p.id}|0`;
+      const prev = merged.get(key);
+      merged.set(key, { id: p.id, name: p.name, brand: p.brand, ml: 0, full: true, fullMl: p.fullMl || null, qty: Math.min(MAX_QTY, (prev ? prev.qty : 0) + qty), price: null });
+      return;
+    }
     const v = p && p.volumes.find((x) => x.ml === Number(l.ml));
     if (!v) throw bad(`Товара «${text(l && l.name, 80) || 'из корзины'}» больше нет в каталоге. Обновите страницу и проверьте корзину.`);
     const qty = Math.floor(Number(l.qty));
@@ -53,7 +63,7 @@ function build(input, shop) {
     merged.set(key, { id: p.id, name: p.name, brand: p.brand, ml: v.ml, qty: Math.min(MAX_QTY, (prev ? prev.qty : 0) + qty), price: v.price });
   });
   const items = [...merged.values()];
-  const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
+  const subtotal = items.reduce((s, i) => s + (i.price || 0) * i.qty, 0);
   const shipping = delivery.price(subtotal);
 
   return {
@@ -66,7 +76,8 @@ function build(input, shop) {
     consent: { offer: true, privacy: true, at: new Date().toISOString() },
     subtotal,
     shipping: shipping == null ? null : shipping,
-    total: subtotal + (shipping || 0)
+    total: subtotal + (shipping || 0),
+    ...(items.some((i) => i.full) ? { fullBottle: true } : {})
   };
 }
 
@@ -76,6 +87,13 @@ function patch(order, input) {
   if (body.status !== undefined) {
     if (!STATUSES.includes(body.status)) throw bad('Неизвестный статус');
     next.status = body.status;
+  }
+  // Сколько клиент реально заплатил (с флаконом и доставкой) — для подарков за покупки.
+  if (body.paidAmount !== undefined) {
+    const v = Math.round(Number(body.paidAmount));
+    if (body.paidAmount === null || body.paidAmount === '') delete next.paidAmount;
+    else if (v > 0) next.paidAmount = v;
+    else throw bad('Сумма оплаты должна быть больше нуля');
   }
   if (body.paymentStatus !== undefined) {
     if (!PAYMENT_STATUSES.includes(body.paymentStatus)) throw bad('Неизвестный статус оплаты');
@@ -94,18 +112,23 @@ function message(o, shop, adminUrl) {
   const cur = shop.config.currency;
   const c = o.customer;
   const ship = o.shipping === null ? 'рассчитает менеджер' : o.shipping === 0 ? 'бесплатно' : money(o.shipping, cur);
+  const fullItems = o.items.filter((i) => i.full);
+  const itemLine = (i) => (i.full
+    ? `• 🧴 <b>ПОЛНОРАЗМЕРНЫЙ ФЛАКОН</b>${i.fullMl ? ` ${i.fullMl} мл` : ''}: ${escape(i.brand)} ${escape(i.name)} × ${i.qty} — цена по запросу`
+    : `• ${escape(i.brand)} ${escape(i.name)}, ${i.ml} мл (распив) × ${i.qty} — ${money(i.price * i.qty, cur)}`);
   const rows = [
     `${o.test ? '🧪 <b>Тестовый заказ</b> ' : '🛍 <b>Новый заказ</b> '}<b>${escape(o.number)}</b>`,
+    ...(fullItems.length ? ['', '🧴 <b>В заказе полноразмерный флакон.</b> Узнайте цену и срок у оптового поставщика и подтвердите покупателю.'] : []),
     '',
     `<b>${escape(c.firstName)} ${escape(c.lastName)}</b>`,
     `📞 ${escape(c.phone)}`,
     `✉️ ${escape(c.email)}`,
     '',
-    ...o.items.map((i) => `• ${escape(i.brand)} ${escape(i.name)}, ${i.ml} мл × ${i.qty} — ${money(i.price * i.qty, cur)}`),
+    ...o.items.map(itemLine),
     '',
     `Товары: ${money(o.subtotal, cur)}`,
     `Доставка: ${ship}`,
-    `<b>Итого: ${money(o.total, cur)}</b>`,
+    `<b>Итого: ${money(o.total, cur)}</b>${fullItems.length ? ' + флакон по запросу' : ''}${o.shipping === null ? ' + доставка' : ''}`,
     '',
     `🚚 ${escape(o.delivery.name)}${o.delivery.id === 'pickup' ? '' : `\n📍 ${escape(c.city)}, ${escape(c.address)}`}`,
     `💳 ${escape(o.payment.name)}`
