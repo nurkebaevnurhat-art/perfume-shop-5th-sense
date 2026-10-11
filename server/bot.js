@@ -245,7 +245,7 @@ async function staffCommand(msg, name, args, shop) {
   const p = parsePurchase(args);
   const phone = loyalty.phoneKey(p.phone);
   if (phone && p.amount) return recordPurchase(msg.chat.id, who, s, showGifts, { phone, amount: p.amount, note: p.note });
-  // Не всё указано — спрашиваем по шагам: номер → сумма → что купили.
+  // Не всё указано — спрашиваем по шагам: номер → сумма.
   return askStep(msg.chat.id, phone ? { step: 'amount', phone } : { step: 'phone' }, s, showGifts);
 }
 
@@ -257,16 +257,15 @@ const replyUi = (placeholder) => ({ reply_markup: { force_reply: true, input_fie
 async function askStep(chatId, state, s, showGifts) {
   await db.put(buyKey(chatId), state, BUY_TTL);
   const cancel = '\n<i>Отменить: /cancel</i>';
-  if (state.step === 'phone') return html(chatId, `🧾 <b>Запись покупки</b>\nШаг 1 из 3. Номер телефона клиента?${cancel}`, replyUi('+7 701 123 45 67'));
+  if (state.step === 'phone') return html(chatId, `🧾 <b>Запись покупки</b>\nШаг 1 из 2. Номер телефона клиента?${cancel}`, replyUi('+7 701 123 45 67'));
   if (state.step === 'amount') {
     const c = await loyalty.getClient(state.phone);
     const st = loyalty.status(c, s);
     const info = c && c.purchases.length
       ? `${escape(c.name || 'Клиент')}: покупок ${st.count}.${st.nextIsGift ? (showGifts ? ` 🎁 Эта покупка — с подарком: ${escape(st.nextGift)}.` : ' 🎁 Эта покупка — с подарком.') : ''}`
       : 'Новый клиент: покупок пока нет.';
-    return html(chatId, `${info}\nШаг 2 из 3. Сумма покупки, ₸?${cancel}`, replyUi('45000'));
+    return html(chatId, `${info}\nШаг 2 из 2. Сумма покупки, ₸?${cancel}`, replyUi('45000'));
   }
-  return html(chatId, `Шаг 3 из 3. Что купили? Например «Baccarat 10 мл». Если не нужно — отправьте «-».${cancel}`, replyUi('Baccarat 10 мл'));
 }
 
 // Ответ сотрудника на очередной вопрос бота. true — сообщение относилось к записи покупки.
@@ -293,14 +292,13 @@ async function continueBuy(msg) {
     const amount = parsePurchase(`0000000000 ${text}`).amount;
     // Номер телефона вместо суммы или явно лишние цифры — переспрашиваем.
     if (!(Number(amount) > 0) || Number(amount) > 50000000) { await html(msg.chat.id, 'Напишите сумму числом, например 45000.', replyUi('45000')); return true; }
-    await askStep(msg.chat.id, { ...state, step: 'note', amount }, s, showGifts);
+    await db.command('DEL', buyKey(msg.chat.id));
+    const who = [msg.from && msg.from.first_name, msg.from && msg.from.last_name].filter(Boolean).join(' ') || 'сотрудник';
+    await recordPurchase(msg.chat.id, who, s, showGifts, { phone: state.phone, amount, note: '' });
     return true;
   }
-  await db.command('DEL', buyKey(msg.chat.id));
-  const note = /^(-|—|нет|пропустить|skip)$/i.test(text) ? '' : text;
-  const who = [msg.from && msg.from.first_name, msg.from && msg.from.last_name].filter(Boolean).join(' ') || 'сотрудник';
-  await recordPurchase(msg.chat.id, who, s, showGifts, { phone: state.phone, amount: state.amount, note });
-  return true;
+  await db.command('DEL', buyKey(msg.chat.id)); // устаревшее состояние
+  return false;
 }
 const parseJson = (raw) => { try { return raw ? JSON.parse(raw) : null; } catch (e) { return null; } };
 
