@@ -71,11 +71,14 @@ FS.catalog = (function () {
       try { data = await FS.backend.call('GET', '/api/products'); } catch (e) { return false; }
       if (!data) return false;
       if (!data.products) { // на сервере каталога нет — работаем по data.js
-        if (source !== 'server') return false;
+        if (source === 'file') return false;
+        // Старые демо-правки этого браузера не должны подменять каталог настоящего сайта.
         FS.storage.remove(SERVER_KEY);
+        FS.storage.remove(KEY);
         this.load();
         return true;
       }
+      FS.storage.remove(KEY);
       if (source === 'server' && data.version && data.version === version) return false;
       source = 'server';
       version = data.version;
