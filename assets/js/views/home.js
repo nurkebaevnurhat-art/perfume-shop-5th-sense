@@ -88,12 +88,12 @@ FS.views.home = (function () {
         <div class="index-grid">
           <div class="index-num" aria-hidden="true"><span data-index-num>01</span></div>
           <div class="index-stack" aria-hidden="true">
-            ${featured.map((p, i) => `<a class="stack-item ${i === 0 ? 'is-active' : ''}" href="#product-${p.id}" tabindex="-1" data-stack="${i}" style="--tint:${tint(p)}">${FS.bottle.media(p, { title: '' })}</a>`).join('')}
+            ${featured.map((p, i) => `<a class="stack-item ${i === 0 ? 'is-active' : ''}" href="#product-${p.id}" tabindex="-1" data-stack="${i}" data-cursor="Смотреть" style="--tint:${tint(p)}">${FS.bottle.media(p, { title: '' })}</a>`).join('')}
           </div>
           <ol class="index-list">
             ${featured.map((p, i) => `
               <li class="irow ${i === 0 ? 'is-active' : ''}" data-row="${i}">
-                <a class="irow-img" href="#product-${p.id}" tabindex="-1" aria-hidden="true" style="--tint:${tint(p)}">${FS.bottle.media(p, { title: '' })}</a>
+                <a class="irow-img" href="#product-${p.id}" tabindex="-1" aria-hidden="true" data-cursor="Смотреть" style="--tint:${tint(p)}">${FS.bottle.media(p, { title: '' })}</a>
                 <span class="irow-num">${pad(i + 1)}</span>
                 <span class="irow-brand">${esc(p.brand)}</span>
                 <a class="irow-name" href="#product-${p.id}">${esc(p.name)}</a>
