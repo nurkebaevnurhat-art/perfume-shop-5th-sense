@@ -28,6 +28,7 @@ FS.views.admin = (function () {
   let draft = null; // товар в редакторе
   let importPlan = null; // загруженная таблица до подтверждения
   let priceTool = null; // «Изменить цены»: { brand, pct, plan }
+  let priceEdit = null; // «Править цены»: { edits: Map(id → цена за 1 мл), picked: Set(id) }
 
   /* ---------- Режим ---------- */
   // Сервер с паролем админки: заказы и вход через /api. Иначе — демо в браузере.
@@ -464,11 +465,24 @@ FS.views.admin = (function () {
   }
 
   /* ---------- Товары ---------- */
-  function productsBody() {
+  function productList() {
     const q = productFilter.q.trim().toLowerCase();
     const cat = FS.categories.find((c) => c.id === productFilter.category);
-    const list = FS.products.filter((p) => (!cat || cat.match(p)) && (!q || `${p.name} ${p.brand}`.toLowerCase().includes(q)));
+    return FS.products.filter((p) => (!cat || cat.match(p)) && (!q || `${p.name} ${p.brand}`.toLowerCase().includes(q)));
+  }
+
+  function productsBody() {
+    const list = productList();
+    const pe = priceEdit;
+    const editable = (p) => pe && p.type !== 'set';
     const flags = (p) => [p.niche && 'нишевая', p.bestseller && 'бестселлер', p.isNew && 'новинка', p.featured && 'на витрине'].filter(Boolean).map((f) => `<span class="tag">${f}</span>`).join('');
+    const vols = (p) => `${p.perMl ? `<span class="ptable-perml"><b>1 мл</b> ${money(p.perMl)}</span>` : ''}${p.volumes.map((v) => `<span><b>${esc(volumeLabel(v))}</b> ${money(v.price)} <span class="stock-pill ${v.stock > 2 ? '' : v.stock ? 'is-low' : 'is-out'}">${v.stock} шт.</span></span>`).join('')}`;
+    const editVols = (p) => {
+      const cur = pe.edits.has(p.id) ? pe.edits.get(p.id) : FS.api.perMl(p);
+      return `<label class="perml-edit"><span>Цена за 1 мл, ${esc(FS.config.currency)}</span>
+          <input type="number" min="1" step="1" inputmode="numeric" data-perml="${p.id}" value="${cur}" aria-label="Цена за 1 мл: ${esc(p.brand)} ${esc(p.name)}"></label>
+        <span class="perml-calc" data-calc="${p.id}">${calcText(p, cur)}</span>`;
+    };
     return `
       <div class="admin-toolbar">
         <label class="toolbar-search"><span class="visually-hidden">Поиск товара</span>${FS.ui.icon.search}<input id="product-search" type="search" placeholder="Название или бренд" value="${esc(productFilter.q)}" autocomplete="off"></label>
@@ -478,30 +492,104 @@ FS.views.admin = (function () {
         <a class="btn btn--primary btn--sm" href="#admin-new">Добавить товар</a>
       </div>
       <div class="admin-toolbar admin-toolbar--files">
+        <button class="btn ${pe ? 'btn--primary' : 'btn--outline'} btn--sm" type="button" data-price-edit>${pe ? 'Закончить правку цен' : 'Править цены'}</button>
         <label class="btn btn--outline btn--sm file-btn">Загрузить таблицу<input type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" data-import-file></label>
         <button class="btn btn--outline btn--sm" type="button" data-export-xlsx>Скачать таблицу</button>
         ${canPhotos() ? '<label class="btn btn--outline btn--sm file-btn">Загрузить фото<input type="file" accept="image/*" multiple data-photos></label>' : ''}
         <button class="btn btn--outline btn--sm" type="button" data-price-open>Изменить цены</button>
-        <a class="text-link" href="assets/files/5th-sense-catalog.xlsx" download>Шаблон таблицы</a>
+        <a class="btn btn--outline btn--sm" href="assets/files/5th-sense-catalog.xlsx" download>Шаблон таблицы</a>
       </div>
       ${importPanel()}
       ${pricePanel()}
+      ${pe ? '<p class="co-hint price-edit-hint">Меняйте цену за 1 мл прямо в списке, цены объёмов пересчитаются сами. Отметьте ароматы галочкой (можно нажать на фото), чтобы изменить им цену на одинаковый процент. Ничего не сохранится, пока вы не нажмёте «Сохранить цены».</p>' : ''}
       <p class="result-count">${list.length} ${plural(list.length, 'товар', 'товара', 'товаров')}</p>
-      ${list.length ? `<div class="ptable" role="table" aria-label="Товары">
-        <div class="ptable-row ptable-head" role="row"><span role="columnheader">Фото</span><span role="columnheader">Товар</span><span role="columnheader">Объёмы, цены и остатки</span><span role="columnheader">Действия</span></div>
+      ${list.length ? `<div class="ptable ${pe ? 'ptable--edit' : ''}" role="table" aria-label="Товары">
+        <div class="ptable-row ptable-head" role="row"><span role="columnheader">${pe ? 'Выбор' : 'Фото'}</span><span role="columnheader">Товар</span><span role="columnheader">${pe ? 'Цена за 1 мл и цены объёмов' : 'Объёмы, цены и остатки'}</span><span role="columnheader">Действия</span></div>
         ${list.map((p) => `
-          <div class="ptable-row" role="row">
-            <span class="ptable-thumb" role="cell">${FS.bottle.media(p, { style: 'blueprint' })}</span>
+          <div class="ptable-row ${pe && pe.edits.has(p.id) ? 'is-edited' : ''} ${pe && pe.picked.has(p.id) ? 'is-picked' : ''}" role="row" data-pid="${p.id}">
+            ${editable(p)
+              ? `<label class="ptable-thumb ptable-pick" role="cell"><input type="checkbox" data-pick="${p.id}" ${pe.picked.has(p.id) ? 'checked' : ''} aria-label="Выбрать ${esc(p.brand)} ${esc(p.name)}">${FS.bottle.media(p, { style: 'blueprint' })}</label>`
+              : `<span class="ptable-thumb" role="cell">${FS.bottle.media(p, { style: 'blueprint' })}</span>`}
             <span class="ptable-name" role="cell"><em>${esc(p.brand)}</em><strong>${esc(p.name)}</strong><span class="ptable-flags">${flags(p)}</span></span>
-            <span class="ptable-vols" role="cell">${p.perMl ? `<span class="ptable-perml"><b>1 мл</b> ${money(p.perMl)}</span>` : ''}${p.volumes.map((v) => `<span><b>${esc(volumeLabel(v))}</b> ${money(v.price)} <span class="stock-pill ${v.stock > 2 ? '' : v.stock ? 'is-low' : 'is-out'}">${v.stock} шт.</span></span>`).join('')}</span>
+            <span class="ptable-vols ${editable(p) ? 'ptable-vols--edit' : ''}" role="cell">${editable(p) ? editVols(p) : vols(p)}</span>
             <span class="ptable-actions" role="cell"><a class="btn btn--outline btn--sm" href="#admin-edit-${p.id}">Редактировать</a><a class="link-btn" href="#product-${p.id}">На сайте</a></span>
           </div>`).join('')}
-      </div>` : '<p class="panel-empty">Товары не найдены. Измените запрос или выберите другую коллекцию.</p>'}`;
+      </div>` : '<p class="panel-empty">Товары не найдены. Измените запрос или выберите другую коллекцию.</p>'}
+      ${pe ? priceBar() : ''}`;
+  }
+
+  /* ---------- Править цены: прямо в списке, с галочками ---------- */
+  function calcText(p, perMl) {
+    return Number(perMl) > 0 ? p.volumes.map((v) => `${esc(volumeLabel(v))} ${money(FS.api.priceFor(perMl, v.ml))}`).join(' · ') : 'Укажите цену за 1 мл';
+  }
+
+  function priceBar() {
+    const pe = priceEdit;
+    return `<div class="price-bar" data-price-bar>
+        <div class="price-bar-group">
+          <span class="price-bar-count" data-pick-count>Выбрано: ${pe.picked.size}</span>
+          <button class="link-btn" type="button" data-pick-all>Выбрать найденные</button>
+          <button class="link-btn" type="button" data-pick-none ${pe.picked.size ? '' : 'disabled'}>Снять выбор</button>
+        </div>
+        <form class="price-bar-group price-bar-pct" data-pick-pct novalidate>
+          <label><span class="visually-hidden">На сколько процентов</span><input name="pct" type="text" inputmode="decimal" placeholder="%, напр. 10 или -5" autocomplete="off"></label>
+          <button class="btn btn--outline btn--sm" type="submit" ${pe.picked.size ? '' : 'disabled'}>Применить к выбранным</button>
+        </form>
+        <div class="price-bar-group">
+          <span class="price-bar-count" data-edit-count>Изменено: ${pe.edits.size}</span>
+          <button class="btn btn--primary btn--sm" type="button" data-edits-save ${pe.edits.size ? '' : 'disabled'}>Сохранить цены</button>
+          <button class="btn btn--outline btn--sm" type="button" data-edits-cancel ${pe.edits.size ? '' : 'disabled'}>Отменить</button>
+        </div>
+      </div>`;
+  }
+
+  // Счётчики и кнопки панели без перерисовки списка (чтобы не терять фокус в поле цены).
+  function updatePriceBar() {
+    const pe = priceEdit;
+    const bar = $('[data-price-bar]', root);
+    if (!pe || !bar) return;
+    $('[data-pick-count]', bar).textContent = `Выбрано: ${pe.picked.size}`;
+    $('[data-edit-count]', bar).textContent = `Изменено: ${pe.edits.size}`;
+    $('[data-pick-none]', bar).disabled = !pe.picked.size;
+    $('[data-pick-pct] button', bar).disabled = !pe.picked.size;
+    $('[data-edits-save]', bar).disabled = !pe.edits.size;
+    $('[data-edits-cancel]', bar).disabled = !pe.edits.size;
+  }
+
+  // Новая цена за 1 мл для товара: если совпала с прежней — правки нет.
+  function setEdit(p, value) {
+    const v = Math.round(Number(value));
+    if (v > 0 && v !== FS.api.perMl(p)) priceEdit.edits.set(p.id, v); else priceEdit.edits.delete(p.id);
+  }
+
+  const withPerMl = (p, perMl) => ({ ...p, perMl, volumes: p.volumes.map((v) => ({ ...v, price: FS.api.priceFor(perMl, v.ml) })) });
+
+  async function saveEdits(btn) {
+    const pe = priceEdit;
+    if (!pe || !pe.edits.size) return;
+    const count = pe.edits.size;
+    const list = FS.products.map((p) => (pe.edits.has(p.id) ? withPerMl(p, pe.edits.get(p.id)) : p));
+    btn.disabled = true;
+    btn.textContent = 'Сохраняем…';
+    try {
+      const ok = await Promise.resolve(FS.api.replaceCatalog(list));
+      if (ok === false) throw new Error('браузер не сохранил каталог: закончилось место');
+      priceEdit = { edits: new Map(), picked: new Set() };
+      toast(`Цены сохранены у ${count} ${plural(count, 'аромата', 'ароматов', 'ароматов')}`);
+      renderBody();
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'Сохранить цены';
+      toast(`Цены не сохранены: ${err.message}`, null, { duration: 8000 });
+    }
   }
 
   /* ---------- Изменить цены: все ароматы или один бренд на N % ---------- */
+  // Процент к цене за 1 мл, результат округляется до 10 ₸ (пропорция объёмов сохраняется).
+  const bumpPerMl = (perMl, pct) => Math.max(10, Math.round((perMl * (1 + pct / 100)) / 10) * 10);
+
   function withPercent(p, pct) {
-    const perMl = Math.max(1, Math.round(FS.api.perMl(p) * (1 + pct / 100)));
+    const perMl = bumpPerMl(FS.api.perMl(p), pct);
     return { ...p, perMl, volumes: p.volumes.map((v) => ({ ...v, price: FS.api.priceFor(perMl, v.ml) })) };
   }
 
@@ -525,10 +613,9 @@ FS.views.admin = (function () {
     };
     return `<section class="admin-panel import-panel price-panel">
         <h2>Изменить цены</h2>
-        <p class="co-hint">Цена за 1 мл меняется на указанный процент и округляется до целого тенге, цены всех объёмов пересчитываются по ней. Чтобы снизить цены, напишите минус, например −5.</p>
+        <p class="co-hint">Цена за 1 мл меняется на указанный процент и округляется до 10 ₸, цены всех объёмов пересчитываются по ней. Чтобы снизить цены, напишите минус, например −5.</p>
         <form class="price-form" data-price-form novalidate>
-          <div class="field"><label for="pp-brand">Какие ароматы</label>
-            <select id="pp-brand" name="brand"><option value="">Все ароматы</option>${brands.map((b) => `<option value="${esc(b)}" ${b === priceTool.brand ? 'selected' : ''}>${esc(b)} (${count(b)})</option>`).join('')}</select></div>
+          <div class="field"><span class="field-label" id="pp-brand-label">Какие ароматы</span>${brandPicker(brands, count)}</div>
           <div class="field"><label for="pp-pct">На сколько процентов</label>
             <input id="pp-pct" name="pct" type="text" inputmode="decimal" placeholder="Например 10 или -5" value="${esc(priceTool.pct)}" autocomplete="off">
             <p class="field-error" data-price-error></p></div>
@@ -544,6 +631,32 @@ FS.views.admin = (function () {
           <button class="btn btn--outline btn--sm" type="button" data-price-close>${plan ? 'Отмена' : 'Закрыть'}</button>
         </div>
       </section>`;
+  }
+
+  // Выбор бренда: свой список вместо системного (шрифт сайта, поиск по брендам).
+  function brandPicker(brands, count) {
+    const all = FS.products.filter((p) => p.type !== 'set').length;
+    const cur = priceTool.brand;
+    const opt = (value, name, n) => `<li><button class="brand-opt ${value === cur ? 'is-selected' : ''}" type="button" role="option" aria-selected="${value === cur}" data-brand-opt="${esc(value)}"><span class="brand-opt-name">${esc(name)}</span><span class="brand-opt-count">${n}</span></button></li>`;
+    return `<div class="brand-pick" data-brand-pick>
+        <input type="hidden" name="brand" value="${esc(cur)}">
+        <button class="brand-pick-btn" id="pp-brand" type="button" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="pp-brand-label pp-brand" data-brand-toggle><span data-brand-current>${esc(cur || 'Все ароматы')}</span></button>
+        <div class="brand-pick-pop" hidden>
+          <label class="brand-pick-search"><span class="visually-hidden">Найти бренд</span>${FS.ui.icon.search}<input type="search" placeholder="Найти бренд" autocomplete="off" data-brand-filter></label>
+          <ul class="brand-pick-list" role="listbox" aria-labelledby="pp-brand-label">
+            ${opt('', 'Все ароматы', all)}
+            ${brands.map((b) => opt(b, b, count(b))).join('')}
+          </ul>
+          <p class="brand-pick-empty" hidden>Бренд не найден</p>
+        </div>
+      </div>`;
+  }
+
+  function closeBrandPicker(pick, focusButton) {
+    if (!pick) return;
+    $('.brand-pick-pop', pick).hidden = true;
+    $('[data-brand-toggle]', pick).setAttribute('aria-expanded', 'false');
+    if (focusButton) $('[data-brand-toggle]', pick).focus();
   }
 
   async function applyPrices(btn) {
@@ -1024,6 +1137,28 @@ FS.views.admin = (function () {
         if (data) toast('Правила подарков сохранены');
         return;
       }
+      if (e.target.matches('[data-pick-pct]')) {
+        e.preventDefault();
+        const input = e.target.elements.pct;
+        const raw = input.value.trim().replace(',', '.').replace(/[−–—]/g, '-').replace(/[%\s]/g, '');
+        const pct = Number(raw);
+        if (!raw || !Number.isFinite(pct) || pct === 0 || pct <= -90 || pct > 300) {
+          toast('Напишите процент числом, например 10 или -5.');
+          input.focus();
+          return;
+        }
+        let n = 0;
+        priceEdit.picked.forEach((id) => {
+          const p = FS.api.productSync(id);
+          if (!p) return;
+          const base = priceEdit.edits.has(id) ? priceEdit.edits.get(id) : FS.api.perMl(p);
+          setEdit(p, bumpPerMl(base, pct));
+          n++;
+        });
+        renderBody();
+        toast(`Цена за 1 мл изменена у ${n} ${plural(n, 'аромата', 'ароматов', 'ароматов')} на ${pct > 0 ? '+' : ''}${pct}%. Проверьте и нажмите «Сохранить цены».`);
+        return;
+      }
       if (e.target.matches('[data-price-form]')) {
         e.preventDefault();
         const f = e.target;
@@ -1069,6 +1204,48 @@ FS.views.admin = (function () {
       if (t.closest('[data-admin-logout]')) { setAuthed(false); toast('Вы вышли из админ-панели'); FS.app.go('admin'); return; }
       if (t.closest('[data-test-order]')) { testOrder(); return; }
       if (t.closest('[data-import-cancel]')) { importPlan = null; renderBody(); return; }
+      // Список брендов в «Изменить цены».
+      const openPick = $('[data-brand-pick] .brand-pick-pop:not([hidden])', el);
+      if (openPick && !t.closest('[data-brand-pick]')) closeBrandPicker(openPick.closest('[data-brand-pick]'));
+      const toggle = t.closest('[data-brand-toggle]');
+      if (toggle) {
+        const pick = toggle.closest('[data-brand-pick]');
+        const pop = $('.brand-pick-pop', pick);
+        if (!pop.hidden) { closeBrandPicker(pick); return; }
+        pop.hidden = false;
+        toggle.setAttribute('aria-expanded', 'true');
+        const filter = $('[data-brand-filter]', pick);
+        filter.value = '';
+        filter.dispatchEvent(new Event('input', { bubbles: true }));
+        filter.focus();
+        const sel = $('.brand-opt.is-selected', pick);
+        if (sel) sel.scrollIntoView({ block: 'nearest' });
+        return;
+      }
+      const brandOpt = t.closest('[data-brand-opt]');
+      if (brandOpt) {
+        const pick = brandOpt.closest('[data-brand-pick]');
+        const value = brandOpt.dataset.brandOpt;
+        $('input[name="brand"]', pick).value = value;
+        $('[data-brand-current]', pick).textContent = value || 'Все ароматы';
+        $$('.brand-opt', pick).forEach((b) => { const on = b === brandOpt; b.classList.toggle('is-selected', on); b.setAttribute('aria-selected', String(on)); });
+        if (priceTool) { priceTool.brand = value; }
+        closeBrandPicker(pick, true);
+        return;
+      }
+      const peBtn = t.closest('[data-price-edit]');
+      if (peBtn) {
+        if (!priceEdit) { priceEdit = { edits: new Map(), picked: new Set() }; renderBody(); return; }
+        const leave = () => { priceEdit = null; renderBody(); };
+        if (priceEdit.edits.size) confirmButton(peBtn, 'Выйти без сохранения?', leave); else leave();
+        return;
+      }
+      if (priceEdit && t.closest('[data-pick-all]')) { productList().forEach((p) => { if (p.type !== 'set') priceEdit.picked.add(p.id); }); renderBody(); return; }
+      if (priceEdit && t.closest('[data-pick-none]')) { priceEdit.picked.clear(); renderBody(); return; }
+      const cancelEdits = t.closest('[data-edits-cancel]');
+      if (priceEdit && cancelEdits) { confirmButton(cancelEdits, 'Точно отменить?', () => { priceEdit.edits.clear(); renderBody(); }); return; }
+      const saveBtn = t.closest('[data-edits-save]');
+      if (priceEdit && saveBtn) { saveEdits(saveBtn); return; }
       if (t.closest('[data-price-open]')) { priceTool = priceTool || { brand: '', pct: '', plan: null }; renderBody(); $('#pp-pct', el).focus(); return; }
       if (t.closest('[data-price-close]')) { priceTool = null; renderBody(); return; }
       const priceApply = t.closest('[data-price-apply]');
@@ -1170,6 +1347,13 @@ FS.views.admin = (function () {
 
     el.addEventListener('change', (e) => {
       const t = e.target;
+      if (t.dataset.pick && priceEdit) {
+        if (t.checked) priceEdit.picked.add(t.dataset.pick); else priceEdit.picked.delete(t.dataset.pick);
+        const row = t.closest('.ptable-row');
+        if (row) row.classList.toggle('is-picked', t.checked);
+        updatePriceBar();
+        return;
+      }
       if (t.dataset.orderStatus) {
         const o = FS.api.updateOrder(t.dataset.orderStatus, { status: t.value }, { error: saveFailed, saved: customerToast });
         toast(`Заказ ${o.number}: ${statusName(o.status).toLowerCase()}${o.status === 'cancelled' && !serverMode() ? ', товар вернулся на склад' : ''}`);
@@ -1206,9 +1390,46 @@ FS.views.admin = (function () {
       }
     }, { signal });
 
+    // Список брендов: Esc закрывает, стрелки ходят по вариантам, Enter в поиске выбирает первый.
+    el.addEventListener('keydown', (e) => {
+      const pick = e.target.closest && e.target.closest('[data-brand-pick]');
+      if (!pick || $('.brand-pick-pop', pick).hidden) return;
+      const opts = $$('.brand-pick-list li:not([hidden]) .brand-opt', pick);
+      const i = opts.indexOf(e.target);
+      if (e.key === 'Escape') { e.preventDefault(); closeBrandPicker(pick, true); return; }
+      if (e.key === 'ArrowDown') { e.preventDefault(); (opts[i + 1] || opts[0] || e.target).focus(); return; }
+      if (e.key === 'ArrowUp') { e.preventDefault(); if (i <= 0) $('[data-brand-filter]', pick).focus(); else opts[i - 1].focus(); return; }
+      if (e.key === 'Enter' && e.target.matches('[data-brand-filter]')) { e.preventDefault(); if (opts[0]) opts[0].click(); }
+    }, { signal });
+
     let timer = null;
     el.addEventListener('input', (e) => {
       const t = e.target;
+      if (t.matches('[data-brand-filter]')) {
+        const pick = t.closest('[data-brand-pick]');
+        const q = t.value.trim().toLowerCase();
+        let shown = 0;
+        $$('.brand-pick-list li', pick).forEach((li) => {
+          const name = li.textContent.toLowerCase();
+          const ok = !q || name.includes(q);
+          li.hidden = !ok;
+          if (ok) shown++;
+        });
+        $('.brand-pick-empty', pick).hidden = shown > 0;
+        return;
+      }
+      // «Править цены»: новая цена за 1 мл в списке.
+      if (t.dataset.perml && priceEdit) {
+        const p = FS.api.productSync(t.dataset.perml);
+        if (!p) return;
+        setEdit(p, t.value);
+        const row = t.closest('.ptable-row');
+        if (row) row.classList.toggle('is-edited', priceEdit.edits.has(p.id));
+        const calc = $(`[data-calc="${p.id}"]`, el);
+        if (calc) calc.innerHTML = calcText(p, t.value);
+        updatePriceBar();
+        return;
+      }
       // Редактор: цена за 1 мл или объём изменились — пересчитываем цены объёмов.
       if (t.id === 'pe-perMl' || (t.matches('[data-vol-field="ml"]') && $('#pe-perMl', el))) {
         const perMl = Number($('#pe-perMl', el).value);
