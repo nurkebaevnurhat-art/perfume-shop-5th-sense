@@ -149,6 +149,22 @@ async function syncOrder(before, after) {
   }
 }
 
+/* Номер нового заказа среди покупок клиента. Считаем выполненные покупки
+   и ещё не выполненные заказы с сайта (кроме отменённых), чтобы два заказа
+   подряд не получили один и тот же номер. */
+async function forOrder(order, s) {
+  const c = await getClient(order.customer && order.customer.phone);
+  if (!c) return null;
+  const k = c.phone;
+  const open = (await db.listOrders()).filter((o) => o.number !== order.number && !o.test
+    && !['done', 'cancelled'].includes(o.status) && phoneKey(o.customer && o.customer.phone) === k
+    && String(o.createdAt) <= String(order.createdAt));
+  const list = c.purchases.concat(open.map((o) => ({ amount: Number(o.paidAmount || o.total) || 0, date: o.createdAt, order: o.number })))
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const st = status({ purchases: list }, s);
+  return { ...st, done: c.purchases.length, open: open.length };
+}
+
 // Один раз переносим уже выполненные заказы в историю клиентов.
 async function ensureInit() {
   if (!db.configured() || !(await db.once(INIT, 10 * 365 * 86400))) return;
@@ -169,4 +185,4 @@ async function list() {
   return clients.sort((a, b) => String(b.purchases.at(-1).date).localeCompare(String(a.purchases.at(-1).date)));
 }
 
-module.exports = { phoneKey, prettyPhone, settings, saveSettings, getClient, status, addPurchase, removePurchase, syncOrder, ensureInit, list, DEFAULTS };
+module.exports = { phoneKey, prettyPhone, settings, saveSettings, getClient, status, addPurchase, removePurchase, syncOrder, forOrder, ensureInit, list, DEFAULTS };

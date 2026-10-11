@@ -34,10 +34,12 @@ async function recipients() {
   return { source: 'storage', chats: await db.getChats() };
 }
 
+// text — строка или функция (чат) → текст для этого чата, если чатам нужен разный текст.
 async function send(text) {
   if (!configured()) return { sent: 0, failed: 0 };
   const { chats } = await recipients();
-  const results = await Promise.allSettled(chats.map((c) => call('sendMessage', { chat_id: c.id, text, parse_mode: 'HTML', disable_web_page_preview: true })));
+  const textFor = typeof text === 'function' ? text : () => text;
+  const results = await Promise.allSettled(chats.map((c) => call('sendMessage', { chat_id: c.id, text: textFor(c), parse_mode: 'HTML', disable_web_page_preview: true })));
   results.forEach((r) => { if (r.status === 'rejected') console.error(r.reason); });
   const sent = results.filter((r) => r.status === 'fulfilled').length;
   return { sent, failed: results.length - sent };
