@@ -615,8 +615,7 @@ FS.views.admin = (function () {
         <h2>Изменить цены</h2>
         <p class="co-hint">Цена за 1 мл меняется на указанный процент и округляется до 10 ₸, цены всех объёмов пересчитываются по ней. Чтобы снизить цены, напишите минус, например −5.</p>
         <form class="price-form" data-price-form novalidate>
-          <div class="field"><label for="pp-brand">Какие ароматы</label>
-            <select id="pp-brand" name="brand"><option value="">Все ароматы</option>${brands.map((b) => `<option value="${esc(b)}" ${b === priceTool.brand ? 'selected' : ''}>${esc(b)} (${count(b)})</option>`).join('')}</select></div>
+          <div class="field"><span class="field-label" id="pp-brand-label">Какие ароматы</span>${brandPicker(brands, count)}</div>
           <div class="field"><label for="pp-pct">На сколько процентов</label>
             <input id="pp-pct" name="pct" type="text" inputmode="decimal" placeholder="Например 10 или -5" value="${esc(priceTool.pct)}" autocomplete="off">
             <p class="field-error" data-price-error></p></div>
@@ -632,6 +631,32 @@ FS.views.admin = (function () {
           <button class="btn btn--outline btn--sm" type="button" data-price-close>${plan ? 'Отмена' : 'Закрыть'}</button>
         </div>
       </section>`;
+  }
+
+  // Выбор бренда: свой список вместо системного (шрифт сайта, поиск по брендам).
+  function brandPicker(brands, count) {
+    const all = FS.products.filter((p) => p.type !== 'set').length;
+    const cur = priceTool.brand;
+    const opt = (value, name, n) => `<li><button class="brand-opt ${value === cur ? 'is-selected' : ''}" type="button" role="option" aria-selected="${value === cur}" data-brand-opt="${esc(value)}"><span class="brand-opt-name">${esc(name)}</span><span class="brand-opt-count">${n}</span></button></li>`;
+    return `<div class="brand-pick" data-brand-pick>
+        <input type="hidden" name="brand" value="${esc(cur)}">
+        <button class="brand-pick-btn" id="pp-brand" type="button" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="pp-brand-label pp-brand" data-brand-toggle><span data-brand-current>${esc(cur || 'Все ароматы')}</span></button>
+        <div class="brand-pick-pop" hidden>
+          <label class="brand-pick-search"><span class="visually-hidden">Найти бренд</span>${FS.ui.icon.search}<input type="search" placeholder="Найти бренд" autocomplete="off" data-brand-filter></label>
+          <ul class="brand-pick-list" role="listbox" aria-labelledby="pp-brand-label">
+            ${opt('', 'Все ароматы', all)}
+            ${brands.map((b) => opt(b, b, count(b))).join('')}
+          </ul>
+          <p class="brand-pick-empty" hidden>Бренд не найден</p>
+        </div>
+      </div>`;
+  }
+
+  function closeBrandPicker(pick, focusButton) {
+    if (!pick) return;
+    $('.brand-pick-pop', pick).hidden = true;
+    $('[data-brand-toggle]', pick).setAttribute('aria-expanded', 'false');
+    if (focusButton) $('[data-brand-toggle]', pick).focus();
   }
 
   async function applyPrices(btn) {
@@ -1179,6 +1204,35 @@ FS.views.admin = (function () {
       if (t.closest('[data-admin-logout]')) { setAuthed(false); toast('Вы вышли из админ-панели'); FS.app.go('admin'); return; }
       if (t.closest('[data-test-order]')) { testOrder(); return; }
       if (t.closest('[data-import-cancel]')) { importPlan = null; renderBody(); return; }
+      // Список брендов в «Изменить цены».
+      const openPick = $('[data-brand-pick] .brand-pick-pop:not([hidden])', el);
+      if (openPick && !t.closest('[data-brand-pick]')) closeBrandPicker(openPick.closest('[data-brand-pick]'));
+      const toggle = t.closest('[data-brand-toggle]');
+      if (toggle) {
+        const pick = toggle.closest('[data-brand-pick]');
+        const pop = $('.brand-pick-pop', pick);
+        if (!pop.hidden) { closeBrandPicker(pick); return; }
+        pop.hidden = false;
+        toggle.setAttribute('aria-expanded', 'true');
+        const filter = $('[data-brand-filter]', pick);
+        filter.value = '';
+        filter.dispatchEvent(new Event('input', { bubbles: true }));
+        filter.focus();
+        const sel = $('.brand-opt.is-selected', pick);
+        if (sel) sel.scrollIntoView({ block: 'nearest' });
+        return;
+      }
+      const brandOpt = t.closest('[data-brand-opt]');
+      if (brandOpt) {
+        const pick = brandOpt.closest('[data-brand-pick]');
+        const value = brandOpt.dataset.brandOpt;
+        $('input[name="brand"]', pick).value = value;
+        $('[data-brand-current]', pick).textContent = value || 'Все ароматы';
+        $$('.brand-opt', pick).forEach((b) => { const on = b === brandOpt; b.classList.toggle('is-selected', on); b.setAttribute('aria-selected', String(on)); });
+        if (priceTool) { priceTool.brand = value; }
+        closeBrandPicker(pick, true);
+        return;
+      }
       const peBtn = t.closest('[data-price-edit]');
       if (peBtn) {
         if (!priceEdit) { priceEdit = { edits: new Map(), picked: new Set() }; renderBody(); return; }
@@ -1336,9 +1390,34 @@ FS.views.admin = (function () {
       }
     }, { signal });
 
+    // Список брендов: Esc закрывает, стрелки ходят по вариантам, Enter в поиске выбирает первый.
+    el.addEventListener('keydown', (e) => {
+      const pick = e.target.closest && e.target.closest('[data-brand-pick]');
+      if (!pick || $('.brand-pick-pop', pick).hidden) return;
+      const opts = $$('.brand-pick-list li:not([hidden]) .brand-opt', pick);
+      const i = opts.indexOf(e.target);
+      if (e.key === 'Escape') { e.preventDefault(); closeBrandPicker(pick, true); return; }
+      if (e.key === 'ArrowDown') { e.preventDefault(); (opts[i + 1] || opts[0] || e.target).focus(); return; }
+      if (e.key === 'ArrowUp') { e.preventDefault(); if (i <= 0) $('[data-brand-filter]', pick).focus(); else opts[i - 1].focus(); return; }
+      if (e.key === 'Enter' && e.target.matches('[data-brand-filter]')) { e.preventDefault(); if (opts[0]) opts[0].click(); }
+    }, { signal });
+
     let timer = null;
     el.addEventListener('input', (e) => {
       const t = e.target;
+      if (t.matches('[data-brand-filter]')) {
+        const pick = t.closest('[data-brand-pick]');
+        const q = t.value.trim().toLowerCase();
+        let shown = 0;
+        $$('.brand-pick-list li', pick).forEach((li) => {
+          const name = li.textContent.toLowerCase();
+          const ok = !q || name.includes(q);
+          li.hidden = !ok;
+          if (ok) shown++;
+        });
+        $('.brand-pick-empty', pick).hidden = shown > 0;
+        return;
+      }
       // «Править цены»: новая цена за 1 мл в списке.
       if (t.dataset.perml && priceEdit) {
         const p = FS.api.productSync(t.dataset.perml);

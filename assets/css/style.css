@@ -1080,6 +1080,26 @@ h1[tabindex="-1"]:focus { outline: none; }
 .import-sum dd { font-family: var(--ff-serif); font-size: 26px; }
 .import-panel p { font-size: 14px; max-width: 90ch; overflow-wrap: anywhere; }
 /* Изменить цены и цена за 1 мл */
+.field-label { display: block; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-soft); }
+.brand-pick { position: relative; }
+.brand-pick-btn { display: flex; align-items: center; width: 100%; min-height: 54px; padding: 8px 40px 8px 14px; border: 1px solid var(--line-strong); background-color: var(--sheet); text-align: left; font-family: var(--ff-serif); font-size: 19px; line-height: 1.2; letter-spacing: 0.01em; color: var(--ink); cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink) 50%), linear-gradient(135deg, var(--ink) 50%, transparent 50%); background-position: calc(100% - 20px) 50%, calc(100% - 15px) 50%; background-size: 5px 5px; background-repeat: no-repeat; }
+.brand-pick-btn:focus-visible { outline: 0; border-color: var(--ink); box-shadow: 0 0 0 3px var(--focus-ring); }
+.brand-pick-btn[aria-expanded="true"] { border-color: var(--ink); }
+.brand-pick-pop { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 20; display: grid; background: var(--sheet); border: 1px solid var(--line-strong); box-shadow: 0 18px 40px rgba(0, 0, 0, 0.12); }
+.brand-pick-pop[hidden] { display: none; }
+.brand-pick-search { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.brand-pick-search svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.4; color: var(--ink-soft); }
+.brand-pick-search input { flex: 1; min-width: 0; padding: 4px 0; border: 0; box-shadow: none; background: transparent; font-size: 15px; color: var(--ink); outline: 0; }
+.field .brand-pick-search input:focus { border: 0; box-shadow: none; }
+.brand-pick-list { list-style: none; margin: 0; padding: 6px 0; max-height: min(340px, 50vh); overflow-y: auto; overscroll-behavior: contain; }
+.brand-opt { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; width: 100%; padding: 9px 16px; border: 0; background: transparent; text-align: left; color: var(--ink); cursor: pointer; }
+.brand-opt-name { font-family: var(--ff-serif); font-size: 19px; line-height: 1.2; letter-spacing: 0.01em; }
+.brand-opt-count { font-size: 12px; letter-spacing: 0.1em; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.brand-opt:hover, .brand-opt:focus-visible { background: var(--paper); outline: 0; }
+.brand-opt.is-selected { box-shadow: inset 2px 0 0 var(--gold); }
+.brand-opt.is-selected .brand-opt-name { color: var(--gold-deep); }
+.brand-pick-empty { margin: 0; padding: 12px 16px 16px; font-size: 14px; color: var(--ink-soft); }
 .ptable-pick { position: relative; cursor: pointer; }
 .ptable-pick input { position: absolute; top: 4px; left: 4px; width: 18px; height: 18px; margin: 0; accent-color: var(--ink); cursor: pointer; }
 .ptable-row.is-picked { background: var(--paper); }
