@@ -304,5 +304,37 @@ FS.importer = (function () {
     XLSX.writeFile(wb, `5th-sense-catalog-${new Date().toISOString().slice(0, 10)}.xlsx`);
   }
 
-  return { read, toProducts, diff, exportFile, slug };
+  /* ---------- Заказы → таблица для учёта ---------- */
+  // Лист «Заказы» — строка на заказ, лист «Позиции» — строка на каждый аромат в заказе.
+  async function exportOrders(orders, fileName, names) {
+    const XLSX = await lib();
+    const date = (s) => { const d = new Date(s); return Number.isNaN(d) ? '' : d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); };
+    const who = (o) => `${o.customer.firstName || ''} ${o.customer.lastName || ''}`.trim();
+    const sorted = orders.slice().sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+    const head = ['Номер', 'Дата', 'Статус', 'Оплата', 'Покупатель', 'Телефон', 'Email', 'Состав', 'Товары, ₸', 'Доставка, ₸', 'Итого, ₸', 'Оплачено, ₸', 'Доставка', 'Адрес', 'Способ оплаты', 'Комментарий', 'Тест'];
+    const rows = [head].concat(sorted.map((o) => [
+      o.number, date(o.createdAt), names.status(o.status), o.paymentStatus === 'paid' ? 'Оплачен' : 'Не оплачен',
+      who(o), o.customer.phone || '', o.customer.email || '',
+      o.items.map((i) => (i.full ? `${i.brand} ${i.name} — полноразмерный флакон × ${i.qty}` : `${i.brand} ${i.name} ${i.ml} мл × ${i.qty}`)).join('; '),
+      o.subtotal, o.shipping === null || o.shipping === undefined ? '' : o.shipping, o.total, o.paidAmount || '',
+      (o.delivery && o.delivery.name) || '', o.delivery && o.delivery.id === 'pickup' ? '' : [o.customer.city, o.customer.address].filter(Boolean).join(', '),
+      (o.payment && o.payment.name) || '', o.comment || '', o.test ? 'да' : ''
+    ]));
+    const items = [['Номер заказа', 'Дата', 'Статус', 'Бренд', 'Аромат', 'Объём', 'Кол-во', 'Цена, ₸', 'Сумма, ₸']];
+    sorted.forEach((o) => o.items.forEach((i) => items.push([
+      o.number, date(o.createdAt), names.status(o.status), i.brand, i.name,
+      i.full ? `флакон${i.fullMl ? ` ${i.fullMl} мл` : ''}` : `${i.ml} мл`, i.qty,
+      i.full ? '' : i.price, i.full ? 'по запросу' : i.price * i.qty
+    ])));
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [10, 16, 18, 11, 22, 15, 22, 60, 11, 11, 11, 11, 24, 32, 26, 30, 6].map((w) => ({ wch: w }));
+    XLSX.utils.book_append_sheet(wb, ws, 'Заказы');
+    const wi = XLSX.utils.aoa_to_sheet(items);
+    wi['!cols'] = [12, 16, 18, 22, 28, 12, 7, 10, 11].map((w) => ({ wch: w }));
+    XLSX.utils.book_append_sheet(wb, wi, 'Позиции');
+    XLSX.writeFile(wb, fileName);
+  }
+
+  return { read, toProducts, diff, exportFile, exportOrders, slug };
 })();
