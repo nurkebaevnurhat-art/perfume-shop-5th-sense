@@ -33,8 +33,8 @@ FS.views.product = (function () {
   function stockText(v) {
     if (v.full) return { cls: 'is-in', text: FS.config.fullBottle.note };
     if (v.stock <= 0) return { cls: 'is-out', text: 'Нет в наличии. Оставьте заявку по телефону, и мы сообщим о поступлении.' };
-    if (v.stock <= 2) return { cls: 'is-low', text: `В наличии, осталось ${v.stock} шт.` };
-    return { cls: 'is-in', text: 'В наличии в бутике и на складе' };
+    if (v.stock <= 2) return { cls: 'is-low', text: `Осталось ${v.stock} шт.` };
+    return null; // в наличии — без лишней строки
   }
 
   function stage(view) {
@@ -53,7 +53,7 @@ FS.views.product = (function () {
         <span class="price price--lg">${v.full ? 'Цена по запросу' : money(v.price)}</span>
         <span class="buy-vol">${esc(volumeLabel(v))}${v.full && v.fullMl ? `, ${v.fullMl} мл` : ''}</span>
       </div>
-      <p class="stock ${s.cls}"><span class="stock-dot" aria-hidden="true"></span>${s.text}</p>
+      ${s ? `<p class="stock ${s.cls}"><span class="stock-dot" aria-hidden="true"></span>${s.text}</p>` : ''}
       <div class="buy-row">
         ${stepper(qty, max, 'data-qty', product.name)}
         <button class="fav-btn fav-btn--inline ${FS.store.isFavorite(product.id) ? 'is-on' : ''}" type="button" data-fav="${product.id}" aria-pressed="${FS.store.isFavorite(product.id)}" aria-label="В избранное: ${esc(product.name)}">${icon.heart}</button>
@@ -135,7 +135,6 @@ FS.views.product = (function () {
 
             <ul class="perks">
               <li>Доставка курьером по городу в день заказа</li>
-              <li>Пробник в подарок к каждому заказу</li>
               <li>Фирменная упаковка бутика</li>
             </ul>
           </div>
