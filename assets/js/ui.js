@@ -87,12 +87,9 @@ FS.ui = (function () {
         </div>
       </div>`;
 
-    const menuItems = [{ href: '#catalog', name: 'Вся коллекция', id: null }].concat(FS.categories.map((c) => ({ href: `#catalog-${c.id}`, name: c.name, id: c.id })));
-    const preview = (item) => {
-      const list = item.id ? FS.products.filter(FS.categories.find((c) => c.id === item.id).match) : FS.products;
-      const p = list.find((x) => x.image) || list[0];
-      return p ? `<span class="menu-shot" style="--tint:${tint(p)}">${FS.bottle.media(p, { title: '' })}</span>` : '';
-    };
+    const menuItems = [{ href: '#catalog', name: 'Вся коллекция' }]
+      .concat(FS.categories.map((c) => ({ href: `#catalog-${c.id}`, name: c.name })))
+      .concat({ href: '#delivery', name: 'Доставка и оплата' });
     $('#site-menu').innerHTML = `
       <div class="menu-panel" role="dialog" aria-modal="true" aria-label="Меню">
         <div class="menu-top">
@@ -101,25 +98,19 @@ FS.ui = (function () {
         </div>
         <div class="menu-grid">
           <nav class="menu-links" aria-label="Разделы">
-            ${menuItems.map((m, i) => `<a href="${m.href}" style="--i:${i}" data-menu-shot="${i}"><span class="menu-num">${String(i + 1).padStart(2, '0')}</span><span class="menu-name">${esc(m.name)}</span></a>`).join('')}
+            ${menuItems.map((m, i) => `<a href="${m.href}" style="--i:${i}"><span class="menu-num">${String(i + 1).padStart(2, '0')}</span><span class="menu-name">${esc(m.name)}</span></a>`).join('')}
           </nav>
-          <div class="menu-shots" aria-hidden="true">${menuItems.map((m, i) => `<span class="menu-shot-wrap ${i === 0 ? 'is-on' : ''}" data-shot="${i}">${preview(m)}</span>`).join('')}</div>
+          <div class="menu-logo" aria-hidden="true"><img src="${FS.assetUrl('assets/img/logo-intro.png')}" alt="" width="520" height="962" decoding="async"></div>
         </div>
         <div class="menu-foot">
           <button type="button" data-action="search">Поиск</button>
           <a href="#aromaty">Исследовать ароматы</a>
           <a href="#favorites">Избранное</a>
-          <a href="#delivery">Доставка и оплата</a>
           <a href="#admin">Вход для сотрудников</a>
           <button class="install-btn" type="button" data-action="install">Установить приложение</button>
           <span class="selectable">${esc(FS.config.contacts.phone)}</span>
         </div>
       </div>`;
-    $('#site-menu').addEventListener('pointerover', (e) => {
-      const a = e.target.closest('[data-menu-shot]');
-      if (!a) return;
-      $$('.menu-shot-wrap').forEach((s) => s.classList.toggle('is-on', s.dataset.shot === a.dataset.menuShot));
-    });
 
     FS.ui.refreshHeader = () => FS.motion.refresh();
     updateCounts();

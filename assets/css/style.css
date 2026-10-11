@@ -787,7 +787,7 @@ h1[tabindex="-1"]:focus { outline: none; }
   .hero-cta { grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: flex-start; gap: 22px; }
   .hero-now a { max-width: none; }
   .menu-grid { grid-template-columns: minmax(0, 1fr); }
-  .menu-shots { display: none; }
+  .menu-shots, .menu-logo { display: none; }
   .index-grid { grid-template-columns: minmax(0, 1fr); }
   .index-num, .index-stack { display: none; }
   .irow { min-height: 0; opacity: 1; padding-block: 36px; grid-template-columns: minmax(0, 1fr); }
@@ -1105,3 +1105,8 @@ h1[tabindex="-1"]:focus { outline: none; }
 .volume--full { grid-column: 1 / -1; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .volume--full .volume-ml { font-size: 15px; letter-spacing: 0.08em; white-space: normal; }
 .info h2 { hyphens: auto; overflow-wrap: break-word; }
+
+/* Меню: справа логотип вместо меняющихся фото */
+.menu-logo { justify-self: end; align-self: center; display: grid; place-items: center; width: min(100%, 260px); }
+.menu-logo img { width: 100%; height: auto; max-height: 58vh; object-fit: contain; }
+@media (max-width: 1000px) { .menu-logo { display: none; } }
