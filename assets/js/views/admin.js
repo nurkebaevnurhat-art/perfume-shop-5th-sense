@@ -14,6 +14,7 @@ FS.views.admin = (function () {
   const TABS = [
     { id: 'overview', token: 'admin', name: 'Обзор' },
     { id: 'orders', token: 'admin-orders', name: 'Заказы' },
+    { id: 'clients', token: 'admin-clients', name: 'Клиенты' },
     { id: 'products', token: 'admin-products', name: 'Товары' },
     { id: 'data', token: 'admin-data', name: 'Данные' }
   ];
@@ -187,7 +188,13 @@ FS.views.admin = (function () {
             <label class="field"><span>Оплата</span>
               <select data-order-payment="${esc(o.number)}">${FS.api.PAYMENT_STATUSES.map((s) => `<option value="${s.id}" ${s.id === o.paymentStatus ? 'selected' : ''}>${s.name}</option>`).join('')}</select>
             </label>
+            ${serverMode() ? `<label class="field"><span>Оплачено, ${esc(FS.config.currency)}</span>
+              <input type="number" min="0" step="1" inputmode="numeric" data-order-paid="${esc(o.number)}" value="${o.paidAmount || ''}" placeholder="${o.total}">
+            </label>` : ''}
           </div>
+          ${o.loyalty ? `<p class="order-loyalty">${o.loyalty.gift
+    ? `🎁 <b>${o.loyalty.nextNumber}-я покупка клиента — положен подарок: ${esc(o.loyalty.gift)}</b>`
+    : `Клиент: ${o.loyalty.count} ${plural(o.loyalty.count, 'покупка', 'покупки', 'покупок')} до этого заказа`}. Сумма для подарков — «Оплачено» (если пусто, берётся итог заказа), засчитывается при статусе «Выполнен».</p>` : ''}
           <div class="order-grid">
             <div><h3>Состав</h3><ul class="order-items">${items}</ul>
               <dl class="order-sums"><div><dt>Товары</dt><dd>${money(o.subtotal)}</dd></div><div><dt>Доставка</dt><dd>${o.shipping === null ? 'рассчитает менеджер' : o.shipping === 0 ? 'бесплатно' : money(o.shipping)}</dd></div><div><dt>Итого</dt><dd>${money(o.total)}</dd></div></dl>
@@ -341,6 +348,118 @@ FS.views.admin = (function () {
   async function sendPhoto(file, name) {
     const dataUrl = await loadPhoto(file, 1200);
     return FS.backend.call('POST', '/api/image', { name, type: 'image/jpeg', data: dataUrl.split(',')[1] }, { auth: true });
+  }
+
+  /* ---------- Клиенты: подарки за покупки ---------- */
+  let loyaltyData = null; // { settings, clients }
+  let loyaltyError = '';
+  let clientQ = '';
+  const SOURCES = [['boutique', 'Бутик'], ['instagram', 'Instagram'], ['whatsapp', 'WhatsApp'], ['phone', 'Звонок'], ['site', 'Сайт'], ['other', 'Другое']];
+  const sourceName = (id) => (SOURCES.find((x) => x[0] === id) || [id, id])[1];
+  const prettyPhone = (k) => (k && k.length === 11 ? `+${k[0]} ${k.slice(1, 4)} ${k.slice(4, 7)} ${k.slice(7, 9)} ${k.slice(9)}` : `+${k}`);
+
+  async function loadClients() {
+    try {
+      loyaltyData = await FS.backend.call('GET', '/api/loyalty', null, { auth: true });
+      loyaltyError = '';
+    } catch (err) {
+      if (err.status === 401) { expired(); return; }
+      loyaltyError = err.message;
+    }
+    if (root && document.contains(root) && route.tab === 'clients') renderBody();
+  }
+
+  function progress(st, every) {
+    if (st.nextIsGift) return `<span class="status status--done">🎁 Следующая — подарок: ${esc(st.nextGift)}</span>`;
+    return `<span class="status">до подарка ещё ${st.left}</span>`;
+  }
+
+  function clientRow(c, s) {
+    const st = c.status;
+    const giftNums = new Set(st.gifts.map((g) => g.number));
+    const rows = c.purchases.map((p, i) => `<li><span>${giftNums.has(i + 1) ? '🎁 ' : ''}${i + 1}. ${fmtDate(p.date)} · ${esc(sourceName(p.source))}${p.order ? ` · заказ ${esc(p.order)}` : ''}${p.note ? ` · ${esc(p.note)}` : ''}${p.by ? ` <em>(${esc(p.by)})</em>` : ''}</span>
+        <span>${money(p.amount)} ${p.order ? '' : `<button class="link-btn" type="button" data-lp-del="${esc(p.id)}" data-phone="${esc(c.phone)}">Удалить</button>`}</span></li>`).join('');
+    return `<details class="order client" data-client="${esc(c.phone)}">
+        <summary>
+          <span class="order-num"><strong>${esc(c.name || 'Без имени')}</strong><em class="selectable">${esc(prettyPhone(c.phone))}</em></span>
+          <span class="order-who">${st.count} ${plural(st.count, 'покупка', 'покупки', 'покупок')}<em>на ${money(st.total)}</em></span>
+          <span class="order-sum">${progress(st, s.every)}</span>
+        </summary>
+        <div class="order-body">
+          <ul class="order-items">${rows}</ul>
+          ${st.gifts.length ? `<p><b>Подарки:</b> ${st.gifts.map((g) => `${g.number}-я покупка — ${esc(g.gift)} (за ${money(g.base)})`).join('; ')}</p>` : ''}
+          ${st.nextIsGift ? `<p>Следующая, ${st.nextNumber}-я покупка — с подарком: <b>${esc(st.nextGift)}</b> (за ${s.every - 1} предыдущие — ${money(st.base)}).</p>` : ''}
+        </div>
+      </details>`;
+  }
+
+  function settingsForm(s) {
+    const tiers = s.tiers.concat({ upTo: '', gift: '' });
+    const chats = (tg && tg.chats) || [];
+    return `<form class="lp-settings" data-lp-settings>
+        <label class="field"><span>Подарок за каждую … покупку</span><input type="number" min="2" max="20" name="every" value="${s.every}"></label>
+        <p class="stat-note">Подарок зависит от суммы ${s.every - 1} предыдущих покупок. Покупатели видят только правило «каждая ${s.every}-я — с подарком».</p>
+        <div class="lp-tiers">${tiers.map((t, i) => `<div class="lp-tier">
+            <label><span>${i === tiers.length - 1 ? 'Новый уровень: до, ₸' : 'До, ₸ (пусто = больше)'}</span><input type="number" min="0" step="1" name="upTo" value="${t.upTo == null ? '' : t.upTo}"></label>
+            <label><span>Подарок</span><input type="text" name="gift" value="${esc(t.gift)}" placeholder="Например, распив 10 мл"></label>
+          </div>`).join('')}</div>
+        <label class="field"><span>Кто видит подсказку «Положен подарок» в Telegram</span>
+          <select name="notify"><option value="all" ${s.notify !== 'owner' ? 'selected' : ''}>Все сотрудники</option><option value="owner" ${s.notify === 'owner' ? 'selected' : ''}>Только владелец</option></select>
+        </label>
+        <label class="field"><span>Чат владельца</span>
+          <select name="ownerChat"><option value="">— выберите —</option>${chats.map((c) => `<option value="${esc(c.id)}" ${String(c.id) === String(s.ownerChat) ? 'selected' : ''}>${esc(c.title)}</option>`).join('')}</select>
+        </label>
+        <button class="btn btn--outline btn--sm" type="submit">Сохранить правила</button>
+      </form>`;
+  }
+
+  function clientsBody() {
+    if (!serverMode() || !serverInfo().storage) return '<p class="panel-empty">Подарки за покупки работают, когда подключены сервер и хранилище Upstash Redis.</p>';
+    if (loyaltyError) return `<div class="panel-empty"><p>Не удалось загрузить клиентов: ${esc(loyaltyError)}</p><button class="btn btn--outline btn--sm" type="button" data-lp-reload>Повторить</button></div>`;
+    if (!loyaltyData) return '<p class="panel-empty">Загружаем клиентов…</p>';
+    const s = loyaltyData.settings;
+    const q = clientQ.trim().toLowerCase();
+    const digits = q.replace(/\D/g, '');
+    const list = loyaltyData.clients.filter((c) => !q || (c.name || '').toLowerCase().includes(q) || (digits.length >= 3 && c.phone.includes(digits)));
+    const due = loyaltyData.clients.filter((c) => c.status.nextIsGift).length;
+    return `
+      <div class="admin-cols">
+        <section class="admin-panel">
+          <h2>Добавить покупку</h2>
+          <p>Покупка в бутике, через Instagram, WhatsApp или по звонку. Заказы с сайта засчитываются сами при статусе «Выполнен».</p>
+          <form class="lp-add" data-lp-add>
+            <label class="field"><span>Телефон</span><input name="phone" type="tel" placeholder="+7 701 123 45 67" required></label>
+            <label class="field"><span>Имя</span><input name="name" type="text"></label>
+            <label class="field"><span>Сумма, ${esc(FS.config.currency)}</span><input name="amount" type="number" min="1" step="1" inputmode="numeric" required></label>
+            <label class="field"><span>Где купили</span><select name="source">${SOURCES.filter((x) => x[0] !== 'site').map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>
+            <label class="field"><span>Что купили</span><input name="note" type="text" placeholder="Baccarat 10 мл"></label>
+            <label class="field"><span>Дата</span><input name="date" type="date" value="${new Date().toISOString().slice(0, 10)}"></label>
+            <button class="btn btn--primary btn--sm" type="submit">Записать покупку</button>
+          </form>
+          <p class="stat-note">Быстрее через бота: <code>/buy 87011234567 45000 Baccarat 10 мл</code>, проверить клиента: <code>/client 87011234567</code>.</p>
+        </section>
+        <section class="admin-panel">
+          <h2>Правила подарков</h2>
+          ${settingsForm(s)}
+        </section>
+      </div>
+      <div class="admin-toolbar">
+        <label class="toolbar-search"><span class="visually-hidden">Поиск клиента</span>${FS.ui.icon.search}<input id="client-search" type="search" placeholder="Имя или телефон" value="${esc(clientQ)}" autocomplete="off"></label>
+      </div>
+      <p class="result-count">${loyaltyData.clients.length} ${plural(loyaltyData.clients.length, 'клиент', 'клиента', 'клиентов')}${due ? ` · у ${due} следующая покупка с подарком` : ''}</p>
+      ${list.length ? `<div class="orders">${list.map((c) => clientRow(c, s)).join('')}</div>` : `<p class="panel-empty">${loyaltyData.clients.length ? 'Никого не нашли.' : 'Покупок пока нет. Они появятся, когда заказы с сайта станут «Выполнен» или вы запишете покупку из бутика.'}</p>`}`;
+  }
+
+  async function loyaltyAction(body, okText) {
+    try {
+      const data = await FS.backend.call('POST', '/api/loyalty', body, { auth: true });
+      await loadClients();
+      return data;
+    } catch (err) {
+      if (err.status === 401) { expired(); return null; }
+      toast(err.message, null, { duration: 8000 });
+      return null;
+    }
   }
 
   /* ---------- Товары ---------- */
@@ -672,6 +791,12 @@ FS.views.admin = (function () {
   function paintTelegram() {
     const box = root && root.querySelector('[data-telegram]');
     if (box) box.innerHTML = telegramBody();
+    // Вкладка «Клиенты»: список чатов для выбора чата владельца (форму не перерисовываем).
+    const owner = root && root.querySelector('[data-lp-settings] select[name="ownerChat"]');
+    if (owner && tg && tg.chats) {
+      const current = owner.value || (loyaltyData && loyaltyData.settings.ownerChat) || '';
+      owner.innerHTML = '<option value="">— выберите —</option>' + tg.chats.map((c) => `<option value="${esc(c.id)}" ${String(c.id) === String(current) ? 'selected' : ''}>${esc(c.title)}</option>`).join('');
+    }
   }
 
   async function telegram(action, btn) {
@@ -732,6 +857,7 @@ FS.views.admin = (function () {
   /* ---------- Рендер ---------- */
   function body() {
     if (route.tab === 'orders') return ordersBody();
+    if (route.tab === 'clients') return clientsBody();
     if (route.tab === 'products') return productsBody();
     if (route.tab === 'data') return dataBody();
     if (route.tab === 'edit') return editBody();
@@ -798,6 +924,29 @@ FS.views.admin = (function () {
         }
         return;
       }
+      if (e.target.matches('[data-lp-add]')) {
+        e.preventDefault();
+        const f = e.target;
+        const v = (n) => f.elements[n].value.trim();
+        const btn = $('button[type="submit"]', f);
+        btn.disabled = true;
+        const data = await loyaltyAction({ action: 'add', phone: v('phone'), name: v('name'), amount: v('amount'), source: v('source'), note: v('note'), date: v('date') });
+        btn.disabled = false;
+        if (data && data.client) {
+          const st = data.client.status;
+          const g = st.gifts.length && st.gifts[st.gifts.length - 1].number === st.count ? st.gifts[st.gifts.length - 1] : null;
+          toast(g ? `🎁 Это ${g.number}-я покупка — положен подарок: ${g.gift}` : `Покупка записана. ${st.nextIsGift ? 'Следующая — с подарком' : `До подарка ещё ${st.left}`}`, null, { duration: 9000 });
+        }
+        return;
+      }
+      if (e.target.matches('[data-lp-settings]')) {
+        e.preventDefault();
+        const f = e.target;
+        const tiers = $$('.lp-tier', f).map((row) => ({ upTo: $('[name="upTo"]', row).value.trim(), gift: $('[name="gift"]', row).value.trim() })).filter((t) => t.gift);
+        const data = await loyaltyAction({ action: 'settings', settings: { every: f.elements.every.value, tiers: tiers.map((t) => ({ upTo: t.upTo === '' ? null : Number(t.upTo), gift: t.gift })), notify: f.elements.notify.value, ownerChat: f.elements.ownerChat.value || null } });
+        if (data) toast('Правила подарков сохранены');
+        return;
+      }
       if (e.target.matches('[data-editor]')) {
         e.preventDefault();
         readEditor();
@@ -826,6 +975,12 @@ FS.views.admin = (function () {
       if (t.closest('[data-admin-logout]')) { setAuthed(false); toast('Вы вышли из админ-панели'); FS.app.go('admin'); return; }
       if (t.closest('[data-test-order]')) { testOrder(); return; }
       if (t.closest('[data-import-cancel]')) { importPlan = null; renderBody(); return; }
+      if (t.closest('[data-lp-reload]')) { loyaltyError = ''; loyaltyData = null; renderBody(); loadClients(); return; }
+      const lpDel = t.closest('[data-lp-del]');
+      if (lpDel) {
+        confirmButton(lpDel, 'Точно удалить?', () => loyaltyAction({ action: 'delete', phone: lpDel.dataset.phone, id: lpDel.dataset.lpDel }).then((d) => d && toast('Покупка удалена')));
+        return;
+      }
       const applyBtn = t.closest('[data-import-apply]');
       if (applyBtn) { applyImport(applyBtn); return; }
       const exp = t.closest('[data-export-xlsx]');
@@ -923,6 +1078,12 @@ FS.views.admin = (function () {
         rerenderOrderKeepOpen(o.number);
         return;
       }
+      if (t.dataset.orderPaid) {
+        const v = t.value.trim();
+        const o = FS.api.updateOrder(t.dataset.orderPaid, { paidAmount: v ? Number(v) : null }, { error: saveFailed, saved: () => toast(`Заказ ${t.dataset.orderPaid}: сумма оплаты сохранена`) });
+        if (!o) toast('Заказ не найден');
+        return;
+      }
       if (t.dataset.orderPayment) {
         const o = FS.api.updateOrder(t.dataset.orderPayment, { paymentStatus: t.value }, { error: saveFailed, saved: customerToast });
         toast(`Заказ ${o.number}: ${o.paymentStatus === 'paid' ? 'отмечен как оплаченный' : 'отмечен как неоплаченный'}`);
@@ -950,10 +1111,11 @@ FS.views.admin = (function () {
     let timer = null;
     el.addEventListener('input', (e) => {
       const t = e.target;
-      if (t.id !== 'order-search' && t.id !== 'product-search') return;
+      if (t.id !== 'order-search' && t.id !== 'product-search' && t.id !== 'client-search') return;
       clearTimeout(timer);
       timer = setTimeout(() => {
         if (t.id === 'order-search') orderFilter.q = t.value;
+        else if (t.id === 'client-search') clientQ = t.value;
         else productFilter.q = t.value;
         const pos = t.selectionStart;
         renderBody();
@@ -970,12 +1132,13 @@ FS.views.admin = (function () {
 
     if (!FS.backend.known()) {
       // Сервер ещё не ответил: дорисуем, когда станет ясно, в каком режиме работаем.
-      FS.backend.status().then(() => { if (document.contains(el)) { el.innerHTML = render(route); sync(); if (route.tab === 'data') telegram('reload'); } });
+      FS.backend.status().then(() => { if (document.contains(el)) { el.innerHTML = render(route); sync(); if (route.tab === 'data') telegram('reload'); if (route.tab === 'clients') { loadClients(); telegram('reload'); } } });
       return;
     }
     if (serverMode() && authed()) {
       sync();
       if (route.tab === 'data') telegram('reload');
+      if (route.tab === 'clients' && serverInfo().storage) { loadClients(); telegram('reload'); }
       // Новые заказы появляются без перезагрузки страницы.
       const timer = setInterval(() => { if (!document.hidden) sync(); }, 60000);
       if (signal) signal.addEventListener('abort', () => clearInterval(timer));

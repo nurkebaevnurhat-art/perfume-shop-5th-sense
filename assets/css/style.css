@@ -1110,3 +1110,16 @@ h1[tabindex="-1"]:focus { outline: none; }
 .menu-logo { justify-self: end; align-self: center; display: grid; place-items: center; width: min(100%, 260px); }
 .menu-logo img { width: 100%; height: auto; max-height: 58vh; object-fit: contain; }
 @media (max-width: 1000px) { .menu-logo { display: none; } }
+
+/* Подарки за покупки */
+.gift-steps { display: grid; gap: 10px; padding-left: 1.3em; }
+.order-loyalty { margin: 10px 0 0; padding: 10px 14px; border-left: 2px solid var(--gold); background: var(--paper); font-size: 14px; }
+.lp-add, .lp-settings { display: grid; gap: 12px; width: 100%; }
+.lp-add { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lp-add .btn { justify-self: start; }
+.lp-tiers { display: grid; gap: 8px; }
+.lp-tier { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 10px; }
+.lp-tier label, .lp-add label { display: grid; gap: 4px; font-size: 12.5px; color: var(--ink-soft); }
+.lp-tier input, .lp-add input, .lp-add select, .lp-settings select, .lp-settings input { width: 100%; min-width: 0; }
+.client .order-sum .status { white-space: normal; }
+@media (max-width: 600px) { .lp-add { grid-template-columns: minmax(0, 1fr); } .lp-tier { grid-template-columns: 110px minmax(0, 1fr); } }

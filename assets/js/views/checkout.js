@@ -127,6 +127,7 @@ FS.views.checkout = (function () {
           <fieldset class="co-step">
             <legend>Покупатель</legend>
             <div class="field-grid">${FIELDS.slice(0, 4).map((f) => field(f, values)).join('')}</div>
+            <p class="co-hint">По номеру телефона мы считаем ваши покупки: каждая ${FS.config.gifts.every}-я — с подарком. <a class="text-link" href="#gifts" target="_blank" rel="noopener">Подробнее</a></p>
           </fieldset>
 
           <fieldset class="co-step">

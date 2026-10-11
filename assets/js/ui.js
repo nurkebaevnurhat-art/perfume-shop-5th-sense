@@ -89,7 +89,7 @@ FS.ui = (function () {
 
     const menuItems = [{ href: '#catalog', name: 'Вся коллекция' }]
       .concat(FS.categories.map((c) => ({ href: `#catalog-${c.id}`, name: c.name })))
-      .concat({ href: '#delivery', name: 'Доставка и оплата' });
+      .concat({ href: '#delivery', name: 'Доставка и оплата' }, { href: '#gifts', name: 'Подарки за покупки' });
     $('#site-menu').innerHTML = `
       <div class="menu-panel" role="dialog" aria-modal="true" aria-label="Меню">
         <div class="menu-top">
@@ -151,6 +151,7 @@ FS.ui = (function () {
         <nav class="footer-col" aria-label="Покупателям">
           <h2>Покупателям</h2>
           <a href="#delivery">Доставка и оплата</a>
+          <a href="#gifts">Подарки за покупки</a>
           <a href="#returns">Возврат и обмен</a>
           <a href="#offer">Публичная оферта</a>
           <a href="#privacy">Политика конфиденциальности</a>

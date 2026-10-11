@@ -88,6 +88,13 @@ function patch(order, input) {
     if (!STATUSES.includes(body.status)) throw bad('Неизвестный статус');
     next.status = body.status;
   }
+  // Сколько клиент реально заплатил (с флаконом и доставкой) — для подарков за покупки.
+  if (body.paidAmount !== undefined) {
+    const v = Math.round(Number(body.paidAmount));
+    if (body.paidAmount === null || body.paidAmount === '') delete next.paidAmount;
+    else if (v > 0) next.paidAmount = v;
+    else throw bad('Сумма оплаты должна быть больше нуля');
+  }
   if (body.paymentStatus !== undefined) {
     if (!PAYMENT_STATUSES.includes(body.paymentStatus)) throw bad('Неизвестный статус оплаты');
     next.paymentStatus = body.paymentStatus;

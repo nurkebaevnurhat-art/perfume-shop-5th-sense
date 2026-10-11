@@ -135,6 +135,7 @@ FS.views.product = (function () {
 
             <ul class="perks">
               <li>Доставка курьером по городу в день заказа</li>
+              <li><a class="text-link" href="#gifts">Каждая ${FS.config.gifts.every}-я покупка — с подарком</a></li>
               <li>Фирменная упаковка бутика</li>
             </ul>
           </div>

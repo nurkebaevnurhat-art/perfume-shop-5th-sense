@@ -10,6 +10,7 @@ const catalog = require('../server/catalog');
 const orders = require('../server/orders');
 const botApi = require('../server/bot');
 const products = require('../server/products');
+const loyalty = require('../server/loyalty');
 
 function requireStorage() {
   if (!db.configured()) throw new HttpError(503, 'storage_not_configured', 'Хранилище заказов не подключено');
@@ -67,9 +68,26 @@ module.exports = handler({
         if (record.telegram) await db.addToSet(`fs:tg:orders:${record.telegram[0]}`, record.number);
       } catch (err) { console.error(err); }
     }
+    // Подарки за покупки: если этот заказ станет подарочной покупкой — подсказка сотрудникам или владельцу.
+    let giftNote = '';
+    let giftSettings = null;
+    if (storage && !record.test) {
+      try {
+        giftSettings = await loyalty.settings();
+        const st = loyalty.status(await loyalty.getClient(record.customer.phone), giftSettings);
+        record.loyalty = { count: st.count, nextNumber: st.nextNumber, gift: st.nextGift };
+        if (st.nextIsGift) giftNote = `🎁 <b>Это ${st.nextNumber}-я покупка клиента.</b> За ${giftSettings.every - 1} предыдущие — ${orders.money(st.base, shop.config.currency)}. Положен подарок: <b>${telegram.escape(st.nextGift)}</b>.`;
+        await db.saveOrder(record);
+      } catch (err) { console.error(err); }
+    }
     let notified = { sent: 0, failed: 0 };
     if (bot) {
-      try { notified = await telegram.send(orders.message(record, shop, `${siteUrl(req)}/#admin-orders`)); } catch (err) { console.error(err); }
+      const ownerOnly = giftNote && giftSettings && giftSettings.notify === 'owner' && giftSettings.ownerChat;
+      const text = orders.message(record, shop, `${siteUrl(req)}/#admin-orders`);
+      try { notified = await telegram.send(giftNote && !ownerOnly ? `${giftNote}\n\n${text}` : text); } catch (err) { console.error(err); }
+      if (ownerOnly) {
+        try { await telegram.call('sendMessage', { chat_id: giftSettings.ownerChat, text: `${giftNote}\nЗаказ <b>${telegram.escape(record.number)}</b>, ${telegram.escape(record.customer.firstName)} ${telegram.escape(record.customer.lastName)}.`, parse_mode: 'HTML' }); } catch (err) { console.error(err); }
+      }
     }
     if (!saved && !notified.sent) throw new HttpError(502, 'not_delivered', 'Не удалось передать заказ в бутик');
 
@@ -77,7 +95,9 @@ module.exports = handler({
       try { await botApi.notifyCreated(record); } catch (err) { console.error(err); }
     }
     const telegramLink = saved && !record.telegram ? await botApi.trackLink(record) : null;
-    send(res, 201, { order: { ...record, telegramLink, telegramLinked: Boolean(record.telegram) }, saved, notified: notified.sent > 0 });
+    // Сведения о подарках — только для бутика, покупателю их не отдаём.
+    const { loyalty: _secret, ...publicOrder } = record;
+    send(res, 201, { order: { ...publicOrder, telegramLink, telegramLinked: Boolean(record.telegram) }, saved, notified: notified.sent > 0 });
   },
 
   async GET(req, res) {
@@ -97,6 +117,8 @@ module.exports = handler({
     // Отмена возвращает товар на склад, возобновление снова списывает.
     if (current.status !== 'cancelled' && next.status === 'cancelled') await products.moveStock(next.items, +1);
     if (current.status === 'cancelled' && next.status !== 'cancelled') await products.moveStock(next.items, -1);
+    // «Выполнен» — покупка засчитывается в подарки за покупки, снятие статуса её убирает.
+    if (!next.test) { try { await loyalty.syncOrder(current, next); } catch (err) { console.error(err); } }
     // Покупатель, который следит за заказом в Telegram, получает сообщение о новом статусе.
     let customerNotified = 0;
     try { customerNotified = await botApi.notifyCustomer(current, next); } catch (err) { console.error(err); }

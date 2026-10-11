@@ -74,7 +74,7 @@ FS.views.home = (function () {
           <ul class="services">
             <li class="reveal" style="--i:0"><h3>Подбор аромата</h3><p>Консультация в бутике или по телефону.</p></li>
             <li class="reveal" style="--i:1"><h3>Распив от 5 мл</h3><p>Разливаем из оригинального флакона.</p></li>
-            <li class="reveal" style="--i:2"><h3>Подарочная упаковка</h3><p>Фирменная коробка и открытка без доплаты.</p></li>
+            <li class="reveal" style="--i:2"><h3>Подарки за покупки</h3><p>Каждая ${FS.config.gifts.every}-я покупка — с подарком. <a class="text-link" href="#gifts">Подробнее</a></p></li>
             <li class="reveal" style="--i:3"><h3>Оригинальная продукция</h3><p>Курьер по городу в день заказа.</p></li>
           </ul>
         </div>

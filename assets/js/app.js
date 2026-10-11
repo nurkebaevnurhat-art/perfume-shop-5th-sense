@@ -24,9 +24,10 @@ FS.app = (function () {
     if (t === 'checkout') return { name: 'checkout', key: t };
     if (t === 'favorites') return { name: 'favorites', key: t };
     if (t === 'delivery') return { name: 'delivery', key: t };
+    if (t === 'gifts') return { name: 'gifts', key: t };
     if (t === 'offer' || t === 'privacy' || t === 'returns') return { name: t, key: t };
     if (t === 'admin') return { name: 'admin', key: t, tab: 'overview' };
-    if ((m = t.match(/^admin-(orders|products|data)$/))) return { name: 'admin', key: t, tab: m[1] };
+    if ((m = t.match(/^admin-(orders|clients|products|data)$/))) return { name: 'admin', key: t, tab: m[1] };
     if (t === 'admin-new') return { name: 'admin', key: t, tab: 'edit', id: null };
     if ((m = t.match(/^admin-edit-([a-z0-9-]+)$/))) return { name: 'admin', key: t, tab: 'edit', id: m[1] };
     return { name: 'notfound', key: t };
