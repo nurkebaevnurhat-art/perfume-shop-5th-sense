@@ -32,7 +32,7 @@ module.exports = handler({
     // Когда каталог на сервере, остатки точные: не продаём больше, чем есть.
     const tracked = Boolean(await products.stored());
     if (tracked) {
-      order.items.forEach((i) => {
+      order.items.filter((i) => !i.full).forEach((i) => {
         const v = shop.products.get(i.id).volumes.find((x) => x.ml === i.ml);
         if (v.stock < i.qty) {
           throw new HttpError(409, 'out_of_stock', v.stock

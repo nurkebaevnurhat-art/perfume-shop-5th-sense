@@ -71,6 +71,9 @@ function normalize(p, pos) {
   if (p.country) out.country = str(p.country, 60);
   if (p.perfumer) out.perfumer = str(p.perfumer, 120);
   if (p.photo) out.photo = str(p.photo, 120).toLowerCase();
+  // Полноразмерный флакон под заказ: объём для подсказки и запрет, если флакон не возим.
+  if (Number(p.fullMl) > 0) out.fullMl = Number(p.fullMl);
+  if (p.full === false) out.full = false;
   // Фото: файл сайта (assets/products) или загруженное в админке (/api/image).
   if (/^assets\/products\/[\w.-]+$/.test(image) || /^\/api\/image\?[\w=&%.-]+$/.test(image)) out.image = image;
   return out;

@@ -44,7 +44,8 @@ FS.importer = (function () {
     ['year', 'Год', ['год', 'год выпуска', 'year']],
     ['country', 'Страна', ['страна', 'country']],
     ['perfumer', 'Парфюмер', ['парфюмер', 'автор', 'perfumer']],
-    ['photo', 'Фото', ['фото', 'фотография', 'изображение', 'photo', 'image']]
+    ['photo', 'Фото', ['фото', 'фотография', 'изображение', 'photo', 'image']],
+    ['fullMl', 'Полный флакон, мл', ['полный флакон, мл', 'полный флакон', 'флакон, мл', 'объём флакона', 'объем флакона', 'full']]
   ];
   const norm = (s) => String(s == null ? '' : s).toLowerCase().replace(/ё/g, 'е').replace(/\*/g, '').replace(/\s+/g, ' ').trim();
   const ALIASES = new Map();
@@ -171,6 +172,7 @@ FS.importer = (function () {
       ['short', 'description', 'country', 'perfumer'].forEach((k) => { if (has(k) && text(first(k))) p[k] = text(first(k)); });
       ['niche', 'bestseller', 'isNew'].forEach((k) => { if (has(k)) { if (yes(first(k))) p[k] = true; else delete p[k]; } });
       if (has('year') && Number(first('year')) > 1700) p.year = Number(first('year'));
+      if (has('fullMl')) { const f = number(first('fullMl')); if (f > 0) p.fullMl = f; else delete p.fullMl; }
       p.volumes = g.rows.map((x) => {
         const old = base && base.volumes.find((v) => v.ml === x.ml);
         const v = { ml: x.ml, price: x.price, stock: x.stock };
@@ -234,11 +236,11 @@ FS.importer = (function () {
         f ? fam(p.family) : '', f ? p.notes.top.join(', ') : '', f ? p.notes.heart.join(', ') : '', f ? p.notes.base.join(', ') : '',
         f ? p.short || '' : '', f ? p.description || '' : '',
         f && p.niche ? 'да' : '', f && p.bestseller ? 'да' : '', f && p.isNew ? 'да' : '',
-        f ? p.year || '' : '', f ? p.country || '' : '', f ? p.perfumer || '' : '', f ? photo : ''
+        f ? p.year || '' : '', f ? p.country || '' : '', f ? p.perfumer || '' : '', f ? photo : '', f ? p.fullMl || '' : ''
       ]);
     }));
     const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols'] = [22, 24, 26, 12, 11, 10, 11, 11, 13, 28, 28, 28, 40, 60, 9, 10, 9, 7, 13, 22, 28].map((w) => ({ wch: w }));
+    ws['!cols'] = [22, 24, 26, 12, 11, 10, 11, 11, 13, 28, 28, 28, 40, 60, 9, 10, 9, 7, 13, 22, 28, 14].map((w) => ({ wch: w }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Товары');
     XLSX.writeFile(wb, `5th-sense-catalog-${new Date().toISOString().slice(0, 10)}.xlsx`);

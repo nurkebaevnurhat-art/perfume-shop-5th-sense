@@ -168,11 +168,13 @@ FS.views.admin = (function () {
 
   /* ---------- Заказы ---------- */
   function orderRow(o) {
-    const items = o.items.map((i) => `<li><span>${esc(i.brand)} ${esc(i.name)}, ${i.ml}&nbsp;мл × ${i.qty}</span><span>${money(i.price * i.qty)}</span></li>`).join('');
+    const items = o.items.map((i) => (i.full
+      ? `<li class="order-full"><span>🧴 <b>Полноразмерный флакон</b>${i.fullMl ? ` ${i.fullMl}&nbsp;мл` : ''}: ${esc(i.brand)} ${esc(i.name)} × ${i.qty}</span><span>цена по запросу</span></li>`
+      : `<li><span>${esc(i.brand)} ${esc(i.name)}, ${i.ml}&nbsp;мл × ${i.qty}</span><span>${money(i.price * i.qty)}</span></li>`)).join('');
     return `
       <details class="order" data-order="${esc(o.number)}">
         <summary>
-          <span class="order-num"><strong>${esc(o.number)}</strong>${o.test ? '<span class="tag">тест</span>' : ''}<em>${fmtDate(o.createdAt)}</em></span>
+          <span class="order-num"><strong>${esc(o.number)}</strong>${o.test ? '<span class="tag">тест</span>' : ''}${o.items.some((i) => i.full) ? '<span class="tag">флакон</span>' : ''}<em>${fmtDate(o.createdAt)}</em></span>
           <span class="order-who">${esc(o.customer.firstName)} ${esc(o.customer.lastName)}<em>${esc(o.customer.phone)}</em></span>
           <span class="order-sum">${money(o.total)}<em>${o.items.reduce((n, i) => n + i.qty, 0)} шт.</em></span>
           <span class="order-badges"><span class="status status--${o.status}">${statusName(o.status)}</span><span class="pay pay--${o.paymentStatus}">${o.paymentStatus === 'paid' ? 'Оплачен' : 'Не оплачен'}</span></span>
@@ -228,7 +230,7 @@ FS.views.admin = (function () {
     const picks = pool.sort(() => Math.random() - 0.5).slice(0, Math.min(2, pool.length));
     const items = picks.map((p) => { const v = p.volumes.find((x) => x.stock > 0); return { id: p.id, name: p.name, brand: p.brand, ml: v.ml, qty: 1, price: v.price }; });
     const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
-    const delivery = FS.delivery[1];
+    const delivery = FS.delivery.find((d) => d.id === 'courier') || FS.delivery[0];
     const shipping = FS.shipping.quote(delivery.id, subtotal);
     FS.api.createOrder({
       test: true,

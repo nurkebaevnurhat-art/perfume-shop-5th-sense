@@ -164,6 +164,19 @@ FS.api = (function () {
   const listeners = new Set();
 
   function minPrice(p) { return Math.min(...p.volumes.map((v) => v.price)); }
+
+  /* Полноразмерный флакон — особый вариант (ml: 0) без цены и остатка:
+     его заказывают у оптовика, цену и срок подтверждает менеджер. */
+  function fullBottle(p) {
+    const cfg = FS.config.fullBottle;
+    if (!cfg || !cfg.enabled || !p || p.type === 'set' || p.full === false) return null;
+    return { ml: 0, full: true, label: cfg.label, fullMl: p.fullMl || null, price: null, stock: 99 };
+  }
+  function variants(p) { const f = fullBottle(p); return f ? p.volumes.concat(f) : p.volumes; }
+  function variant(p, ml) {
+    if (Number(ml) === 0) return fullBottle(p);
+    return p.volumes.find((v) => v.ml === Number(ml)) || null;
+  }
   function mainVolume(p) { return p.volumes.find((v) => v.ml === p.main) || p.volumes[0]; }
   function inStock(p) { return p.volumes.some((v) => v.stock > 0); }
   function totalStock(p) { return p.volumes.reduce((s, v) => s + v.stock, 0); }
@@ -403,6 +416,9 @@ FS.api = (function () {
 
   return {
     productSync: (id) => byId.get(id),
+    variants,
+    variant,
+    fullBottle,
     async product(id) { return byId.get(id) || null; },
     async products(query) { return filter(query); },
     filter,

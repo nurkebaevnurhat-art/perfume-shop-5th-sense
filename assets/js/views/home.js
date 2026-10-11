@@ -75,7 +75,7 @@ FS.views.home = (function () {
             <li class="reveal" style="--i:0"><h3>Подбор аромата</h3><p>Консультация в бутике или по телефону.</p></li>
             <li class="reveal" style="--i:1"><h3>Пробник к заказу</h3><p>Кладём пробник аромата из той же семьи.</p></li>
             <li class="reveal" style="--i:2"><h3>Подарочная упаковка</h3><p>Фирменная коробка и открытка без доплаты.</p></li>
-            <li class="reveal" style="--i:3"><h3>Оригинальная продукция</h3><p>Курьер бесплатно от ${money(FS.config.freeShippingFrom)}.</p></li>
+            <li class="reveal" style="--i:3"><h3>Оригинальная продукция</h3><p>Курьер по городу в день заказа.</p></li>
           </ul>
         </div>
       </section>

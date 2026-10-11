@@ -1090,3 +1090,18 @@ h1[tabindex="-1"]:focus { outline: none; }
 .brand-search input:focus { outline: none; border-bottom-color: var(--gold); }
 .filter-options--scroll { max-height: 280px; overflow-y: auto; padding-right: 6px; }
 .filter-options .check[hidden] { display: none; }
+
+/* Распив и полноразмерный флакон */
+.volumes-note { font-size: 13.5px; color: var(--ink-soft); margin: -2px 0 10px; }
+.volume--full .volume-price { font-size: 12px; letter-spacing: 0.02em; }
+.buy-note { font-size: 13.5px; color: var(--ink-soft); line-height: 1.6; }
+.buy-note .text-link { margin-right: 10px; }
+.manager-links { display: flex; flex-wrap: wrap; gap: 10px 26px; }
+.order-full { color: var(--brand); }
+/* Четыре объёма распива в ряд, полноразмерный флакон — строкой ниже */
+.volume-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; max-width: 520px; }
+.volume-list .volume { min-width: 0; padding: 12px 10px; }
+.volume-list .volume-ml { font-size: clamp(17px, 4.6vw, 22px); white-space: nowrap; }
+.volume--full { grid-column: 1 / -1; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.volume--full .volume-ml { font-size: 15px; letter-spacing: 0.08em; white-space: normal; }
+.info h2 { hyphens: auto; overflow-wrap: break-word; }
