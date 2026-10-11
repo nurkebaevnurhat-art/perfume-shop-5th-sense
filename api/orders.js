@@ -68,25 +68,39 @@ module.exports = handler({
         if (record.telegram) await db.addToSet(`fs:tg:orders:${record.telegram[0]}`, record.number);
       } catch (err) { console.error(err); }
     }
-    // Подарки за покупки: если этот заказ станет подарочной покупкой — подсказка сотрудникам или владельцу.
+    // Подарки за покупки: какая это покупка клиента по счёту и положен ли подарок — для бутика.
     let giftNote = '';
     let giftSettings = null;
     if (storage && !record.test) {
       try {
         giftSettings = await loyalty.settings();
-        const st = loyalty.status(await loyalty.getClient(record.customer.phone), giftSettings);
-        record.loyalty = { count: st.count, nextNumber: st.nextNumber, gift: st.nextGift };
-        if (st.nextIsGift) giftNote = `🎁 <b>Это ${st.nextNumber}-я покупка клиента.</b> За ${giftSettings.every - 1} предыдущие — ${orders.money(st.base, shop.config.currency)}. Положен подарок: <b>${telegram.escape(st.nextGift)}</b>.`;
-        await db.saveOrder(record);
+        const st = await loyalty.forOrder(record, giftSettings);
+        if (st) {
+          record.loyalty = { count: st.count, done: st.done, open: st.open, nextNumber: st.nextNumber, gift: st.nextGift, giftAt: st.nextNumber + st.left };
+          const pending = st.open ? ` Учтены заказы в работе: ${st.open}.` : '';
+          giftNote = st.nextIsGift
+            ? `🎁 <b>Это ${st.nextNumber}-я покупка клиента — положен подарок: ${telegram.escape(st.nextGift)}</b>. За ${giftSettings.every - 1} предыдущие — ${orders.money(st.base, shop.config.currency)}.${pending}`
+            : `🛍 <b>Это ${st.nextNumber}-я покупка клиента.</b> Подарок — на ${st.nextNumber + st.left}-й.${pending}`;
+          await db.saveOrder(record);
+        }
       } catch (err) { console.error(err); }
     }
     let notified = { sent: 0, failed: 0 };
     if (bot) {
-      const ownerOnly = giftNote && giftSettings && giftSettings.notify === 'owner' && giftSettings.ownerChat;
+      // «Только владелец»: строку о покупках видит только чат владельца.
+      const ownerChat = giftNote && giftSettings && giftSettings.notify === 'owner' && giftSettings.ownerChat ? String(giftSettings.ownerChat) : '';
       const text = orders.message(record, shop, `${siteUrl(req)}/#admin-orders`);
-      try { notified = await telegram.send(giftNote && !ownerOnly ? `${giftNote}\n\n${text}` : text); } catch (err) { console.error(err); }
-      if (ownerOnly) {
-        try { await telegram.call('sendMessage', { chat_id: giftSettings.ownerChat, text: `${giftNote}\nЗаказ <b>${telegram.escape(record.number)}</b>, ${telegram.escape(record.customer.firstName)} ${telegram.escape(record.customer.lastName)}.`, parse_mode: 'HTML' }); } catch (err) { console.error(err); }
+      const withNote = giftNote ? `${giftNote}\n\n${text}` : text;
+      let ownerGotIt = false;
+      try {
+        notified = await telegram.send((c) => {
+          if (!ownerChat) return withNote;
+          if (String(c.id) === ownerChat) { ownerGotIt = true; return withNote; }
+          return text;
+        });
+      } catch (err) { console.error(err); }
+      if (ownerChat && !ownerGotIt) {
+        try { await telegram.call('sendMessage', { chat_id: ownerChat, text: `${giftNote}\nЗаказ <b>${telegram.escape(record.number)}</b>, ${telegram.escape(record.customer.firstName)} ${telegram.escape(record.customer.lastName)}.`, parse_mode: 'HTML' }); } catch (err) { console.error(err); }
       }
     }
     if (!saved && !notified.sent) throw new HttpError(502, 'not_delivered', 'Не удалось передать заказ в бутик');

@@ -194,7 +194,7 @@ FS.views.admin = (function () {
           </div>
           ${o.loyalty ? `<p class="order-loyalty">${o.loyalty.gift
     ? `🎁 <b>${o.loyalty.nextNumber}-я покупка клиента — положен подарок: ${esc(o.loyalty.gift)}</b>`
-    : `Клиент: ${o.loyalty.count} ${plural(o.loyalty.count, 'покупка', 'покупки', 'покупок')} до этого заказа`}. Сумма для подарков — «Оплачено» (если пусто, берётся итог заказа), засчитывается при статусе «Выполнен».</p>` : ''}
+    : `<b>${o.loyalty.nextNumber}-я покупка клиента</b>${o.loyalty.giftAt ? `, подарок — на ${o.loyalty.giftAt}-й` : ''}`}${o.loyalty.open ? ` (учтены заказы в работе: ${o.loyalty.open})` : ''}. Сумма для подарков — «Оплачено» (если пусто, берётся итог заказа), засчитывается при статусе «Выполнен».</p>` : ''}
           <div class="order-grid">
             <div><h3>Состав</h3><ul class="order-items">${items}</ul>
               <dl class="order-sums"><div><dt>Товары</dt><dd>${money(o.subtotal)}</dd></div><div><dt>Доставка</dt><dd>${o.shipping === null ? 'рассчитает менеджер' : o.shipping === 0 ? 'бесплатно' : money(o.shipping)}</dd></div><div><dt>Итого</dt><dd>${money(o.total)}</dd></div></dl>
