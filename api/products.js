@@ -11,6 +11,8 @@ const products = require('../server/products');
 module.exports = handler({
   async GET(req, res) {
     const items = await products.stored();
+    // Остатки не ведём — числа штук сайту не нужны.
+    if (items && !products.tracking()) items.forEach((p) => p.volumes.forEach((v) => { v.stock = 99; }));
     const meta = items ? await products.meta() : null;
     // Короткий кэш на CDN Vercel: сотни покупателей не нагружают базу.
     res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=10, stale-while-revalidate=60');

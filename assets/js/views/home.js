@@ -7,8 +7,8 @@ FS.views.home = (function () {
   const M = FS.motion;
   const P = (id) => FS.api.productSync(id);
   const pick = (ids, n) => {
-    const list = ids.map(P).filter(Boolean);
-    FS.products.forEach((p) => { if (list.length < n && p.image && !list.includes(p)) list.push(p); });
+    const list = ids.map(P).filter((p) => p && !p.hidden);
+    FS.api.visible().forEach((p) => { if (list.length < n && p.image && !list.includes(p)) list.push(p); });
     return list.slice(0, n);
   };
 
@@ -36,7 +36,7 @@ FS.views.home = (function () {
     });
 
     const family = (f, i) => {
-      const list = FS.products.filter((p) => p.family === f.id);
+      const list = FS.api.visible().filter((p) => p.family === f.id);
       return `<a class="fam reveal" href="#family-${f.id}" style="--i:${i}">
           <span class="fam-num">${pad(i + 1)}</span>
           <span class="fam-name">${esc(f.name)}</span>

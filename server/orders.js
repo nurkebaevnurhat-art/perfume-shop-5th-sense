@@ -45,6 +45,8 @@ function build(input, shop) {
   const fullCfg = shop.config.fullBottle;
   lines.forEach((l) => {
     const p = shop.products.get(String(l && l.id));
+    // Скрытый с сайта аромат не продаём.
+    if (p && p.hidden) throw bad(`«${p.brand} ${p.name}» сейчас не продаётся. Уберите его из корзины.`);
     // Полноразмерный флакон (ml: 0): без цены, её подтверждает менеджер у оптовика.
     if (p && Number(l.ml) === 0 && fullCfg && fullCfg.enabled && p.type !== 'set' && p.full !== false) {
       const qty = Math.floor(Number(l.qty));
