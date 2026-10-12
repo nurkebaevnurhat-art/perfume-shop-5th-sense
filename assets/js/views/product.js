@@ -53,14 +53,14 @@ FS.views.product = (function () {
         <span class="price price--lg">${v.full ? 'Цена по запросу' : money(v.price)}</span>
         <span class="buy-vol">${esc(volumeLabel(v))}${v.full && v.fullMl ? `, ${v.fullMl} мл` : ''}</span>
       </div>
-      ${s ? `<p class="stock ${s.cls}"><span class="stock-dot" aria-hidden="true"></span>${s.text}</p>` : ''}
+      ${product.hidden ? `<p class="stock is-out"><span class="stock-dot" aria-hidden="true"></span>Сейчас не продаётся. Уточните у менеджера: ${FS.ui.managerLinks('text-link')}</p>` : s ? `<p class="stock ${s.cls}"><span class="stock-dot" aria-hidden="true"></span>${s.text}</p>` : ''}
       <div class="buy-row">
         ${stepper(qty, max, 'data-qty', product.name)}
         <button class="fav-btn fav-btn--inline ${FS.store.isFavorite(product.id) ? 'is-on' : ''}" type="button" data-fav="${product.id}" aria-pressed="${FS.store.isFavorite(product.id)}" aria-label="В избранное: ${esc(product.name)}">${icon.heart}</button>
       </div>
       <div class="buy-actions">
-        <button class="line-link line-link--lg" type="button" data-buy="add" ${v.stock > 0 ? '' : 'disabled'}>Добавить в корзину</button>
-        <button class="line-link line-link--lg line-link--gold" type="button" data-buy="now" ${v.stock > 0 ? '' : 'disabled'}>${v.full ? 'Заказать флакон' : 'Купить сейчас'}</button>
+        <button class="line-link line-link--lg" type="button" data-buy="add" ${v.stock > 0 && !product.hidden ? '' : 'disabled'}>Добавить в корзину</button>
+        <button class="line-link line-link--lg line-link--gold" type="button" data-buy="now" ${v.stock > 0 && !product.hidden ? '' : 'disabled'}>${v.full ? 'Заказать флакон' : 'Купить сейчас'}</button>
       </div>
       ${v.full ? `<p class="buy-note">Менеджер свяжется с вами, подтвердит цену и срок поставки. Вопросы: ${FS.ui.managerLinks('text-link')}</p>` : ''}`;
   }

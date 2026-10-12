@@ -31,7 +31,7 @@ module.exports = handler({
     const body = await readJson(req);
     const order = orders.build(body, shop);
     // Когда каталог на сервере, остатки точные: не продаём больше, чем есть.
-    const tracked = Boolean(await products.stored());
+    const tracked = products.tracking() && Boolean(await products.stored());
     if (tracked) {
       order.items.filter((i) => !i.full).forEach((i) => {
         const v = shop.products.get(i.id).volumes.find((x) => x.ml === i.ml);

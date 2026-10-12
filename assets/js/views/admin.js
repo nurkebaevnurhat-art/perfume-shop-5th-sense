@@ -123,6 +123,19 @@ FS.views.admin = (function () {
   }
 
   /* ---------- Обзор ---------- */
+  // Остатки не ведём: на обзоре вместо «Заканчиваются» — ароматы, скрытые с сайта.
+  function hiddenPanel() {
+    const list = FS.products.filter((p) => p.hidden);
+    return `<section class="admin-panel">
+        <div class="panel-head"><h2>Скрыты с сайта</h2><a class="text-link" href="#admin-products">Все товары</a></div>
+        ${list.length ? `<ul class="mini-list">${list.slice(0, 8).map((p) => `
+          <li><a href="#admin-edit-${p.id}">
+            <span class="mini-main"><strong>${esc(p.name)}</strong> ${esc(p.brand)}</span>
+            <span class="mini-meta"><span class="stock-pill is-out">скрыт</span></span>
+          </a></li>`).join('')}</ul>${list.length > 8 ? `<p class="stat-note">…и ещё ${list.length - 8}</p>` : ''}` : '<p class="panel-empty">Все ароматы видны покупателям. Закончившийся надолго аромат можно скрыть в его карточке: «Скрыть с сайта».</p>'}
+      </section>`;
+  }
+
   function lowStock() {
     const rows = [];
     FS.products.forEach((p) => p.volumes.forEach((v) => { if (v.stock <= 2) rows.push({ p, v }); }));
@@ -153,14 +166,14 @@ FS.views.admin = (function () {
               <span class="mini-meta"><span class="status status--${o.status}">${statusName(o.status)}</span>${money(o.total)}</span>
             </a></li>`).join('')}</ul>` : emptyOrders()}
         </section>
-        <section class="admin-panel">
+        ${!FS.api.tracking() ? hiddenPanel() : `<section class="admin-panel">
           <div class="panel-head"><h2>Заканчиваются</h2><a class="text-link" href="#admin-products">Все товары</a></div>
           ${low.length ? `<ul class="mini-list">${low.slice(0, 8).map(({ p, v }) => `
             <li><a href="#admin-edit-${p.id}">
               <span class="mini-main"><strong>${esc(p.name)}</strong> ${esc(volumeLabel(v))}</span>
               <span class="mini-meta"><span class="stock-pill ${v.stock ? 'is-low' : 'is-out'}">${v.stock ? `осталось ${v.stock}` : 'нет в наличии'}</span></span>
             </a></li>`).join('')}</ul>` : '<p class="panel-empty">Остатков достаточно по всем позициям.</p>'}
-        </section>
+        </section>`}
       </div>`;
   }
 
@@ -554,8 +567,9 @@ FS.views.admin = (function () {
     const list = productList();
     const pe = priceEdit;
     const editable = (p) => pe && p.type !== 'set';
-    const flags = (p) => [p.niche && 'нишевая', p.bestseller && 'бестселлер', p.isNew && 'новинка', p.featured && 'на витрине'].filter(Boolean).map((f) => `<span class="tag">${f}</span>`).join('');
-    const vols = (p) => `${p.perMl ? `<span class="ptable-perml"><b>1 мл</b> ${money(p.perMl)}</span>` : ''}${p.volumes.map((v) => `<span><b>${esc(volumeLabel(v))}</b> ${money(v.price)} <span class="stock-pill ${v.stock > 2 ? '' : v.stock ? 'is-low' : 'is-out'}">${v.stock} шт.</span></span>`).join('')}`;
+    const flags = (p) => (p.hidden ? '<span class="tag tag--off">скрыт с сайта</span>' : '') + [p.niche && 'нишевая', p.bestseller && 'бестселлер', p.isNew && 'новинка', p.featured && 'на витрине'].filter(Boolean).map((f) => `<span class="tag">${f}</span>`).join('');
+    const track = FS.api.tracking();
+    const vols = (p) => `${p.perMl ? `<span class="ptable-perml"><b>1 мл</b> ${money(p.perMl)}</span>` : ''}${p.volumes.map((v) => `<span><b>${esc(volumeLabel(v))}</b> ${money(v.price)}${track ? ` <span class="stock-pill ${v.stock > 2 ? '' : v.stock ? 'is-low' : 'is-out'}">${v.stock} шт.</span>` : ''}</span>`).join('')}`;
     const editVols = (p) => {
       const cur = pe.edits.has(p.id) ? pe.edits.get(p.id) : FS.api.perMl(p);
       return `<label class="perml-edit"><span>Цена за 1 мл, ${esc(FS.config.currency)}</span>
@@ -583,7 +597,7 @@ FS.views.admin = (function () {
       ${pe ? '<p class="co-hint price-edit-hint">Меняйте цену за 1 мл прямо в списке, цены объёмов пересчитаются сами. Отметьте ароматы галочкой (можно нажать на фото), чтобы изменить им цену на одинаковый процент. Ничего не сохранится, пока вы не нажмёте «Сохранить цены».</p>' : ''}
       <p class="result-count">${list.length} ${plural(list.length, 'товар', 'товара', 'товаров')}</p>
       ${list.length ? `<div class="ptable ${pe ? 'ptable--edit' : ''}" role="table" aria-label="Товары">
-        <div class="ptable-row ptable-head" role="row"><span role="columnheader">${pe ? 'Выбор' : 'Фото'}</span><span role="columnheader">Товар</span><span role="columnheader">${pe ? 'Цена за 1 мл и цены объёмов' : 'Объёмы, цены и остатки'}</span><span role="columnheader">Действия</span></div>
+        <div class="ptable-row ptable-head" role="row"><span role="columnheader">${pe ? 'Выбор' : 'Фото'}</span><span role="columnheader">Товар</span><span role="columnheader">${pe ? 'Цена за 1 мл и цены объёмов' : FS.api.tracking() ? 'Объёмы, цены и остатки' : 'Объёмы и цены'}</span><span role="columnheader">Действия</span></div>
         ${list.map((p) => `
           <div class="ptable-row ${pe && pe.edits.has(p.id) ? 'is-edited' : ''} ${pe && pe.picked.has(p.id) ? 'is-picked' : ''}" role="row" data-pid="${p.id}">
             ${editable(p)
@@ -772,7 +786,7 @@ FS.views.admin = (function () {
       id: '', type: 'perfume', name: '', brand: '', gender: 'unisex', family: 'woody', concentration: 'EDP',
       year: new Date().getFullYear(), perfumer: '', country: '',
       niche: false, bestseller: false, isNew: true, featured: false,
-      perMl: '', volumes: FS.config.decants.volumes.map((ml) => ({ ml, price: 0, stock: 0 })), main: FS.config.decants.volumes[0],
+      perMl: '', volumes: FS.config.decants.volumes.map((ml) => ({ ml, price: 0, stock: FS.api.tracking() ? 0 : 99 })), main: FS.config.decants.volumes[0],
       short: '', description: '',
       notes: { top: [], heart: [], base: [] },
       longevity: 3, sillage: 3,
@@ -788,12 +802,12 @@ FS.views.admin = (function () {
 
   function volumeRows() {
     return draft.volumes.map((v, i) => `
-      <div class="vol-row" data-vol="${i}">
+      <div class="vol-row ${FS.api.tracking() ? '' : 'vol-row--nostock'}" data-vol="${i}">
         <label class="vol-main" title="Показывать этот объём в карточке"><input type="radio" name="main" value="${i}" ${v.ml === draft.main ? 'checked' : ''}><span class="visually-hidden">Показывать в карточке</span></label>
         <label><span>Объём, мл</span><input type="number" min="1" step="1" inputmode="numeric" data-vol-field="ml" value="${v.ml || ''}"></label>
         <label><span>Подпись</span><input type="text" data-vol-field="label" value="${esc(v.label || '')}" placeholder="5 × 10 мл"></label>
         <label><span>Цена, ${esc(FS.config.currency)}</span><input type="number" min="0" step="1" inputmode="numeric" data-vol-field="price" value="${draft.perMl > 0 && v.ml ? FS.api.priceFor(draft.perMl, v.ml) : v.price || ''}" ${draft.perMl > 0 ? 'readonly title="Считается из цены за 1 мл"' : ''}></label>
-        <label><span>Остаток, шт.</span><input type="number" min="0" step="1" inputmode="numeric" data-vol-field="stock" value="${v.stock}"></label>
+        ${FS.api.tracking() ? `<label><span>Остаток, шт.</span><input type="number" min="0" step="1" inputmode="numeric" data-vol-field="stock" value="${v.stock}"></label>` : `<input type="hidden" data-vol-field="stock" value="${v.stock}">`}
         <button class="icon-btn" type="button" data-vol-remove="${i}" aria-label="Удалить объём ${v.ml || ''} мл" ${draft.volumes.length < 2 ? 'disabled' : ''}>${FS.ui.icon.close}</button>
       </div>`).join('');
   }
@@ -840,7 +854,7 @@ FS.views.admin = (function () {
 
         <fieldset class="co-step"><legend>Фото</legend>${photoBlock()}</fieldset>
 
-        <fieldset class="co-step"><legend>Объёмы, цены и остатки</legend>
+        <fieldset class="co-step"><legend>${FS.api.tracking() ? 'Объёмы, цены и остатки' : 'Объёмы и цены'}</legend>
           <div class="field perml-field" data-field="perMl">
             <label for="pe-perMl">Цена за 1 мл, ${esc(FS.config.currency)}</label>
             <input id="pe-perMl" name="perMl" type="number" min="0" step="1" inputmode="numeric" value="${p.perMl > 0 ? p.perMl : ''}">
@@ -872,7 +886,7 @@ FS.views.admin = (function () {
 
         <fieldset class="co-step"><legend>Витрина</legend>
           <div class="flag-grid">
-            ${[['niche', 'Нишевая парфюмерия'], ['bestseller', 'Бестселлер'], ['isNew', 'Новинка'], ['featured', 'Широкая карточка в каталоге']].map(([k, l]) => `
+            ${[['niche', 'Нишевая парфюмерия'], ['bestseller', 'Бестселлер'], ['isNew', 'Новинка'], ['featured', 'Широкая карточка в каталоге'], ['hidden', 'Скрыть с сайта (закончился надолго)']].map(([k, l]) => `
               <label class="check"><input type="checkbox" name="${k}" ${p[k] ? 'checked' : ''}><span class="check-box" aria-hidden="true"></span><span class="check-label">${l}</span></label>`).join('')}
           </div>
         </fieldset>
@@ -906,7 +920,7 @@ FS.views.admin = (function () {
     draft.longevity = Number(val('longevity'));
     draft.sillage = Number(val('sillage'));
     draft.bottle = { ...draft.bottle, shape: draft.type === 'set' ? 'set' : val('shape'), count: draft.type === 'set' ? 3 : undefined, label: draft.bottle.label || draft.brand.toUpperCase().slice(0, 14) };
-    ['niche', 'bestseller', 'isNew', 'featured'].forEach((k) => { draft[k] = f.elements[k].checked; });
+    ['niche', 'bestseller', 'isNew', 'featured', 'hidden'].forEach((k) => { if (f.elements[k].checked) draft[k] = true; else delete draft[k]; });
     const perMl = Number(val('perMl'));
     if (perMl > 0) draft.perMl = perMl; else delete draft.perMl;
     draft.volumes = $$('.vol-row', f).map((row) => {

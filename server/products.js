@@ -73,7 +73,7 @@ function normalize(p, pos) {
     pos
   };
   if (b.count) out.bottle.count = Math.min(6, Math.max(1, int(b.count)));
-  ['niche', 'bestseller', 'isNew', 'featured'].forEach((k) => { if (p[k]) out[k] = true; });
+  ['niche', 'bestseller', 'isNew', 'featured', 'hidden'].forEach((k) => { if (p[k]) out[k] = true; });
   const year = int(p.year);
   if (year > 1700 && year < 2200) out.year = year;
   if (p.country) out.country = str(p.country, 60);
@@ -98,7 +98,14 @@ async function stored() {
 
 const fromFile = () => JSON.parse(JSON.stringify([...catalog.load().products.values()]));
 
-async function list() { return (await stored()) || fromFile(); }
+// Остатки не ведём (FS.config.trackStock: false) — каждый объём доступен.
+const tracking = () => catalog.load().config.trackStock !== false;
+const FREE_STOCK = 99;
+async function list() {
+  const items = (await stored()) || fromFile();
+  if (!tracking()) items.forEach((p) => p.volumes.forEach((v) => { v.stock = FREE_STOCK; }));
+  return items;
+}
 async function map() { return new Map((await list()).map((p) => [p.id, p])); }
 async function meta() { return db.configured() ? parse(await db.command('GET', META)) : null; }
 
@@ -184,7 +191,7 @@ async function reset() {
 /* Остатки: sign = -1 списать (заказ), +1 вернуть (отмена).
    Работает, только когда каталог хранится на сервере. */
 async function moveStock(items, sign) {
-  if (!db.configured() || !(await stored())) return false;
+  if (!tracking() || !db.configured() || !(await stored())) return false;
   for (const item of items) {
     const p = parse(await db.command('HGET', KEY, item.id));
     const v = p && p.volumes.find((x) => x.ml === item.ml);
@@ -232,4 +239,4 @@ async function getImage(name) {
   return parse(await db.command('HGET', IMAGES, stemOf(imageName(name))));
 }
 
-module.exports = { list, map, stored, meta, replace, upsert, remove, reset, moveStock, saveImage, getImage, normalize };
+module.exports = { tracking, list, map, stored, meta, replace, upsert, remove, reset, moveStock, saveImage, getImage, normalize };

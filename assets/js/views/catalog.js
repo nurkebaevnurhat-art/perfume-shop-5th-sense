@@ -298,7 +298,7 @@ FS.views.favorites = (function () {
 
   function body() {
     const ids = FS.store.favorites();
-    const list = FS.products.filter((p) => ids.includes(p.id));
+    const list = FS.api.visible().filter((p) => ids.includes(p.id));
     if (!list.length) {
       return `<div class="empty">
         <p class="empty-title">Здесь появятся ароматы, которые вы отметите</p>

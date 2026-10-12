@@ -952,6 +952,7 @@ h1[tabindex="-1"]:focus { outline: none; }
 .pay--unpaid { color: var(--ink-soft); }
 .tag { font-size: 10px; letter-spacing: 0.18em; padding-bottom: 2px; border-bottom: 1px solid currentColor; }
 .tag--blue { color: var(--gold-deep); }
+.tag--off { color: var(--error); }
 .stock-pill { font-size: 10.5px; }
 .stock-pill.is-low { color: var(--warn); }
 .stock-pill.is-out { color: var(--error); }
@@ -1027,6 +1028,7 @@ h1[tabindex="-1"]:focus { outline: none; }
 .file-btn:has(input:focus-visible) { outline: 2px solid var(--blue); outline-offset: 3px; }
 .vol-rows { display: grid; gap: 8px; }
 .vol-row { display: grid; grid-template-columns: 28px repeat(4, minmax(0, 1fr)) 44px; gap: 10px; align-items: end; padding: 10px; background: var(--sheet); border: 1px solid var(--line); }
+.vol-row--nostock { grid-template-columns: 28px repeat(3, minmax(0, 1fr)) 44px; }
 .vol-row label { display: grid; gap: 4px; font-size: 12px; color: var(--ink-soft); min-width: 0; }
 .vol-row input[type="number"], .vol-row input[type="text"] { width: 100%; min-width: 0; background: var(--paper); border: 1px solid var(--line-strong); border-radius: 0; padding: 9px 10px; outline: 0; font-size: 15px; color: var(--ink); }
 .vol-row input:focus { border-color: var(--blue); }

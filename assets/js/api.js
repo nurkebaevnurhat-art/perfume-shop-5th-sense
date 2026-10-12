@@ -202,7 +202,11 @@ FS.api = (function () {
   }
 
   // Индексы пересобираются после каждого изменения каталога.
+  // Без учёта остатков каждый объём доступен: число штук ни на что не влияет.
+  const tracking = () => FS.config.trackStock !== false;
+  const FREE_STOCK = 99;
   function rebuild() {
+    if (!tracking()) FS.products.forEach((p) => p.volumes.forEach((v) => { v.stock = FREE_STOCK; }));
     byId = new Map(FS.products.map((p) => [p.id, p]));
     // Популярность: бестселлеры и витринные позиции выше, затем по порядку в каталоге.
     popularity = new Map(FS.products.map((p, i) => [p.id, (p.bestseller ? 100 : 0) + (p.featured ? 50 : 0) - i]));
@@ -225,6 +229,7 @@ FS.api = (function () {
     const cat = FS.categories.find((c) => c.id === q.category);
     const words = normalize(q.q).split(/\s+/).filter(Boolean);
     let list = FS.products.filter((p) => {
+      if (p.hidden) return false;
       if (cat && !cat.match(p)) return false;
       if (q.ids && !q.ids.includes(p.id)) return false;
       if (q.families && q.families.length && !q.families.includes(p.family)) return false;
@@ -248,7 +253,7 @@ FS.api = (function () {
   function related(p, limit) {
     const notes = new Set([...p.notes.top, ...p.notes.heart, ...p.notes.base]);
     return FS.products
-      .filter((o) => o.id !== p.id && o.type === 'perfume')
+      .filter((o) => o.id !== p.id && o.type === 'perfume' && !o.hidden)
       .map((o) => {
         const shared = [...o.notes.top, ...o.notes.heart, ...o.notes.base].filter((n) => notes.has(n)).length;
         const score = (o.family === p.family ? 6 : 0) + shared * 2 + (o.gender === p.gender || o.gender === 'unisex' ? 1 : 0);
@@ -260,8 +265,10 @@ FS.api = (function () {
   }
 
   function brands() {
-    return [...new Set(FS.products.map((p) => p.brand))].sort((a, b) => a.localeCompare(b));
+    return [...new Set(visible().map((p) => p.brand))].sort((a, b) => a.localeCompare(b));
   }
+  // Ароматы, которые видят покупатели (без отмеченных «Скрыть с сайта»).
+  function visible() { return FS.products.filter((p) => !p.hidden); }
 
   /* --- Изменение каталога (админ-панель) ---
      С сервером (есть хранилище и вход по паролю) правки сохраняются на сервере
@@ -336,6 +343,7 @@ FS.api = (function () {
 
   // Изменение остатка по позициям заказа: sign = -1 списать, +1 вернуть.
   function moveStock(items, sign) {
+    if (!tracking()) return;
     items.forEach((item) => {
       const p = byId.get(item.id);
       const v = p && p.volumes.find((x) => x.ml === item.ml);
@@ -430,6 +438,8 @@ FS.api = (function () {
     variants,
     variant,
     fullBottle,
+    visible,
+    tracking,
     priceFor,
     perMl,
     async product(id) { return byId.get(id) || null; },

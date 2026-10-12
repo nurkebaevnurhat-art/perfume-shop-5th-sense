@@ -48,6 +48,7 @@ FS.importer = (function () {
     ['country', 'Страна', ['страна', 'country']],
     ['perfumer', 'Парфюмер', ['парфюмер', 'автор', 'perfumer']],
     ['photo', 'Фото', ['фото', 'фотография', 'изображение', 'photo', 'image']],
+    ['hidden', 'Скрыть с сайта', ['скрыть с сайта', 'скрыть', 'скрыт', 'скрыт с сайта', 'hidden']],
     ['fullMl', 'Полный флакон, мл', ['полный флакон, мл', 'полный флакон', 'флакон, мл', 'объём флакона', 'объем флакона', 'full']]
   ];
   const norm = (s) => String(s == null ? '' : s).toLowerCase().replace(/ё/g, 'е').replace(/\*/g, '').replace(/\s+/g, ' ').trim();
@@ -171,7 +172,8 @@ FS.importer = (function () {
         if (!(per > 0)) { errors.push(`Строка ${line} (${name}): цена за 1 мл должна быть числом больше нуля.`); return; }
         const mls = mlList(get('mls'));
         if (!mls) { errors.push(`Строка ${line} (${name}): объёмы напишите числами через запятую, например 5, 10, 15, 20.`); return; }
-        const stock = stockList(get('stock'), mls);
+        // Остатки не ведём — колонку «Остаток» не читаем, все объёмы доступны.
+        const stock = FS.api.tracking() ? stockList(get('stock'), mls) : new Map(mls.map((ml) => [ml, 99]));
         if (!stock) { errors.push(`Строка ${line} (${name}): остаток — одно число (на каждый объём) или по объёмам, например «5: 3, 10: 2».`); return; }
         if (groups.has(id)) { errors.push(`Строка ${line} (${name}): этот аромат уже есть в строке ${groups.get(id).line}.`); return; }
         const perMl = Math.round(per * 100) / 100;
@@ -181,7 +183,7 @@ FS.importer = (function () {
       const ml = number(get('ml'));
       const price = Math.round(number(get('price')));
       const stockRaw = get('stock');
-      const stock = text(stockRaw) === '' ? 0 : Math.floor(number(stockRaw));
+      const stock = !FS.api.tracking() ? 99 : text(stockRaw) === '' ? 0 : Math.floor(number(stockRaw));
       if (!(ml > 0)) { errors.push(`Строка ${line} (${name}): объём должен быть числом больше нуля.`); return; }
       if (!(price > 0)) { errors.push(`Строка ${line} (${name}): цена должна быть числом больше нуля.`); return; }
       if (!(stock >= 0)) { errors.push(`Строка ${line} (${name}): остаток должен быть числом.`); return; }
@@ -209,7 +211,7 @@ FS.importer = (function () {
       p.family = fm || p.family || 'woody';
       ['top', 'heart', 'base'].forEach((k) => { if (has(k) && text(first(k))) p.notes[k] = words(first(k)); });
       ['short', 'description', 'country', 'perfumer'].forEach((k) => { if (has(k) && text(first(k))) p[k] = text(first(k)); });
-      ['niche', 'bestseller', 'isNew'].forEach((k) => { if (has(k)) { if (yes(first(k))) p[k] = true; else delete p[k]; } });
+      ['niche', 'bestseller', 'isNew', 'hidden'].forEach((k) => { if (has(k)) { if (yes(first(k))) p[k] = true; else delete p[k]; } });
       if (has('year') && Number(first('year')) > 1700) p.year = Number(first('year'));
       if (has('fullMl')) { const f = number(first('fullMl')); if (f > 0) p.fullMl = f; else delete p.fullMl; }
       // Цена за 1 мл: в старом формате цены объёмов заданы вручную, формулу убираем.
@@ -272,9 +274,10 @@ FS.importer = (function () {
     const XLSX = await lib();
     const fam = (id) => (FS.families.find((f) => f.id === id) || {}).name || '';
     const shown = FS.config.decants.volumes;
+    const track = FS.api.tracking();
     const head = ['Артикул', 'Бренд *', 'Название *', 'Концентрация', 'Пол *', 'Цена за 1 мл, ₸ *',
-      ...shown.map((ml) => `Цена ${ml} мл`), 'Объёмы, мл', 'Остаток, шт.', 'Семейство', 'Верхние ноты', 'Ноты сердца', 'Базовые ноты',
-      'Кратко', 'Описание', 'Нишевая', 'Бестселлер', 'Новинка', 'Год', 'Страна', 'Парфюмер', 'Фото', 'Полный флакон, мл'];
+      ...shown.map((ml) => `Цена ${ml} мл`), 'Объёмы, мл', ...(track ? ['Остаток, шт.'] : []), 'Семейство', 'Верхние ноты', 'Ноты сердца', 'Базовые ноты',
+      'Кратко', 'Описание', 'Нишевая', 'Бестселлер', 'Новинка', 'Год', 'Страна', 'Парфюмер', 'Фото', 'Полный флакон, мл', 'Скрыть с сайта'];
     const rows = [head];
     products.forEach((p) => {
       const photo = p.photo || (p.image && p.image.startsWith('assets/') ? p.image.split('/').pop() : '');
@@ -284,10 +287,10 @@ FS.importer = (function () {
       const mls = vols.map((v) => v.ml).join(', ');
       rows.push([
         p.id, p.brand, p.name, p.concentration || '', FS.genderLabel[p.gender] || '', FS.api.perMl(p),
-        ...shown.map(() => ''), mls === shown.join(', ') ? '' : mls, stock,
+        ...shown.map(() => ''), mls === shown.join(', ') ? '' : mls, ...(track ? [stock] : []),
         fam(p.family), p.notes.top.join(', '), p.notes.heart.join(', '), p.notes.base.join(', '),
         p.short || '', p.description || '', p.niche ? 'да' : '', p.bestseller ? 'да' : '', p.isNew ? 'да' : '',
-        p.year || '', p.country || '', p.perfumer || '', photo, p.fullMl || ''
+        p.year || '', p.country || '', p.perfumer || '', photo, p.fullMl || '', p.hidden ? 'да' : ''
       ]);
     });
     const ws = XLSX.utils.aoa_to_sheet(rows);
@@ -298,7 +301,7 @@ FS.importer = (function () {
         ws[ref] = { t: 'n', f: `ROUND(F${r + 1}*${ml},0)`, v: FS.api.priceFor(rows[r][5], ml) };
       });
     }
-    ws['!cols'] = [22, 24, 26, 12, 11, 12, ...shown.map(() => 10), 14, 12, 13, 28, 28, 28, 40, 60, 9, 10, 9, 7, 13, 22, 28, 14].map((w) => ({ wch: w }));
+    ws['!cols'] = [22, 24, 26, 12, 11, 12, ...shown.map(() => 10), 14, ...(track ? [12] : []), 13, 28, 28, 28, 40, 60, 9, 10, 9, 7, 13, 22, 28, 14, 12].map((w) => ({ wch: w }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Товары');
     XLSX.writeFile(wb, `5th-sense-catalog-${new Date().toISOString().slice(0, 10)}.xlsx`);
