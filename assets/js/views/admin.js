@@ -249,7 +249,7 @@ FS.views.admin = (function () {
       ? all.filter((o) => [o.number, o.customer.firstName, o.customer.lastName, o.customer.phone].join(' ').toLowerCase().includes(q))
       : st === 'archive' ? archive : work.filter((o) => st === 'all' || o.status === st);
     const shown = list.slice(0, orderLimit);
-    const chip = (id, name, n) => `<button type="button" class="chip ${!q && st === id ? 'chip--active' : ''}" data-order-filter="${id}" aria-pressed="${!q && st === id}">${name} <span class="chip-count">${n}</span></button>`;
+    const chip = (id, name, n) => `<button type="button" class="chip status-tile ${!q && st === id ? 'chip--active' : ''} ${n ? '' : 'is-zero'}" data-order-filter="${id}" aria-pressed="${!q && st === id}"><span class="chip-name">${name}</span><span class="chip-count">${n}</span></button>`;
     const empty = q ? 'По этому запросу заказов нет, в том числе в архиве.'
       : st === 'archive' ? `Архив пуст. Сюда попадают выполненные и отменённые заказы через ${ARCHIVE_DAYS} дней.`
       : 'Нет заказов с таким статусом.';
@@ -261,7 +261,7 @@ FS.views.admin = (function () {
         <button class="btn btn--outline btn--sm" type="button" data-test-order>Добавить тестовый заказ</button>
       </div>
       ${ordersExportPanel(all)}
-      <div class="chips admin-chips">${chip('all', 'В работе', work.length)}${FS.api.STATUSES.map((s) => chip(s.id, s.name, work.filter((o) => o.status === s.id).length)).join('')}${chip('archive', 'Архив', archive.length)}</div>
+      <div class="admin-chips" role="group" aria-label="Заказы по статусу">${chip('all', 'В работе', work.length)}${FS.api.STATUSES.map((s) => chip(s.id, s.name, work.filter((o) => o.status === s.id).length)).join('')}${chip('archive', 'Архив', archive.length)}</div>
       ${q ? '<p class="stat-note orders-note">Поиск по всем заказам, включая архив.</p>' : st === 'archive' ? `<p class="stat-note orders-note">Выполненные и отменённые заказы старше ${ARCHIVE_DAYS} дней. Они хранятся и учитываются в подарках за покупки.</p>` : ''}
       <div data-order-list>${shown.length ? `<div class="orders">${shown.map(orderRow).join('')}</div>
         ${list.length > shown.length ? `<div class="orders-more"><button class="btn btn--outline btn--sm" type="button" data-orders-more>Показать ещё</button><span class="stat-note">Показано ${shown.length} из ${list.length}</span></div>` : ''}`
