@@ -29,8 +29,8 @@ FS.views.admin = (function () {
   let productFilter = { q: '', category: '' };
   let draft = null; // товар в редакторе
   let importPlan = null; // загруженная таблица до подтверждения
-  let priceTool = null; // «Изменить цены»: { brand, pct, plan }
-  let priceEdit = null; // «Править цены»: { edits: Map(id → цена за 1 мл), picked: Set(id) }
+  let priceTool = null; // «Процент на бренд или все»: { brand, pct, plan }
+  let priceEdit = null; // «Цена каждого аромата»: { edits: Map(id → цена за 1 мл), picked: Set(id) }
 
   /* ---------- Режим ---------- */
   // Сервер с паролем админки: заказы и вход через /api. Иначе — демо в браузере.
@@ -590,8 +590,8 @@ FS.views.admin = (function () {
         <div class="tool-group">
           <p class="tool-label">Цены</p>
           <div class="tool-btns">
-            <button class="btn ${pe ? 'btn--primary' : 'btn--outline'} btn--sm" type="button" data-price-edit>${pe ? 'Закончить правку цен' : 'Править цены'}</button>
-            <button class="btn btn--outline btn--sm" type="button" data-price-open>Изменить цены</button>
+            <button class="btn ${pe ? 'btn--primary' : 'btn--outline'} btn--sm" type="button" data-price-edit>${pe ? 'Закончить правку цен' : 'Цена каждого аромата'}</button>
+            <button class="btn btn--outline btn--sm" type="button" data-price-open>Процент на бренд или все</button>
           </div>
         </div>
         <div class="tool-group">
@@ -628,7 +628,7 @@ FS.views.admin = (function () {
       ${pe ? priceBar() : ''}`;
   }
 
-  /* ---------- Править цены: прямо в списке, с галочками ---------- */
+  /* ---------- Цена каждого аромата: прямо в списке, с галочками ---------- */
   function calcText(p, perMl) {
     return Number(perMl) > 0 ? p.volumes.map((v) => `${esc(volumeLabel(v))} ${money(FS.api.priceFor(perMl, v.ml))}`).join(' · ') : 'Укажите цену за 1 мл';
   }
@@ -694,7 +694,7 @@ FS.views.admin = (function () {
     }
   }
 
-  /* ---------- Изменить цены: все ароматы или один бренд на N % ---------- */
+  /* ---------- Процент на бренд или все: все ароматы или один бренд на N % ---------- */
   // Процент к цене за 1 мл, результат округляется до 10 ₸ (пропорция объёмов сохраняется).
   const bumpPerMl = (perMl, pct) => Math.max(10, Math.round((perMl * (1 + pct / 100)) / 10) * 10);
 
@@ -722,7 +722,7 @@ FS.views.admin = (function () {
       return `<li><b>${esc(`${p.brand} ${p.name}`)}</b>: 1 мл ${money(FS.api.perMl(was))} → ${money(p.perMl)}; ${esc(volumeLabel(v))} ${money(old ? old.price : 0)} → ${money(v.price)}</li>`;
     };
     return `<section class="admin-panel import-panel price-panel">
-        <h2>Изменить цены</h2>
+        <h2>Процент на бренд или все ароматы</h2>
         <p class="co-hint">Цена за 1 мл меняется на указанный процент и округляется до 10 ₸, цены всех объёмов пересчитываются по ней. Чтобы снизить цены, напишите минус, например −5.</p>
         <form class="price-form" data-price-form novalidate>
           <div class="field"><span class="field-label" id="pp-brand-label">Какие ароматы</span>${brandPicker(brands, count)}</div>
@@ -1339,7 +1339,7 @@ FS.views.admin = (function () {
       if (t.closest('[data-admin-logout]')) { setAuthed(false); toast('Вы вышли из админ-панели'); FS.app.go('admin'); return; }
       if (t.closest('[data-test-order]')) { testOrder(); return; }
       if (t.closest('[data-import-cancel]')) { importPlan = null; renderBody(); return; }
-      // Список брендов в «Изменить цены».
+      // Список брендов в «Процент на бренд или все».
       const openPick = $('[data-brand-pick] .brand-pick-pop:not([hidden])', el);
       if (openPick && !t.closest('[data-brand-pick]')) closeBrandPicker(openPick.closest('[data-brand-pick]'));
       const toggle = t.closest('[data-brand-toggle]');
@@ -1566,7 +1566,7 @@ FS.views.admin = (function () {
         $('.brand-pick-empty', pick).hidden = shown > 0;
         return;
       }
-      // «Править цены»: новая цена за 1 мл в списке.
+      // «Цена каждого аромата»: новая цена за 1 мл в списке.
       if (t.dataset.perml && priceEdit) {
         const p = FS.api.productSync(t.dataset.perml);
         if (!p) return;
