@@ -3,7 +3,7 @@
    Сайт целиком сохраняется на телефоне, поэтому каталог открывается без интернета.
    Обновления: при каждом открытии файлы тихо обновляются в фоне,
    новая версия видна при следующем запуске. */
-const VERSION = 'dbf35d44dd';
+const VERSION = '3d667716d6';
 const CACHE = `fs-${VERSION}`;
 const FONTS = 'fs-fonts';
 const PRECACHE = [
@@ -40,6 +40,7 @@ const PRECACHE = [
   "assets/js/views/product.js",
   "index.html",
   "kassa.webmanifest",
+  "kassa/index.html",
   "manifest.webmanifest"
 ];
 

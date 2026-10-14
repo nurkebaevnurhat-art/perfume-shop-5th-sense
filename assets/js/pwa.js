@@ -21,15 +21,11 @@ FS.pwa = (function () {
     if (standalone() || FS.tg.inside) return false;
     return Boolean(deferred) || supported();
   }
-  const isKassa = () => location.hash === '#kassa';
+  const isKassa = () => /\/kassa\/?$/.test(location.pathname);
 
   function refresh() {
     document.body.classList.toggle('is-standalone', standalone());
     document.body.classList.toggle('can-install', canInstall());
-  }
-
-  function iosHint() {
-    FS.ui.toast('Нажмите «Поделиться» внизу экрана и выберите «На экран „Домой“»', null, { duration: 9000 });
   }
 
   async function install() {
@@ -41,9 +37,36 @@ FS.pwa = (function () {
       refresh();
       return;
     }
-    if (ios()) { iosHint(); return; }
-    FS.ui.toast(`Откройте меню браузера (⋮ справа вверху) и выберите «Установить приложение» или «Добавить на главный экран»${isKassa() ? ' — установится «Касса»' : ''}`, null, { duration: 10000 });
+    howTo();
   }
+
+  // Окно с шагами установки под этот телефон (когда браузер не показал своё окно).
+  function howTo() {
+    const what = isKassa() ? 'кассу' : 'приложение 5th SENSE';
+    const inApp = /Instagram|FBAN|FBAV|WhatsApp|Line\//i.test(navigator.userAgent);
+    const steps = inApp
+      ? ['Нажмите ⋮ или «…» в углу экрана.', 'Выберите «Открыть в браузере» (Chrome или Safari).', 'Затем снова нажмите «Установить».']
+      : ios()
+        ? ['Внизу экрана нажмите «Поделиться» — квадрат со стрелкой вверх.', 'Прокрутите список и выберите «На экран „Домой“».', 'Нажмите «Добавить».']
+        : ['Нажмите ⋮ в правом верхнем углу Chrome.', 'Выберите «Установить приложение» или «Добавить на главный экран».', 'Нажмите «Установить».'];
+    const layer = document.createElement('div');
+    layer.className = 'ks-qr-layer';
+    layer.setAttribute('role', 'dialog');
+    layer.setAttribute('aria-modal', 'true');
+    layer.setAttribute('aria-label', `Как установить ${what}`);
+    layer.innerHTML = `<div class="ks-qr-card pwa-howto"><p class="ks-pin-kicker">Установка</p>
+      <h2 class="pwa-howto-title">Как установить ${what}</h2>
+      <ol class="pwa-steps">${steps.map((t) => `<li>${t}</li>`).join('')}</ol>
+      <p class="ks-qr-text">${ios() ? 'На iPhone это делается только так — Apple не даёт сайтам своей кнопки установки.' : 'Если пункта «Установить» нет, а на телефоне уже стоит приложение 5th SENSE, откройте этот адрес в Chrome — касса ставится отдельным приложением.'}</p>
+      <button class="btn btn--outline btn--sm" type="button" data-howto-close>Понятно</button></div>`;
+    document.body.appendChild(layer);
+    const close = () => { layer.remove(); document.removeEventListener('keydown', onKey); };
+    const onKey = (e) => { if (e.key === 'Escape') close(); };
+    document.addEventListener('keydown', onKey);
+    layer.addEventListener('click', (e) => { if (e.target === layer || e.target.closest('[data-howto-close]')) close(); });
+    layer.querySelector('[data-howto-close]').focus();
+  }
+
 
   // Переход на кассу внутри сайта: меняем манифест, чтобы установилась именно «Касса».
   function syncManifest() {
