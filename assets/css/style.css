@@ -1197,11 +1197,64 @@ h1[tabindex="-1"]:focus { outline: none; }
 @media (max-width: 600px) { .lp-add { grid-template-columns: minmax(0, 1fr); } .lp-tier { grid-template-columns: 110px minmax(0, 1fr); } }
 
 /* Касса (#kassa): крупно, под палец, телефон в бутике */
-.ks-head { position: relative; }
-.ks-head-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; }
-.ks-out { color: var(--on-dark); opacity: 0.75; }
-.ks-install { padding: 0; color: var(--gold-soft); border-bottom: 1px solid currentColor; font-size: 14px; }
+.ks-stage { --ks-gold: #c9ad7d; background: var(--paper); }
+.ks-top { background: radial-gradient(ellipse 80% 140% at 50% 0%, #1d1813 0%, var(--ink) 70%); color: var(--on-dark); padding: calc(var(--header-h) + env(safe-area-inset-top, 0px) + clamp(24px, 5vw, 56px)) var(--gutter) clamp(28px, 4vw, 44px); }
+.ks-top-inner { width: min(100%, 520px); margin: 0 auto; display: grid; gap: 10px; }
+.ks-title { margin: 0; font-family: var(--ff-serif); font-size: clamp(40px, 9vw, 64px); font-weight: 400; line-height: 1; text-transform: uppercase; letter-spacing: 0.01em; }
+.ks-sub { margin: 0; max-width: 40ch; color: var(--on-dark); opacity: 0.72; font-size: 15px; }
+.ks-head-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; margin-top: 8px; }
+.ks-link { padding: 0; color: var(--ks-gold); font-size: 14px; border-bottom: 1px solid currentColor; }
+.ks-link:hover { color: var(--on-dark); }
+.ks-install { padding: 0; color: var(--ks-gold); border-bottom: 1px solid currentColor; font-size: 14px; }
+.ks-browser { color: var(--ink); background: var(--ks-gold); border-color: var(--ks-gold); }
+.ks-browser-note { flex-basis: 100%; margin: 0; font-size: 13.5px; color: var(--on-dark); opacity: 0.72; max-width: 46ch; }
 .kassa { width: min(100% - 2 * var(--gutter), 520px); margin: 0 auto; padding-block: clamp(28px, 5vw, 48px) 72px; }
+
+/* Экран PIN-кода: тёмная сцена, золото, логотип */
+.ks-stage.is-pin { background: radial-gradient(ellipse 90% 70% at 50% 18%, #241d15 0%, #120f0c 55%, #0b0907 100%); color: var(--on-dark); min-height: 100svh; }
+.ks-stage.is-pin .ks-top { display: none; }
+.ks-stage.is-pin .kassa { padding-top: calc(var(--header-h) + env(safe-area-inset-top, 0px) + clamp(12px, 4vh, 40px)); }
+.ks-pin { display: grid; justify-items: center; text-align: center; }
+.ks-pin.is-enter { animation: ks-rise 0.7s var(--ease) both; }
+.ks-pin-logo { width: auto; height: clamp(92px, 15vh, 132px); margin-bottom: 18px; filter: drop-shadow(0 10px 30px rgba(201, 173, 125, 0.18)); }
+.ks-pin-kicker { margin: 0; font-size: 11px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--ks-gold, #c9ad7d); }
+.ks-pin-title { margin: 10px 0 0; font-family: var(--ff-serif); font-weight: 400; font-size: clamp(30px, 7vw, 40px); line-height: 1.05; }
+.ks-dots { display: flex; gap: 16px; height: 16px; margin-top: 26px; }
+.ks-dots span { width: 13px; height: 13px; border: 1px solid var(--ks-gold); border-radius: 50%; transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s; }
+.ks-dots span.is-on { background: var(--ks-gold); transform: scale(1.12); box-shadow: 0 0 14px rgba(201, 173, 125, 0.55); }
+.ks-pin.is-wrong .ks-dots { animation: ks-shake 0.45s ease-in-out; }
+.ks-pin.is-wrong .ks-dots span { border-color: #d98b7a; }
+.ks-pin-error { min-height: 1.4em; margin: 14px 0 0; color: #e7a593; }
+.ks-pin-error:empty { min-height: 1.4em; margin: 14px 0 0; }
+.ks-keypad { display: grid; grid-template-columns: repeat(3, 76px); gap: 16px 22px; margin-top: 18px; }
+.ks-key { width: 76px; height: 76px; display: grid; place-items: center; border: 1px solid rgba(201, 173, 125, 0.38); border-radius: 50%; background: rgba(255, 255, 255, 0.025); color: var(--on-dark); font-family: var(--ff-serif); font-size: 30px; line-height: 1; cursor: pointer; transition: background-color 0.18s, border-color 0.18s, color 0.18s, transform 0.12s; -webkit-tap-highlight-color: transparent; }
+.ks-key:hover { border-color: var(--ks-gold); }
+.ks-key:active { background: var(--ks-gold); color: #0e0c0a; transform: scale(0.94); }
+.ks-key:focus-visible { outline: 2px solid var(--ks-gold); outline-offset: 3px; }
+.ks-key svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round; }
+.ks-key--icon { border-color: transparent; background: transparent; }
+.ks-key--go { background: var(--ks-gold); border-color: var(--ks-gold); color: #0e0c0a; }
+.ks-key--go:hover { background: #d8c095; }
+.ks-key:disabled { opacity: 0.28; cursor: default; transform: none; }
+.ks-key--go:disabled { background: transparent; color: var(--ks-gold); }
+.ks-spin { width: 22px; height: 22px; border: 1.5px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: ks-turn 0.8s linear infinite; }
+.ks-pin-foot { margin: 30px 0 0; max-width: 32ch; font-size: 12.5px; line-height: 1.5; color: var(--on-dark); opacity: 0.5; }
+@keyframes ks-shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-9px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(3px); } }
+@keyframes ks-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes ks-turn { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .ks-pin.is-enter, .ks-pin.is-wrong .ks-dots { animation: none; } }
+@media (max-width: 360px) { .ks-keypad { grid-template-columns: repeat(3, 68px); gap: 14px 18px; } .ks-key { width: 68px; height: 68px; font-size: 27px; } }
+
+/* QR-код на весь экран */
+.ks-qr-layer { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: var(--gutter); background: rgba(10, 8, 6, 0.86); backdrop-filter: blur(6px); }
+.ks-qr-card { width: min(100%, 380px); display: grid; justify-items: center; gap: 14px; padding: 26px 22px; background: #14110d; border: 1px solid rgba(201, 173, 125, 0.4); color: var(--on-dark); text-align: center; }
+.ks-qr-code { width: min(100%, 280px); aspect-ratio: 1; display: grid; place-items: center; background: #fff; color: #0e0c0a; font-size: 14px; }
+.qr-svg { width: 100%; height: 100%; display: block; }
+.ks-qr-text { margin: 0; font-size: 13.5px; line-height: 1.5; opacity: 0.75; }
+.ks-qr-card .btn--outline { border-color: var(--ks-gold, #c9ad7d); color: #c9ad7d; }
+.ks-qr-card .btn--outline:hover { background: #c9ad7d; color: #0e0c0a; }
+
+/* Рабочие экраны кассы */
 .ks-label { display: block; margin: 18px 0 8px; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-soft); }
 .ks-input { width: 100%; min-width: 0; min-height: 56px; padding: 12px 16px; border: 1px solid var(--line-strong); border-radius: 0; background: var(--sheet); color: var(--ink); font-size: 18px; outline: 0; }
 .ks-input:focus { border-color: var(--ink); box-shadow: 0 0 0 3px var(--focus-ring); }
@@ -1226,16 +1279,6 @@ h1[tabindex="-1"]:focus { outline: none; }
 .ks-phone { margin: 6px 0 0; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 .ks-status { margin: 12px 0 0; font-size: 15.5px; }
 .ks-recent { margin: 12px 0 0; padding-left: 18px; font-size: 13.5px; color: var(--ink-soft); display: grid; gap: 2px; }
-.ks-pin { display: grid; justify-items: center; text-align: center; }
-.ks-lead { margin: 6px 0 16px; font-size: 16px; }
-.ks-dots { display: flex; gap: 14px; height: 18px; }
-.ks-dots span { width: 14px; height: 14px; border: 1px solid var(--ink); border-radius: 50%; }
-.ks-dots span.is-on { background: var(--ink); }
-.ks-keypad { display: grid; grid-template-columns: repeat(3, 76px); gap: 12px; margin-top: 18px; }
-.ks-key { height: 64px; border: 1px solid var(--line-strong); border-radius: 50%; background: var(--sheet); color: var(--ink); font-family: var(--ff-serif); font-size: 26px; cursor: pointer; }
-.ks-key:active { background: var(--paper); }
-.ks-key:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-.ks-pin .ks-wide { max-width: 252px; }
 .ks-done { text-align: center; display: grid; justify-items: center; }
 .ks-check { width: 72px; height: 72px; margin: 4px 0 10px; display: grid; place-items: center; border: 1px solid var(--gold); border-radius: 50%; color: var(--gold-deep); font-size: 34px; }
 .ks-done-title { margin: 0; font-family: var(--ff-serif); font-size: 32px; }
@@ -1243,4 +1286,7 @@ h1[tabindex="-1"]:focus { outline: none; }
 .ks-gift { margin: 16px 0 0; padding: 12px 16px; border: 1px solid var(--gold); font-size: 16px; }
 .ks-undo { margin-top: 14px; }
 .kassa-pin-form { grid-template-columns: minmax(0, 220px) auto; align-items: end; }
+.kassa-qr { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 20px; margin-top: 6px; }
+.kassa-qr .ks-qr-code { width: 168px; flex: none; }
+.kassa-qr .stat-note { flex: 1 1 200px; margin: 0; }
 @media (max-width: 600px) { .kassa-pin-form { grid-template-columns: minmax(0, 1fr); } }

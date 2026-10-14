@@ -17,6 +17,8 @@ FS.views.kassa = (function () {
   let done = null; // результат записи
   let form = { name: '', amount: '', note: '' }; // введённое в карточке (не теряется при перерисовке)
   let busy = false;
+  let wrong = false; // неверный PIN: точки вздрагивают
+  let shown = ''; // экран, показанный в прошлый раз (анимация появления — только при входе на экран)
   let error = '';
   let timer = null;
   let seq = 0;
@@ -47,16 +49,39 @@ FS.views.kassa = (function () {
   }
 
   /* ---------- Экраны ---------- */
+  const BACK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11v12H9l-6-6z"/><path d="m12.5 9.5 5 5m0-5-5 5"/></svg>';
+  const ENTER = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13m-5-5 5 5-5 5"/></svg>';
+
   function pinScreen() {
-    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'];
+    const ready = pin.length >= 4 && !busy;
+    const key = (k) => `<button type="button" class="ks-key" data-pin-key="${k}">${k}</button>`;
     return `
-      <div class="ks-pin">
-        <p class="ks-lead">Введите PIN-код кассы</p>
-        <div class="ks-dots" aria-label="Введено цифр: ${pin.length}">${Array.from({ length: Math.max(4, pin.length) }, (_, i) => `<span class="${i < pin.length ? 'is-on' : ''}"></span>`).join('')}</div>
-        <p class="ks-error" role="alert">${esc(error)}</p>
-        <div class="ks-keypad">${keys.map((k) => (k ? `<button type="button" class="ks-key" data-pin-key="${k}" aria-label="${k === '⌫' ? 'Стереть' : k}">${k}</button>` : '<span></span>')).join('')}</div>
-        <button class="btn btn--primary ks-wide" type="button" data-pin-go ${pin.length >= 4 && !busy ? '' : 'disabled'}>${busy ? 'Проверяем…' : 'Войти'}</button>
+      <div class="ks-pin ${wrong ? 'is-wrong' : ''} ${shown !== 'pin' ? 'is-enter' : ''}">
+        <img class="ks-pin-logo" src="${FS.assetUrl('assets/img/logo-intro.png')}" alt="5th SENSE" width="520" height="962" decoding="async">
+        <p class="ks-pin-kicker">Касса бутика</p>
+        <h2 class="ks-pin-title">Введите PIN-код</h2>
+        <div class="ks-dots" role="status" aria-label="Введено цифр: ${pin.length}">${Array.from({ length: Math.max(4, pin.length) }, (_, i) => `<span class="${i < pin.length ? 'is-on' : ''}"></span>`).join('')}</div>
+        <p class="ks-error ks-pin-error" role="alert">${esc(error)}</p>
+        <div class="ks-keypad">
+          ${['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(key).join('')}
+          <button type="button" class="ks-key ks-key--icon" data-pin-key="⌫" aria-label="Стереть" ${pin ? '' : 'disabled'}>${BACK}</button>
+          ${key('0')}
+          <button type="button" class="ks-key ks-key--go" data-pin-go aria-label="Войти" ${ready ? '' : 'disabled'}>${busy ? '<span class="ks-spin" aria-hidden="true"></span>' : ENTER}</button>
+        </div>
+        <p class="ks-pin-foot">Один PIN-код для владельца и сотрудников. Задаётся в админке: «Клиенты» → «Касса».</p>
       </div>`;
+  }
+
+  // Ввод цифр: обновляем только точки и кнопки, без перерисовки экрана (логотип не мигает).
+  function updatePin() {
+    const box = root && root.querySelector('.ks-pin');
+    if (!box) { draw(); return; }
+    const dots = box.querySelector('.ks-dots');
+    dots.innerHTML = Array.from({ length: Math.max(4, pin.length) }, (_, i) => `<span class="${i < pin.length ? 'is-on' : ''}"></span>`).join('');
+    dots.setAttribute('aria-label', `Введено цифр: ${pin.length}`);
+    box.querySelector('.ks-error').textContent = error;
+    box.querySelector('[data-pin-key="⌫"]').disabled = !pin;
+    box.querySelector('[data-pin-go]').disabled = !(pin.length >= 4 && !busy);
   }
 
   function status(c) {
@@ -142,6 +167,10 @@ FS.views.kassa = (function () {
     const box = root.querySelector('[data-kassa]');
     if (!box) return;
     box.innerHTML = body();
+    shown = FS.backend.usable ? screen : '';
+    const stage = root.querySelector('[data-stage]');
+    const isPin = screen === 'pin' && FS.backend.usable;
+    if (stage) { stage.classList.toggle('is-pin', isPin); stage.dataset.head = isPin ? 'dark' : 'light'; }
     const out = root.querySelector('[data-kassa-out]');
     if (out) out.hidden = screen === 'pin' || !FS.backend.usable;
     const focus = screen === 'search' ? '#ks-q' : screen === 'client' ? (client && (isNew || !client.name) && !form.name.trim() ? '#ks-name' : '#ks-amount') : null;
@@ -161,7 +190,9 @@ FS.views.kassa = (function () {
       busy = false; pin = ''; screen = 'search'; draw();
     } catch (err) {
       pin = '';
+      wrong = err.status === 401;
       failed(err);
+      if (wrong) setTimeout(() => { wrong = false; const el = root && root.querySelector('.ks-pin'); if (el) el.classList.remove('is-wrong'); }, 600);
     }
   }
 
@@ -242,20 +273,62 @@ FS.views.kassa = (function () {
     form = { name: '', amount: '', note: '' };
   }
 
+  /* Внутри установленного приложения 5th SENSE нет меню браузера, и кассу не установить.
+     На Android ссылка intent:// открывает её в Chrome, на iPhone — подсказка про Safari. */
+  function browserLink() {
+    if (!FS.pwa || !FS.pwa.standalone()) return '';
+    const url = `${location.origin}${location.pathname}?app=kassa`;
+    if (/android/i.test(navigator.userAgent)) {
+      const intent = `intent://${location.host}${location.pathname}?app=kassa#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(url)};end`;
+      return `<a class="btn btn--primary btn--sm ks-browser" href="${esc(intent)}">Открыть в Chrome</a>
+        <p class="ks-browser-note">Чтобы поставить кассу отдельным значком, откройте её в Chrome и там нажмите ⋮ → «Добавить на главный экран».</p>`;
+    }
+    return `<button class="btn btn--primary btn--sm ks-browser" type="button" data-copy-kassa>Скопировать адрес кассы</button>
+      <p class="ks-browser-note">Откройте Safari, вставьте адрес в строку сверху, затем «Поделиться» → «На экран „Домой“». Или наведите камеру другого телефона на QR-код.</p>`;
+  }
+
+  const kassaUrl = () => `${location.origin}${location.pathname}#kassa`;
+
+  // QR-код кассы на весь экран: навести камеру другого телефона.
+  async function showQr() {
+    const layer = document.createElement('div');
+    layer.className = 'ks-qr-layer';
+    layer.setAttribute('role', 'dialog');
+    layer.setAttribute('aria-modal', 'true');
+    layer.setAttribute('aria-label', 'QR-код кассы');
+    layer.innerHTML = `<div class="ks-qr-card"><p class="ks-pin-kicker">Касса 5th SENSE</p><div class="ks-qr-code" data-qr>Загружаем…</div>
+      <p class="ks-qr-text">Наведите камеру телефона на код — касса откроется в браузере. Затем «Поделиться» → «На экран „Домой“» (iPhone) или ⋮ → «Добавить на главный экран» (Android).</p>
+      <button class="btn btn--outline btn--sm" type="button" data-qr-close>Закрыть</button></div>`;
+    document.body.appendChild(layer);
+    const close = () => { layer.remove(); document.removeEventListener('keydown', onKey); };
+    const onKey = (e) => { if (e.key === 'Escape') close(); };
+    document.addEventListener('keydown', onKey);
+    layer.addEventListener('click', (e) => { if (e.target === layer || e.target.closest('[data-qr-close]')) close(); });
+    layer.querySelector('[data-qr-close]').focus();
+    try { layer.querySelector('[data-qr]').innerHTML = await FS.qr.svg(kassaUrl(), 'QR-код: адрес кассы'); }
+    catch (err) { layer.querySelector('[data-qr]').textContent = err.message; }
+  }
+
   return {
     title: () => 'Касса',
     render() {
       reset();
       return `
-        <section class="page-head ks-head">
-          <h1>Касса</h1>
-          <p class="page-lead">Запись покупок из бутика. Покупки сразу считаются в подарках за покупки.</p>
-          <div class="ks-head-actions">
-            <button class="install-btn ks-install" type="button" data-action="install">Установить кассу как приложение</button>
-            <button class="link-btn ks-out" type="button" data-kassa-out hidden>Выйти</button>
-          </div>
-        </section>
-        <div class="kassa" data-kassa></div>`;
+        <div class="ks-stage" data-stage data-head="dark">
+          <section class="ks-top" data-head="dark">
+            <div class="ks-top-inner">
+              <h1 class="ks-title">Касса</h1>
+              <p class="ks-sub">Запись покупок из бутика — они сразу считаются в подарках за покупки.</p>
+              <div class="ks-head-actions">
+                <button class="install-btn ks-install" type="button" data-action="install">Установить кассу как приложение</button>
+                ${browserLink()}
+                <button class="link-btn ks-link" type="button" data-show-qr>QR-код для другого телефона</button>
+                <button class="link-btn ks-link ks-out" type="button" data-kassa-out hidden>Выйти</button>
+              </div>
+            </div>
+          </section>
+          <div class="kassa" data-kassa></div>
+        </div>`;
     },
     mount(el, route, params, signal) {
       root = el;
@@ -268,10 +341,17 @@ FS.views.kassa = (function () {
           const v = k.dataset.pinKey;
           pin = v === '⌫' ? pin.slice(0, -1) : (pin + v).slice(0, 8);
           error = '';
-          draw();
+          updatePin();
           return;
         }
         if (t.closest('[data-pin-go]')) { login(); return; }
+        if (t.closest('[data-show-qr]')) { showQr(); return; }
+        if (t.closest('[data-copy-kassa]')) {
+          const done = () => FS.ui.toast('Адрес кассы скопирован. Откройте Safari и вставьте его в строку адреса.', null, { duration: 8000 });
+          if (navigator.clipboard) navigator.clipboard.writeText(kassaUrl()).then(done, () => window.prompt('Скопируйте адрес кассы', kassaUrl()));
+          else window.prompt('Скопируйте адрес кассы', kassaUrl());
+          return;
+        }
         const p = t.closest('[data-pick]');
         if (p) { pick(p.dataset.pick); return; }
         if (t.closest('[data-back]') || t.closest('[data-next]')) { const keep = screen === 'client' ? query : ''; reset(); query = keep; draw(); if (keep) search(); return; }
@@ -297,8 +377,8 @@ FS.views.kassa = (function () {
       // PIN с клавиатуры компьютера.
       document.addEventListener('keydown', (e) => {
         if (screen !== 'pin' || !document.contains(el)) return;
-        if (/^\d$/.test(e.key)) { pin = (pin + e.key).slice(0, 8); error = ''; draw(); }
-        else if (e.key === 'Backspace') { pin = pin.slice(0, -1); draw(); }
+        if (/^\d$/.test(e.key)) { pin = (pin + e.key).slice(0, 8); error = ''; updatePin(); }
+        else if (e.key === 'Backspace') { pin = pin.slice(0, -1); updatePin(); }
         else if (e.key === 'Enter') login();
       }, { signal });
     },

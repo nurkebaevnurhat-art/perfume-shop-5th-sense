@@ -541,7 +541,10 @@ FS.views.admin = (function () {
         <section class="admin-panel kassa-panel">
           <div class="panel-head"><h2>Касса</h2><a class="text-link" href="#kassa">Открыть кассу</a></div>
           <p class="stat-note">Быстрая запись покупок в бутике с телефона или планшета: найти клиента по номеру или имени, вписать сумму, «Записать». Один PIN-код для владельца и сотрудников.</p>
-          <p class="stat-note">Адрес кассы: <span class="selectable">${esc(location.origin + location.pathname)}#kassa</span>. Откройте его на телефоне бутика и нажмите «Установить кассу как приложение» — появится отдельный значок «Касса».</p>
+          <div class="kassa-qr">
+            <div class="ks-qr-code" data-kassa-qr>QR-код…</div>
+            <p class="stat-note">Наведите камеру телефона бутика на этот QR-код — касса откроется в браузере. Затем: iPhone — «Поделиться» → «На экран „Домой“»; Android — ⋮ → «Добавить на главный экран». Появится значок «Касса».<br>Адрес: <span class="selectable">${esc(location.origin + location.pathname)}#kassa</span></p>
+          </div>
           <form class="lp-settings kassa-pin-form" data-kassa-pin novalidate>
             <label class="field"><span>${kassaPinSet ? 'Новый PIN-код' : 'PIN-код'}, 4–8 цифр</span><input name="pin" type="text" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="Например, 2580"></label>
             <button class="btn btn--primary btn--sm" type="submit">${kassaPinSet ? 'Сменить PIN-код' : 'Сохранить PIN-код'}</button>
@@ -1164,6 +1167,14 @@ FS.views.admin = (function () {
     const open = $$('.order[open]', root).map((d) => d.dataset.order);
     root.innerHTML = shell(ordersReady() || route.tab === 'products' || route.tab === 'edit' ? body() : loading());
     open.forEach((n) => { const d = root.querySelector(`.order[data-order="${CSS.escape(n)}"]`); if (d) d.open = true; });
+    fillKassaQr();
+  }
+
+  // QR-код кассы в блоке «Касса»: навести камеру телефона бутика.
+  function fillKassaQr() {
+    const box = root && root.querySelector('[data-kassa-qr]');
+    if (!box || !FS.qr) return;
+    FS.qr.svg(`${location.origin}${location.pathname}#kassa`, 'QR-код: адрес кассы').then((svg) => { box.innerHTML = svg; }, (err) => { box.textContent = err.message; });
   }
 
   function render(r) {
@@ -1190,6 +1201,7 @@ FS.views.admin = (function () {
 
   function mount(el, r, params, signal) {
     root = el;
+    fillKassaQr();
 
     el.addEventListener('submit', async (e) => {
       if (e.target.matches('[data-login]')) {
