@@ -1238,6 +1238,9 @@ h1[tabindex="-1"]:focus { outline: none; }
 .ks-key:disabled { opacity: 0.28; cursor: default; transform: none; }
 .ks-key--go:disabled { background: transparent; color: var(--ks-gold); }
 .ks-spin { width: 22px; height: 22px; border: 1.5px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: ks-turn 0.8s linear infinite; }
+.ks-pin-install { display: grid; justify-items: center; gap: 10px; margin-top: 26px; }
+.ks-pin-install .ks-install { font-size: 15px; }
+.ks-pin-install .ks-browser-note { text-align: center; }
 .ks-pin-foot { margin: 30px 0 0; max-width: 32ch; font-size: 12.5px; line-height: 1.5; color: var(--on-dark); opacity: 0.5; }
 @keyframes ks-shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-9px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(3px); } }
 @keyframes ks-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
@@ -1283,6 +1286,14 @@ h1[tabindex="-1"]:focus { outline: none; }
 .ks-share .ks-hint { margin: 0; max-width: 34ch; }
 .ks-share-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
 .ks-qr-card .ks-share-btns .btn--outline { border-color: #c9ad7d; color: #c9ad7d; }
+
+/* Окно «Как установить» */
+.ks-qr-card.pwa-howto { justify-items: stretch; text-align: left; }
+.pwa-howto .ks-pin-kicker, .pwa-howto .btn { justify-self: center; }
+.pwa-howto-title { margin: 0; font-family: var(--ff-serif); font-weight: 400; font-size: 26px; line-height: 1.15; text-align: center; }
+.pwa-steps { margin: 4px 0 0; padding: 0; list-style: none; counter-reset: s; display: grid; gap: 12px; }
+.pwa-steps li { counter-increment: s; display: grid; grid-template-columns: 30px 1fr; gap: 12px; align-items: start; font-size: 15px; line-height: 1.45; }
+.pwa-steps li::before { content: counter(s); width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid #c9ad7d; border-radius: 50%; color: #c9ad7d; font-family: var(--ff-serif); font-size: 16px; }
 
 /* QR-код на весь экран */
 .ks-qr-layer { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: var(--gutter); background: rgba(10, 8, 6, 0.86); backdrop-filter: blur(6px); }

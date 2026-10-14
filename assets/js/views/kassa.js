@@ -68,6 +68,10 @@ FS.views.kassa = (function () {
           ${key('0')}
           <button type="button" class="ks-key ks-key--go" data-pin-go aria-label="Войти" ${ready ? '' : 'disabled'}>${busy ? '<span class="ks-spin" aria-hidden="true"></span>' : ENTER}</button>
         </div>
+        <div class="ks-pin-install">
+          <button class="install-btn ks-install" type="button" data-action="install">Установить кассу на телефон</button>
+          ${browserLink()}
+        </div>
         <p class="ks-pin-foot">Один PIN-код для владельца и сотрудников. Задаётся в админке: «Клиенты» → «Касса».</p>
       </div>`;
   }
@@ -155,7 +159,7 @@ FS.views.kassa = (function () {
   }
 
   /* ---------- Карта клиента: QR-код на экране, WhatsApp и SMS ---------- */
-  const cardUrl = (t) => `${location.origin}${location.pathname}#card-${t}`;
+  const cardUrl = (t) => new URL(`#card-${t}`, document.baseURI).href;
   const firstName = (c) => (c.name || '').trim().split(/\s+/)[0];
   function purchaseText(c, token, giftNow) {
     const n = `${c.count}-я покупка`;
@@ -318,9 +322,9 @@ FS.views.kassa = (function () {
      На Android ссылка intent:// открывает её в Chrome, на iPhone — подсказка про Safari. */
   function browserLink() {
     if (!FS.pwa || !FS.pwa.standalone()) return '';
-    const url = `${location.origin}${location.pathname}?app=kassa`;
+    const url = kassaUrl();
     if (/android/i.test(navigator.userAgent)) {
-      const intent = `intent://${location.host}${location.pathname}?app=kassa#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(url)};end`;
+      const intent = `intent://${location.host}${new URL(url).pathname}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(url)};end`;
       return `<a class="btn btn--primary btn--sm ks-browser" href="${esc(intent)}">Открыть в Chrome</a>
         <p class="ks-browser-note">Чтобы поставить кассу отдельным значком, откройте её в Chrome и там нажмите ⋮ → «Добавить на главный экран».</p>`;
     }
@@ -328,7 +332,8 @@ FS.views.kassa = (function () {
       <p class="ks-browser-note">Откройте Safari, вставьте адрес в строку сверху, затем «Поделиться» → «На экран „Домой“». Или наведите камеру другого телефона на QR-код.</p>`;
   }
 
-  const kassaUrl = () => `${location.origin}${location.pathname}#kassa`;
+  // Касса — отдельная страница /kassa/ (своё приложение); адреса считаем от корня сайта.
+  const kassaUrl = () => new URL('kassa/', document.baseURI).href;
 
   // QR-код кассы на весь экран: навести камеру другого телефона.
   async function showQr(opts) {
@@ -374,6 +379,8 @@ FS.views.kassa = (function () {
         </div>`;
     },
     mount(el, route, params, signal) {
+      // Переход на #kassa внутри сайта — на отдельную страницу кассы (её и устанавливают).
+      if (!/\/kassa\/?$/.test(location.pathname)) { location.replace(kassaUrl()); return; }
       root = el;
       FS.backend.status().then(() => { if (document.contains(el)) { if (!FS.backend.usable) screen = 'search'; draw(); } });
       draw();

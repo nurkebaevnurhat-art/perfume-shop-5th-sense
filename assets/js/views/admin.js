@@ -532,18 +532,18 @@ FS.views.admin = (function () {
             <label class="field"><span>Дата</span><input name="date" type="date" value="${new Date().toISOString().slice(0, 10)}"></label>
             <button class="btn btn--primary btn--sm" type="submit">Записать покупку</button>
           </form>
-          <p class="stat-note">Быстрее — на экране <a class="text-link" href="#kassa">«Касса»</a> или через бота: <code>/buy 87011234567 45000</code>.</p>
+          <p class="stat-note">Быстрее — на экране <a class="text-link" href="kassa/">«Касса»</a> или через бота: <code>/buy 87011234567 45000</code>.</p>
         </section>
         <section class="admin-panel">
           <h2>Правила подарков</h2>
           ${settingsForm(s)}
         </section>
         <section class="admin-panel kassa-panel">
-          <div class="panel-head"><h2>Касса</h2><a class="text-link" href="#kassa">Открыть кассу</a></div>
+          <div class="panel-head"><h2>Касса</h2><a class="text-link" href="kassa/">Открыть кассу</a></div>
           <p class="stat-note">Быстрая запись покупок в бутике с телефона или планшета: найти клиента по номеру или имени, вписать сумму, «Записать». Один PIN-код для владельца и сотрудников.</p>
           <div class="kassa-qr">
             <div class="ks-qr-code" data-kassa-qr>QR-код…</div>
-            <p class="stat-note">Наведите камеру телефона бутика на этот QR-код — касса откроется в браузере. Затем: iPhone — «Поделиться» → «На экран „Домой“»; Android — ⋮ → «Добавить на главный экран». Появится значок «Касса».<br>Адрес: <span class="selectable">${esc(location.origin + location.pathname)}#kassa</span></p>
+            <p class="stat-note">Наведите камеру телефона бутика на этот QR-код — касса откроется в браузере. Затем: iPhone — «Поделиться» → «На экран „Домой“»; Android — ⋮ → «Добавить на главный экран». Появится значок «Касса».<br>Адрес: <span class="selectable">${esc(new URL('kassa/', document.baseURI).href)}</span></p>
           </div>
           <form class="lp-settings kassa-pin-form" data-kassa-pin novalidate>
             <label class="field"><span>${kassaPinSet ? 'Новый PIN-код' : 'PIN-код'}, 4–8 цифр</span><input name="pin" type="text" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="Например, 2580"></label>
@@ -1174,7 +1174,7 @@ FS.views.admin = (function () {
   function fillKassaQr() {
     const box = root && root.querySelector('[data-kassa-qr]');
     if (!box || !FS.qr) return;
-    FS.qr.svg(`${location.origin}${location.pathname}#kassa`, 'QR-код: адрес кассы').then((svg) => { box.innerHTML = svg; }, (err) => { box.textContent = err.message; });
+    FS.qr.svg(new URL('kassa/', document.baseURI).href, 'QR-код: адрес кассы').then((svg) => { box.innerHTML = svg; }, (err) => { box.textContent = err.message; });
   }
 
   function render(r) {
