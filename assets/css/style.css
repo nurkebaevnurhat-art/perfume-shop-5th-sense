@@ -1195,3 +1195,52 @@ h1[tabindex="-1"]:focus { outline: none; }
 .lp-tier input, .lp-add input, .lp-add select, .lp-settings select, .lp-settings input { width: 100%; min-width: 0; }
 .client .order-sum .status { white-space: normal; }
 @media (max-width: 600px) { .lp-add { grid-template-columns: minmax(0, 1fr); } .lp-tier { grid-template-columns: 110px minmax(0, 1fr); } }
+
+/* Касса (#kassa): крупно, под палец, телефон в бутике */
+.ks-head { position: relative; }
+.ks-head-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; }
+.ks-out { color: var(--on-dark); opacity: 0.75; }
+.ks-install { padding: 0; color: var(--gold-soft); border-bottom: 1px solid currentColor; font-size: 14px; }
+.kassa { width: min(100% - 2 * var(--gutter), 520px); margin: 0 auto; padding-block: clamp(28px, 5vw, 48px) 72px; }
+.ks-label { display: block; margin: 18px 0 8px; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-soft); }
+.ks-input { width: 100%; min-width: 0; min-height: 56px; padding: 12px 16px; border: 1px solid var(--line-strong); border-radius: 0; background: var(--sheet); color: var(--ink); font-size: 18px; outline: 0; }
+.ks-input:focus { border-color: var(--ink); box-shadow: 0 0 0 3px var(--focus-ring); }
+.ks-amount { font-family: var(--ff-serif); font-size: 34px; min-height: 68px; font-variant-numeric: tabular-nums; }
+.ks-hint { margin: 8px 0 0; font-size: 13.5px; color: var(--ink-soft); }
+.ks-error { min-height: 1.4em; margin: 10px 0 0; font-size: 14px; color: var(--error); }
+.ks-error:empty { min-height: 0; margin: 0; }
+.ks-wide { width: 100%; min-height: 56px; margin-top: 18px; font-size: 13px; }
+.ks-results { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 8px; }
+.ks-result { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; width: 100%; padding: 14px 16px; border: 1px solid var(--line); background: var(--sheet); text-align: left; color: var(--ink); cursor: pointer; }
+.ks-result:hover, .ks-result:focus-visible { border-color: var(--ink); outline: 0; }
+.ks-result-name { font-family: var(--ff-serif); font-size: 21px; line-height: 1.2; }
+.ks-result-phone { grid-column: 1; font-size: 14px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.ks-result-meta { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 12.5px; color: var(--gold-deep); text-align: right; }
+.ks-result--new { margin-top: 14px; border-style: dashed; border-color: var(--gold); }
+.ks-back { margin-bottom: 12px; }
+.ks-card { padding: 18px; border: 1px solid var(--line); background: var(--sheet); }
+.ks-card.is-gift { border-color: var(--gold); box-shadow: inset 3px 0 0 var(--gold); }
+.ks-card .ks-label:first-child { margin-top: 0; }
+.ks-name { margin: 0; font-family: var(--ff-serif); font-size: 28px; line-height: 1.15; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+.ks-name .link-btn { font-family: inherit; font-size: 13px; }
+.ks-phone { margin: 6px 0 0; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.ks-status { margin: 12px 0 0; font-size: 15.5px; }
+.ks-recent { margin: 12px 0 0; padding-left: 18px; font-size: 13.5px; color: var(--ink-soft); display: grid; gap: 2px; }
+.ks-pin { display: grid; justify-items: center; text-align: center; }
+.ks-lead { margin: 6px 0 16px; font-size: 16px; }
+.ks-dots { display: flex; gap: 14px; height: 18px; }
+.ks-dots span { width: 14px; height: 14px; border: 1px solid var(--ink); border-radius: 50%; }
+.ks-dots span.is-on { background: var(--ink); }
+.ks-keypad { display: grid; grid-template-columns: repeat(3, 76px); gap: 12px; margin-top: 18px; }
+.ks-key { height: 64px; border: 1px solid var(--line-strong); border-radius: 50%; background: var(--sheet); color: var(--ink); font-family: var(--ff-serif); font-size: 26px; cursor: pointer; }
+.ks-key:active { background: var(--paper); }
+.ks-key:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.ks-pin .ks-wide { max-width: 252px; }
+.ks-done { text-align: center; display: grid; justify-items: center; }
+.ks-check { width: 72px; height: 72px; margin: 4px 0 10px; display: grid; place-items: center; border: 1px solid var(--gold); border-radius: 50%; color: var(--gold-deep); font-size: 34px; }
+.ks-done-title { margin: 0; font-family: var(--ff-serif); font-size: 32px; }
+.ks-done-who { margin: 6px 0 0; color: var(--ink-soft); }
+.ks-gift { margin: 16px 0 0; padding: 12px 16px; border: 1px solid var(--gold); font-size: 16px; }
+.ks-undo { margin-top: 14px; }
+.kassa-pin-form { grid-template-columns: minmax(0, 220px) auto; align-items: end; }
+@media (max-width: 600px) { .kassa-pin-form { grid-template-columns: minmax(0, 1fr); } }

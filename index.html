@@ -13,6 +13,7 @@
 <link rel="icon" href="assets/icons/favicon-32.png" sizes="32x32" type="image/png">
 <!-- Приложение (PWA): установка на главный экран телефона -->
 <link rel="manifest" href="manifest.webmanifest">
+<script>/* Касса ставится отдельным приложением со своим манифестом. */ if (location.hash === '#kassa') document.querySelector('link[rel="manifest"]').href = 'kassa.webmanifest';</script>
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -57,6 +58,7 @@
 <script src="assets/js/views/pages.js"></script>
 <script src="assets/js/importer.js"></script>
 <script src="assets/js/views/admin.js"></script>
+<script src="assets/js/views/kassa.js"></script>
 <script src="assets/js/pwa.js"></script>
 <script src="assets/js/app.js"></script>
 </body>

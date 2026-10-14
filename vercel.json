@@ -57,7 +57,7 @@
       ]
     },
     {
-      "source": "/manifest.webmanifest",
+      "source": "/(manifest|kassa).webmanifest",
       "headers": [
         {
           "key": "Cache-Control",

@@ -185,4 +185,35 @@ async function list() {
   return clients.sort((a, b) => String(b.purchases.at(-1).date).localeCompare(String(a.purchases.at(-1).date)));
 }
 
-module.exports = { phoneKey, prettyPhone, settings, saveSettings, getClient, status, addPurchase, removePurchase, syncOrder, forOrder, ensureInit, list, DEFAULTS };
+// Поиск клиента для «Кассы»: по цифрам телефона (от 3) или по имени. Один запрос MGET на 200 клиентов.
+async function search(q, limit) {
+  const text = String(q || '').trim().toLowerCase();
+  const digits = text.replace(/\D/g, '');
+  const byPhone = digits.length >= 3;
+  if (!byPhone && text.length < 2) return [];
+  const s = await settings();
+  const phones = await db.members(INDEX);
+  const found = [];
+  for (let i = 0; i < phones.length && found.length < 50; i += 200) {
+    const chunk = phones.slice(i, i + 200);
+    const raws = (await db.command('MGET', ...chunk.map(key))) || [];
+    raws.forEach((raw) => {
+      const c = parse(raw);
+      if (!c) return;
+      const ok = byPhone ? c.phone.includes(digits.replace(/^8/, '7')) || c.phone.includes(digits) : (c.name || '').toLowerCase().includes(text);
+      if (ok) found.push({ ...c, status: status(c, s) });
+    });
+  }
+  const last = (c) => String((c.purchases[c.purchases.length - 1] || {}).date || '');
+  return found.sort((a, b) => last(b).localeCompare(last(a))).slice(0, limit || 8);
+}
+
+async function setName(phone, name) {
+  const c = await getClient(phone);
+  if (!c) throw new HttpError(400, 'invalid', 'Проверьте номер телефона');
+  c.name = String(name || '').trim().slice(0, 80);
+  await saveClient(c);
+  return c;
+}
+
+module.exports = { search, setName, phoneKey, prettyPhone, settings, saveSettings, getClient, status, addPurchase, removePurchase, syncOrder, forOrder, ensureInit, list, DEFAULTS };

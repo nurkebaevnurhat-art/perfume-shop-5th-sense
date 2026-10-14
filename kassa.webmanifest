@@ -1,0 +1,19 @@
+{
+  "name": "Касса 5th SENSE",
+  "short_name": "Касса",
+  "description": "Запись покупок из бутика 5th SENSE: подарки за покупки.",
+  "lang": "ru",
+  "dir": "ltr",
+  "id": "./kassa",
+  "start_url": "./#kassa",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0e0c0a",
+  "theme_color": "#0e0c0a",
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

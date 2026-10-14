@@ -25,6 +25,7 @@ FS.app = (function () {
     if (t === 'favorites') return { name: 'favorites', key: t };
     if (t === 'delivery') return { name: 'delivery', key: t };
     if (t === 'gifts') return { name: 'gifts', key: t };
+    if (t === 'kassa') return { name: 'kassa', key: t };
     if (t === 'offer' || t === 'privacy' || t === 'returns') return { name: t, key: t };
     if (t === 'admin') return { name: 'admin', key: t, tab: 'overview' };
     if ((m = t.match(/^admin-(orders|clients|products|data)$/))) return { name: 'admin', key: t, tab: m[1] };

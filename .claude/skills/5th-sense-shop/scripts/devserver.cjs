@@ -38,6 +38,7 @@ global.fetch = async (url, init = {}) => {
       case 'HLEN': return json({ result: redis.get(a[0])?.size || 0 });
       case 'HMGET': return json({ result: a.slice(1).map((f) => redis.get(a[0])?.get(f) ?? null) });
       case 'GET': return json({ result: redis.get(a[0]) ?? null });
+      case 'MGET': return json({ result: a.map((k) => redis.get(k) ?? null) });
       case 'SET': if (a.includes('NX') && redis.has(a[0])) return json({ result: null }); redis.set(a[0], a[1]); return json({ result: 'OK' });
       case 'SADD': { if (!redis.has(a[0])) redis.set(a[0], new Set()); redis.get(a[0]).add(a[1]); return json({ result: 1 }); }
       case 'SMEMBERS': return json({ result: [...(redis.get(a[0]) || [])] });
