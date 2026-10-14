@@ -586,13 +586,28 @@ FS.views.admin = (function () {
         </label>
         <a class="btn btn--primary btn--sm" href="#admin-new">Добавить товар</a>
       </div>
-      <div class="admin-toolbar admin-toolbar--files">
-        <button class="btn ${pe ? 'btn--primary' : 'btn--outline'} btn--sm" type="button" data-price-edit>${pe ? 'Закончить правку цен' : 'Править цены'}</button>
-        <label class="btn btn--outline btn--sm file-btn">Загрузить таблицу<input type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" data-import-file></label>
-        <button class="btn btn--outline btn--sm" type="button" data-export-xlsx>Скачать таблицу</button>
-        ${canPhotos() ? '<label class="btn btn--outline btn--sm file-btn">Загрузить фото<input type="file" accept="image/*" multiple data-photos></label>' : ''}
-        <button class="btn btn--outline btn--sm" type="button" data-price-open>Изменить цены</button>
-        <a class="btn btn--outline btn--sm" href="assets/files/5th-sense-catalog.xlsx" download>Шаблон таблицы</a>
+      <div class="admin-tools">
+        <div class="tool-group">
+          <p class="tool-label">Цены</p>
+          <div class="tool-btns">
+            <button class="btn ${pe ? 'btn--primary' : 'btn--outline'} btn--sm" type="button" data-price-edit>${pe ? 'Закончить правку цен' : 'Править цены'}</button>
+            <button class="btn btn--outline btn--sm" type="button" data-price-open>Изменить цены</button>
+          </div>
+        </div>
+        <div class="tool-group">
+          <p class="tool-label">Таблица Excel</p>
+          <div class="tool-btns">
+            <button class="btn btn--outline btn--sm" type="button" data-export-xlsx>Скачать таблицу</button>
+            <label class="btn btn--outline btn--sm file-btn">Загрузить таблицу<input type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" data-import-file></label>
+            <a class="btn btn--outline btn--sm" href="assets/files/5th-sense-catalog.xlsx" download>Шаблон таблицы</a>
+          </div>
+        </div>
+        ${canPhotos() ? `<div class="tool-group">
+          <p class="tool-label">Фото</p>
+          <div class="tool-btns">
+            <label class="btn btn--outline btn--sm file-btn">Загрузить фото<input type="file" accept="image/*" multiple data-photos></label>
+          </div>
+        </div>` : ''}
       </div>
       ${importPanel()}
       ${pricePanel()}
