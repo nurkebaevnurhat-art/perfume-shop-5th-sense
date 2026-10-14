@@ -1173,6 +1173,17 @@ h1[tabindex="-1"]:focus { outline: none; }
 .price-form .field { margin: 0; }
 .price-form select, .price-form input { width: 100%; min-width: 0; }
 .price-form .btn { margin-top: 34px; }
+/* Поправка по объёмам */
+.adj-form { grid-template-columns: minmax(0, 1fr); max-width: 760px; }
+.adj-form .btn { margin-top: 0; justify-self: start; }
+.adj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; margin-top: 6px; }
+.adj-cell { display: grid; gap: 4px; padding: 10px 12px; background: var(--paper); border: 1px solid var(--line); }
+.adj-cell span { font-family: var(--ff-serif); font-size: 18px; }
+.adj-cell input { width: 100%; min-width: 0; min-height: 44px; padding: 8px 10px; background: var(--sheet); border: 1px solid var(--line-strong); border-radius: 0; font-size: 16px; color: var(--ink); outline: 0; font-variant-numeric: tabular-nums; }
+.adj-cell input:focus { border-color: var(--ink); box-shadow: 0 0 0 3px var(--focus-ring); }
+.adj-keep { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: var(--ink-soft); cursor: pointer; }
+.adj-keep input { width: 18px; height: 18px; margin-top: 1px; accent-color: var(--ink); flex: none; }
+.adj-note { color: var(--gold-deep); }
 .price-preview { width: 100%; }
 .price-preview ul { margin: 6px 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; font-variant-numeric: tabular-nums; }
 .perml-field { max-width: 360px; margin-bottom: 14px; }

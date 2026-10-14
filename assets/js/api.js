@@ -175,8 +175,40 @@ FS.api = (function () {
     if (!cfg || !cfg.enabled || !p || p.type === 'set' || p.full === false) return null;
     return { ml: 0, full: true, label: cfg.label, fullMl: p.fullMl || null, price: null, stock: 99 };
   }
-  // Цена объёма по цене за 1 мл: ровно по миллилитрам, без скидок (так же считает сервер).
-  function priceFor(perMl, ml) { return Math.round(Number(perMl) * Number(ml)); }
+  // Цена объёма по цене за 1 мл: ровно по миллилитрам (так же считает сервер).
+  // adj — поправка объёма в процентах (−10 — дешевле на 10 %), такая цена округляется до 10 ₸.
+  function priceFor(perMl, ml, adj) {
+    const base = Number(perMl) * Number(ml);
+    const a = Number(adj) || 0;
+    return a ? Math.max(10, Math.round((base * (1 + a / 100)) / 10) * 10) : Math.round(base);
+  }
+  /* Поправка по объёмам: у каждого аромата своя (p.volAdj = { 15: -10, 20: -15 }),
+     задаётся в админке на все ароматы или на бренд. Нули не храним. */
+  function cleanAdj(adj) {
+    const out = {};
+    Object.keys(adj || {}).map(Number).filter((ml) => ml > 0).sort((a, b) => a - b).forEach((ml) => {
+      const a = Math.round(Number(adj[ml]) * 10) / 10;
+      if (a && a > -90 && a <= 300) out[ml] = a;
+    });
+    return out;
+  }
+  const adjOf = (p, ml) => (p && p.volAdj && Number(p.volAdj[ml])) || 0;
+  const priceOf = (p, perMlValue, ml) => priceFor(perMlValue, ml, adjOf(p, ml));
+  const adjKey = (adj) => JSON.stringify(cleanAdj(adj));
+  // Поправка, которая у большинства ароматов списка (весь каталог или один бренд).
+  function commonAdj(list) {
+    const counts = new Map();
+    list.filter((p) => p.type !== 'set').forEach((p) => { const k = adjKey(p.volAdj); counts.set(k, (counts.get(k) || 0) + 1); });
+    let best = '{}';
+    let n = 0;
+    counts.forEach((c, k) => { if (c > n) { best = k; n = c; } });
+    return JSON.parse(best);
+  }
+  // Для нового аромата: поправка его бренда, а если бренда ещё нет — общая.
+  function adjFor(list, brand) {
+    const own = list.filter((p) => p.brand === brand && p.type !== 'set');
+    return commonAdj(own.length ? own : list);
+  }
   // Цена за 1 мл товара: задана явно или получается из самого маленького объёма.
   function perMl(p) {
     if (Number(p.perMl) > 0) return Number(p.perMl);
@@ -441,7 +473,13 @@ FS.api = (function () {
     visible,
     tracking,
     priceFor,
+    priceOf,
     perMl,
+    cleanAdj,
+    adjOf,
+    adjKey,
+    commonAdj,
+    adjFor,
     async product(id) { return byId.get(id) || null; },
     async products(query) { return filter(query); },
     filter,

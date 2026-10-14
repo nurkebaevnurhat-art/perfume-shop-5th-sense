@@ -1,6 +1,6 @@
 /* 5th SENSE — загрузка каталога из таблицы Excel/CSV и выгрузка обратно.
    Формат — шаблон assets/files/5th-sense-catalog.xlsx: одна строка = один аромат,
-   цена задаётся за 1 мл, цены объёмов распива считаются умножением (без скидок).
+   цена задаётся за 1 мл, цены объёмов распива считаются умножением (плюс поправка по объёмам из админки).
    Старый формат (одна строка = один объём, колонки «Объём» и «Цена») тоже читается. Таблицы читает библиотека SheetJS, она загружается только когда
    в админке нажимают «Загрузить таблицу» или «Скачать таблицу». */
 window.FS = window.FS || {};
@@ -216,9 +216,13 @@ FS.importer = (function () {
       if (has('fullMl')) { const f = number(first('fullMl')); if (f > 0) p.fullMl = f; else delete p.fullMl; }
       // Цена за 1 мл: в старом формате цены объёмов заданы вручную, формулу убираем.
       if (g.perMl) p.perMl = g.perMl; else delete p.perMl;
+      // Поправка по объёмам в таблице не задаётся: у известного аромата остаётся прежней,
+      // новый получает поправку своего бренда (или общую).
+      const adj = FS.api.cleanAdj(base ? base.volAdj : FS.api.adjFor(existing, p.brand));
+      if (g.perMl && Object.keys(adj).length) p.volAdj = adj; else delete p.volAdj;
       p.volumes = g.rows.map((x) => {
         const old = base && base.volumes.find((v) => v.ml === x.ml);
-        const v = { ml: x.ml, price: x.price, stock: x.stock };
+        const v = { ml: x.ml, price: g.perMl ? FS.api.priceOf(p, g.perMl, x.ml) : x.price, stock: x.stock };
         if (old && old.label) v.label = old.label;
         return v;
       }).sort((a, b) => a.ml - b.ml);
@@ -294,11 +298,14 @@ FS.importer = (function () {
       ]);
     });
     const ws = XLSX.utils.aoa_to_sheet(rows);
-    // Формулы «цена за 1 мл × объём», чтобы цены были видны прямо в таблице.
+    // Формулы «цена за 1 мл × объём» (с поправкой объёма — округление до 10 ₸), чтобы цены были видны прямо в таблице.
     for (let r = 1; r < rows.length; r++) {
+      const p = products[r - 1];
       shown.forEach((ml, i) => {
         const ref = XLSX.utils.encode_cell({ r, c: 6 + i });
-        ws[ref] = { t: 'n', f: `ROUND(F${r + 1}*${ml},0)`, v: FS.api.priceFor(rows[r][5], ml) };
+        const a = FS.api.adjOf(p, ml);
+        const f = a ? `ROUND(F${r + 1}*${ml}*${Math.round((1 + a / 100) * 1000) / 1000},-1)` : `ROUND(F${r + 1}*${ml},0)`;
+        ws[ref] = { t: 'n', f, v: FS.api.priceOf(p, rows[r][5], ml) };
       });
     }
     ws['!cols'] = [22, 24, 26, 12, 11, 12, ...shown.map(() => 10), 14, ...(track ? [12] : []), 13, 28, 28, 28, 40, 60, 9, 10, 9, 7, 13, 22, 28, 14, 12].map((w) => ({ wch: w }));
