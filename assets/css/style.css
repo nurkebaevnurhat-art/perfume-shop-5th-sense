@@ -1200,6 +1200,8 @@ h1[tabindex="-1"]:focus { outline: none; }
 .ks-head { position: relative; }
 .ks-head-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; }
 .ks-out { color: var(--on-dark); opacity: 0.75; }
+.ks-browser { color: var(--ink); background: var(--gold-soft); border-color: var(--gold-soft); }
+.ks-browser-note { flex-basis: 100%; margin: 0; font-size: 13.5px; color: var(--on-dark); opacity: 0.75; max-width: 46ch; }
 .ks-install { padding: 0; color: var(--gold-soft); border-bottom: 1px solid currentColor; font-size: 14px; }
 .kassa { width: min(100% - 2 * var(--gutter), 520px); margin: 0 auto; padding-block: clamp(28px, 5vw, 48px) 72px; }
 .ks-label { display: block; margin: 18px 0 8px; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-soft); }

@@ -242,6 +242,19 @@ FS.views.kassa = (function () {
     form = { name: '', amount: '', note: '' };
   }
 
+  /* Внутри установленного приложения 5th SENSE нет меню браузера, и кассу не установить.
+     На Android ссылка intent:// открывает её в Chrome, на iPhone — подсказка про Safari. */
+  function browserLink() {
+    if (!FS.pwa || !FS.pwa.standalone()) return '';
+    const url = `${location.origin}${location.pathname}?app=kassa`;
+    if (/android/i.test(navigator.userAgent)) {
+      const intent = `intent://${location.host}${location.pathname}?app=kassa#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(url)};end`;
+      return `<a class="btn btn--primary btn--sm ks-browser" href="${esc(intent)}">Открыть в Chrome</a>
+        <p class="ks-browser-note">Чтобы поставить кассу отдельным значком, откройте её в Chrome и там нажмите ⋮ → «Добавить на главный экран».</p>`;
+    }
+    return `<p class="ks-browser-note">Чтобы поставить кассу отдельным значком, откройте Safari и наберите адрес: <span class="selectable">${esc(location.origin + location.pathname)}#kassa</span>, затем «Поделиться» → «На экран „Домой“».</p>`;
+  }
+
   return {
     title: () => 'Касса',
     render() {
@@ -252,6 +265,7 @@ FS.views.kassa = (function () {
           <p class="page-lead">Запись покупок из бутика. Покупки сразу считаются в подарках за покупки.</p>
           <div class="ks-head-actions">
             <button class="install-btn ks-install" type="button" data-action="install">Установить кассу как приложение</button>
+            ${browserLink()}
             <button class="link-btn ks-out" type="button" data-kassa-out hidden>Выйти</button>
           </div>
         </section>
