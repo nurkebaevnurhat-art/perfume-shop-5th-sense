@@ -87,7 +87,7 @@ FS.views.kassa = (function () {
   function status(c) {
     if (!c.count) return 'Новый клиент: это первая покупка.';
     if (c.nextIsGift) return `${c.count} ${plural(c.count, 'покупка', 'покупки', 'покупок')}. <b>Эта покупка — с подарком${c.gift ? `: ${esc(c.gift)}` : ''}</b>`;
-    return `${c.count} ${plural(c.count, 'покупка', 'покупки', 'покупок')} · до подарка ещё ${c.left}`;
+    return `${c.count} ${plural(c.count, 'покупка', 'покупки', 'покупок')} · подарок — на ${c.count + c.left + 1}-й`;
   }
 
   function resultRow(c) {
@@ -123,6 +123,7 @@ FS.views.kassa = (function () {
             : `<p class="ks-name">${esc(c.name)} <button type="button" class="link-btn" data-rename>Изменить имя</button></p>`}
           <p class="ks-phone">${esc(c.pretty)}</p>
           <p class="ks-status">${status(c)}</p>
+          ${c.count ? '<button type="button" class="link-btn ks-card-link" data-show-card>Карта клиента: QR-код и отправка</button>' : ''}
           ${c.recent.length ? `<ul class="ks-recent">${c.recent.map((p) => `<li>${new Date(p.date).toLocaleDateString('ru-RU')}${p.amount !== null ? ` — ${money(p.amount)}` : ''}${p.note ? ` · ${esc(p.note)}` : ''}</li>`).join('')}</ul>` : ''}
         </div>
         <label class="ks-label" for="ks-amount">Сумма покупки, ${esc(FS.config.currency)}</label>
@@ -145,11 +146,50 @@ FS.views.kassa = (function () {
         <p class="ks-done-who">${esc(c.name || 'Без имени')} · ${esc(c.pretty)}</p>
         ${d.giftNow
           ? `<p class="ks-gift">🎁 ${n} — положен подарок${d.giftName ? `: <b>${esc(d.giftName)}</b>` : '. Уточните у владельца.'}</p>`
-          : `<p class="ks-status">${n}. ${c.nextIsGift ? '<b>Следующая — с подарком!</b>' : `До подарка ещё ${c.left}.`}</p>`}
+          : `<p class="ks-status">${n}. ${c.nextIsGift ? '<b>Следующая — с подарком!</b>' : `Подарок — на ${c.count + c.left + 1}-й покупке.`}</p>`}
+        ${d.cardToken ? shareBlock(c, cardUrl(d.cardToken), purchaseText(c, d.cardToken, d.giftNow)) : ''}
         <p class="ks-error" role="alert">${esc(error)}</p>
         <button class="btn btn--primary ks-wide" type="button" data-next>Следующий клиент</button>
         <button class="link-btn ks-undo" type="button" data-undo ${busy ? 'disabled' : ''}>Отменить эту запись</button>
       </div>`;
+  }
+
+  /* ---------- Карта клиента: QR-код на экране, WhatsApp и SMS ---------- */
+  const cardUrl = (t) => `${location.origin}${location.pathname}#card-${t}`;
+  const firstName = (c) => (c.name || '').trim().split(/\s+/)[0];
+  function purchaseText(c, token, giftNow) {
+    const n = `${c.count}-я покупка`;
+    const line = giftNow ? `Это ваша ${n} — она с подарком 🎁` : c.nextIsGift ? `Это ваша ${n} — следующая будет с подарком 🎁` : `Это ваша ${n}. Подарок — на ${c.count + c.left + 1}-й покупке 🎁`;
+    return `${firstName(c) ? `${firstName(c)}, с` : 'С'}пасибо за покупку в 5th SENSE! ${line} Ваша карта клиента: ${cardUrl(token)}`;
+  }
+  const cardText = (c, token) => `${firstName(c) ? `${firstName(c)}, в` : 'В'}аша карта клиента 5th SENSE: ${cardUrl(token)} — там видно, сколько покупок осталось до подарка 🎁`;
+  // Кнопки отправки: номер клиента уже известен. SMS: «?&body=» понимают и iPhone, и Android.
+  function shareLinks(c, text) {
+    const t = encodeURIComponent(text);
+    return `<div class="ks-share-btns">
+        <a class="btn btn--outline btn--sm" href="https://wa.me/${c.phone}?text=${t}" target="_blank" rel="noopener">Отправить в WhatsApp</a>
+        <a class="btn btn--outline btn--sm" href="sms:+${c.phone}?&body=${t}">Отправить SMS</a>
+      </div>`;
+  }
+  function shareBlock(c, url, text) {
+    return `<div class="ks-share">
+        <p class="ks-share-title">Карта клиента</p>
+        <div class="ks-qr-code ks-share-qr" data-card-qr="${esc(url)}">QR-код…</div>
+        <p class="ks-hint">Клиент наводит камеру своего телефона на код — откроется его карта: сколько покупок и когда подарок. Или отправьте ссылку:</p>
+        ${shareLinks(c, text)}
+      </div>`;
+  }
+  function fillCardQr() {
+    const box = root && root.querySelector('[data-card-qr]');
+    if (box) FS.qr.svg(box.dataset.cardQr, 'QR-код: карта клиента').then((svg) => { box.innerHTML = svg; }, (err) => { box.textContent = err.message; });
+  }
+  // С карточки клиента (без покупки): получить ссылку и показать QR и отправку.
+  async function showCard() {
+    try {
+      const data = await api('POST', '/api/kassa', { action: 'card', phone: client.phone });
+      showQr({ kicker: `Карта клиента · ${client.name || client.pretty}`, url: cardUrl(data.cardToken), label: 'QR-код: карта клиента',
+        text: 'Клиент наводит камеру своего телефона на код — откроется его карта. Или отправьте ссылку:', extra: shareLinks(client, cardText(client, data.cardToken)) });
+    } catch (err) { failed(err); }
   }
 
   function body() {
@@ -168,6 +208,7 @@ FS.views.kassa = (function () {
     if (!box) return;
     box.innerHTML = body();
     shown = FS.backend.usable ? screen : '';
+    if (screen === 'done') fillCardQr();
     const stage = root.querySelector('[data-stage]');
     const isPin = screen === 'pin' && FS.backend.usable;
     if (stage) { stage.classList.toggle('is-pin', isPin); stage.dataset.head = isPin ? 'dark' : 'light'; }
@@ -235,7 +276,7 @@ FS.views.kassa = (function () {
     busy = true; draw();
     try {
       const data = await api('POST', '/api/kassa', { action: 'buy', phone: client.phone, name, amount, note: form.elements.note.value.trim() });
-      done = { amount: data.purchase.amount, id: data.purchase.id, client: data.client, giftNow: data.giftNow, giftName: data.giftName };
+      done = { amount: data.purchase.amount, id: data.purchase.id, client: data.client, giftNow: data.giftNow, giftName: data.giftName, cardToken: data.cardToken };
       screen = 'done';
     } catch (err) { failed(err); return; }
     busy = false;
@@ -290,14 +331,16 @@ FS.views.kassa = (function () {
   const kassaUrl = () => `${location.origin}${location.pathname}#kassa`;
 
   // QR-код кассы на весь экран: навести камеру другого телефона.
-  async function showQr() {
+  async function showQr(opts) {
+    const o = opts || { kicker: 'Касса 5th SENSE', url: kassaUrl(), label: 'QR-код: адрес кассы',
+      text: 'Наведите камеру телефона на код — касса откроется в браузере. Затем «Поделиться» → «На экран „Домой“» (iPhone) или ⋮ → «Добавить на главный экран» (Android).' };
     const layer = document.createElement('div');
     layer.className = 'ks-qr-layer';
     layer.setAttribute('role', 'dialog');
     layer.setAttribute('aria-modal', 'true');
-    layer.setAttribute('aria-label', 'QR-код кассы');
-    layer.innerHTML = `<div class="ks-qr-card"><p class="ks-pin-kicker">Касса 5th SENSE</p><div class="ks-qr-code" data-qr>Загружаем…</div>
-      <p class="ks-qr-text">Наведите камеру телефона на код — касса откроется в браузере. Затем «Поделиться» → «На экран „Домой“» (iPhone) или ⋮ → «Добавить на главный экран» (Android).</p>
+    layer.setAttribute('aria-label', o.label);
+    layer.innerHTML = `<div class="ks-qr-card"><p class="ks-pin-kicker">${esc(o.kicker)}</p><div class="ks-qr-code" data-qr>Загружаем…</div>
+      <p class="ks-qr-text">${esc(o.text)}</p>${o.extra || ''}
       <button class="btn btn--outline btn--sm" type="button" data-qr-close>Закрыть</button></div>`;
     document.body.appendChild(layer);
     const close = () => { layer.remove(); document.removeEventListener('keydown', onKey); };
@@ -305,7 +348,7 @@ FS.views.kassa = (function () {
     document.addEventListener('keydown', onKey);
     layer.addEventListener('click', (e) => { if (e.target === layer || e.target.closest('[data-qr-close]')) close(); });
     layer.querySelector('[data-qr-close]').focus();
-    try { layer.querySelector('[data-qr]').innerHTML = await FS.qr.svg(kassaUrl(), 'QR-код: адрес кассы'); }
+    try { layer.querySelector('[data-qr]').innerHTML = await FS.qr.svg(o.url, o.label); }
     catch (err) { layer.querySelector('[data-qr]').textContent = err.message; }
   }
 
@@ -346,6 +389,7 @@ FS.views.kassa = (function () {
         }
         if (t.closest('[data-pin-go]')) { login(); return; }
         if (t.closest('[data-show-qr]')) { showQr(); return; }
+        if (t.closest('[data-show-card]')) { showCard(); return; }
         if (t.closest('[data-copy-kassa]')) {
           const done = () => FS.ui.toast('Адрес кассы скопирован. Откройте Safari и вставьте его в строку адреса.', null, { duration: 8000 });
           if (navigator.clipboard) navigator.clipboard.writeText(kassaUrl()).then(done, () => window.prompt('Скопируйте адрес кассы', kassaUrl()));

@@ -143,7 +143,7 @@ FS.motion = (function () {
     let seen = false;
     try { seen = sessionStorage.getItem('fs.intro') === '1'; sessionStorage.setItem('fs.intro', '1'); } catch (e) { /* без хранилища показываем каждый раз */ }
     // Рабочие экраны (касса, админка) открываются сразу, без заставки.
-    const work = /^#(kassa|admin)/.test(location.hash);
+    const work = /^#(kassa|admin|card-)/.test(location.hash);
     if (!el || seen || work || reduce.matches) {
       if (el) el.remove();
       done();

@@ -48,7 +48,8 @@ FS.pwa = (function () {
   // Переход на кассу внутри сайта: меняем манифест, чтобы установилась именно «Касса».
   function syncManifest() {
     const link = document.querySelector('link[rel="manifest"]');
-    if (link) link.setAttribute('href', isKassa() ? 'kassa.webmanifest' : 'manifest.webmanifest');
+    const card = /^#card-([\w-]{12,32})$/.exec(location.hash);
+    if (link) link.setAttribute('href', card ? `api/card?manifest=1&t=${card[1]}` : isKassa() ? 'kassa.webmanifest' : 'manifest.webmanifest');
   }
 
   // Ненавязчивое предложение один раз: на телефоне, через полминуты на сайте.

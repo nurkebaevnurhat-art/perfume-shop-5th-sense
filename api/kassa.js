@@ -5,6 +5,7 @@
    POST { action: 'buy', phone, name, amount, note }  — записать покупку.
    POST { action: 'undo', phone, id }                 — отменить только что записанную покупку (15 минут).
    POST { action: 'name', phone, name }               — изменить имя клиента.
+   POST { action: 'card', phone }                     — ссылка на личную карту клиента.
    GET  ?pin=status, POST { action: 'setPin', pin }   — PIN-код (только админка). */
 const { send, readJson, handler, HttpError, requireAdmin } = require('../server/http');
 const db = require('../server/db');
@@ -45,7 +46,7 @@ async function notify(c, purchase, s) {
   const who = `👤 ${telegram.escape(c.name || 'Без имени')}, ${loyalty.prettyPhone(c.phone)}`;
   const n = `${st.count}-я покупка`;
   const full = [`🧾 <b>Касса: покупка записана</b>`, who, `${money(purchase.amount)}${purchase.note ? ` · ${telegram.escape(purchase.note)}` : ''}`,
-    giftNow ? `🎁 <b>${n} — положен подарок: ${telegram.escape(giftNow.gift)}</b>` : st.nextIsGift ? `${n}. Следующая — с подарком: ${telegram.escape(st.nextGift)}` : `${n}. До подарка ещё ${st.left}.`].join('\n');
+    giftNow ? `🎁 <b>${n} — положен подарок: ${telegram.escape(giftNow.gift)}</b>` : st.nextIsGift ? `${n}. Следующая — с подарком: ${telegram.escape(st.nextGift)}` : `${n}. Подарок — на ${st.count + st.left + 1}-й.`].join('\n');
   const short = [`🧾 <b>Касса: покупка записана</b>`, who, giftNow ? `🎁 ${n} — с подарком` : `${n}`].join('\n');
   const owner = s.notify === 'owner' && s.ownerChat ? String(s.ownerChat) : '';
   try { await telegram.send((chat) => (!owner || String(chat.id) === owner ? full : short)); } catch (err) { console.error(err); }
@@ -93,7 +94,8 @@ module.exports = handler({
       const st = loyalty.status(client, s);
       const last = st.gifts[st.gifts.length - 1];
       const giftNow = Boolean(last && last.number === st.count);
-      return send(res, 200, { purchase: { id: purchase.id, amount: purchase.amount }, client: card(client, s), giftNow, giftName: giftNow && s.notify !== 'owner' ? last.gift : null });
+      const cardToken = await loyalty.ensureCard(client.phone);
+      return send(res, 200, { purchase: { id: purchase.id, amount: purchase.amount }, client: card(client, s), giftNow, giftName: giftNow && s.notify !== 'owner' ? last.gift : null, cardToken });
     }
     if (body.action === 'undo') {
       const c = await loyalty.getClient(body.phone);
@@ -104,6 +106,7 @@ module.exports = handler({
       const client = await loyalty.removePurchase(c.phone, p.id);
       return send(res, 200, { client: card(client, s) });
     }
+    if (body.action === 'card') return send(res, 200, { cardToken: await loyalty.ensureCard(body.phone) });
     if (body.action === 'name') {
       const name = String(body.name || '').trim();
       if (!name) throw new HttpError(400, 'invalid', 'Впишите имя');
