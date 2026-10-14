@@ -541,7 +541,7 @@ FS.views.admin = (function () {
         <section class="admin-panel kassa-panel">
           <div class="panel-head"><h2>Касса</h2><a class="text-link" href="#kassa">Открыть кассу</a></div>
           <p class="stat-note">Быстрая запись покупок в бутике с телефона или планшета: найти клиента по номеру или имени, вписать сумму, «Записать». Один PIN-код для владельца и сотрудников.</p>
-          <p class="stat-note">Адрес кассы: <span class="selectable">${esc(location.origin + location.pathname)}#kassa</span>. Откройте его на телефоне бутика и добавьте на главный экран.</p>
+          <p class="stat-note">Адрес кассы: <span class="selectable">${esc(location.origin + location.pathname)}#kassa</span>. Откройте его на телефоне бутика и нажмите «Установить кассу как приложение» — появится отдельный значок «Касса».</p>
           <form class="lp-settings kassa-pin-form" data-kassa-pin novalidate>
             <label class="field"><span>${kassaPinSet ? 'Новый PIN-код' : 'PIN-код'}, 4–8 цифр</span><input name="pin" type="text" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="Например, 2580"></label>
             <button class="btn btn--primary btn--sm" type="submit">${kassaPinSet ? 'Сменить PIN-код' : 'Сохранить PIN-код'}</button>

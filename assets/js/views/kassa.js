@@ -250,7 +250,10 @@ FS.views.kassa = (function () {
         <section class="page-head ks-head">
           <h1>Касса</h1>
           <p class="page-lead">Запись покупок из бутика. Покупки сразу считаются в подарках за покупки.</p>
-          <button class="link-btn ks-out" type="button" data-kassa-out hidden>Выйти</button>
+          <div class="ks-head-actions">
+            <button class="install-btn ks-install" type="button" data-action="install">Установить кассу как приложение</button>
+            <button class="link-btn ks-out" type="button" data-kassa-out hidden>Выйти</button>
+          </div>
         </section>
         <div class="kassa" data-kassa></div>`;
     },

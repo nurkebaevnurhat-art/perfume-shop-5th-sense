@@ -1198,7 +1198,9 @@ h1[tabindex="-1"]:focus { outline: none; }
 
 /* Касса (#kassa): крупно, под палец, телефон в бутике */
 .ks-head { position: relative; }
-.ks-out { justify-self: start; color: var(--on-dark); opacity: 0.75; }
+.ks-head-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; }
+.ks-out { color: var(--on-dark); opacity: 0.75; }
+.ks-install { padding: 0; color: var(--gold-soft); border-bottom: 1px solid currentColor; font-size: 14px; }
 .kassa { width: min(100% - 2 * var(--gutter), 520px); margin: 0 auto; padding-block: clamp(28px, 5vw, 48px) 72px; }
 .ks-label { display: block; margin: 18px 0 8px; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-soft); }
 .ks-input { width: 100%; min-width: 0; min-height: 56px; padding: 12px 16px; border: 1px solid var(--line-strong); border-radius: 0; background: var(--sheet); color: var(--ink); font-size: 18px; outline: 0; }
