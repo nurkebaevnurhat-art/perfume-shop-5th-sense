@@ -318,16 +318,9 @@ FS.views.kassa = (function () {
     form = { name: '', amount: '', note: '' };
   }
 
-  /* Внутри установленного приложения 5th SENSE нет меню браузера, и кассу не установить.
-     На Android ссылка intent:// открывает её в Chrome, на iPhone — подсказка про Safari. */
+  /* Внутри установленного приложения на iPhone нет меню браузера: подсказка про Safari. */
   function browserLink() {
-    if (!FS.pwa || !FS.pwa.standalone()) return '';
-    const url = kassaUrl();
-    if (/android/i.test(navigator.userAgent)) {
-      const intent = `intent://${location.host}${new URL(url).pathname}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(url)};end`;
-      return `<a class="btn btn--primary btn--sm ks-browser" href="${esc(intent)}">Открыть в Chrome</a>
-        <p class="ks-browser-note">Чтобы поставить кассу отдельным значком, откройте её в Chrome и там нажмите ⋮ → «Добавить на главный экран».</p>`;
-    }
+    if (!FS.pwa || !FS.pwa.standalone() || /android/i.test(navigator.userAgent)) return '';
     return `<button class="btn btn--primary btn--sm ks-browser" type="button" data-copy-kassa>Скопировать адрес кассы</button>
       <p class="ks-browser-note">Откройте Safari, вставьте адрес в строку сверху, затем «Поделиться» → «На экран „Домой“». Или наведите камеру другого телефона на QR-код.</p>`;
   }
