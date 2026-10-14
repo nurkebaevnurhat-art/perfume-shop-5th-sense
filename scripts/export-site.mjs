@@ -12,7 +12,9 @@ execFileSync(process.execPath, [join(root, 'scripts/build-sw.mjs')], { stdio: 'i
 const out = join(root, 'public');
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out);
-for (const f of ['index.html', 'manifest.webmanifest', 'sw.js', '_headers', '_redirects', 'assets']) {
+// Новый файл или папку сайта в корне проекта добавляйте сюда — иначе на Vercel будет 404.
+// kassa/ и kassa.webmanifest — касса как отдельное приложение (/kassa/).
+for (const f of ['index.html', 'manifest.webmanifest', 'kassa.webmanifest', 'kassa', 'sw.js', '_headers', '_redirects', 'assets']) {
   cpSync(join(root, f), join(out, f), { recursive: true });
 }
 console.log('public/ — сайт готов к выкладке');
