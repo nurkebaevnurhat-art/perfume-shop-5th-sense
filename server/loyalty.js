@@ -216,4 +216,24 @@ async function setName(phone, name) {
   return c;
 }
 
-module.exports = { search, setName, phoneKey, prettyPhone, settings, saveSettings, getClient, status, addPurchase, removePurchase, syncOrder, forOrder, ensureInit, list, DEFAULTS };
+/* Личная карта клиента: секретная ссылка #card-<токен>. Токен угадать нельзя,
+   поэтому чужую карту по номеру телефона не открыть. */
+const cardKey = (t) => `fs:loyalty:card:${t}`;
+async function ensureCard(phone) {
+  const c = await getClient(phone);
+  if (!c) throw new HttpError(400, 'invalid', 'Проверьте номер телефона');
+  if (c.cardToken) return c.cardToken;
+  c.cardToken = crypto.randomBytes(12).toString('base64url');
+  await saveClient(c);
+  await db.command('SET', cardKey(c.cardToken), c.phone);
+  return c.cardToken;
+}
+async function byCard(token) {
+  const t = String(token || '');
+  if (!/^[\w-]{12,32}$/.test(t) || !db.configured()) return null;
+  const phone = await db.command('GET', cardKey(t));
+  const c = phone ? await getClient(phone) : null;
+  return c && c.cardToken === t ? c : null;
+}
+
+module.exports = { ensureCard, byCard, search, setName, phoneKey, prettyPhone, settings, saveSettings, getClient, status, addPurchase, removePurchase, syncOrder, forOrder, ensureInit, list, DEFAULTS };

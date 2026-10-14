@@ -13,7 +13,7 @@
 <link rel="icon" href="assets/icons/favicon-32.png" sizes="32x32" type="image/png">
 <!-- Приложение (PWA): установка на главный экран телефона -->
 <link rel="manifest" href="manifest.webmanifest">
-<script>/* Касса ставится отдельным приложением со своим манифестом. ?app=kassa — ссылка «Открыть в Chrome» из приложения. */ (function () { var k = location.hash === '#kassa' || /[?&]app=kassa/.test(location.search); if (!k) return; document.querySelector('link[rel="manifest"]').href = 'kassa.webmanifest'; if (location.hash !== '#kassa') history.replaceState(null, '', location.pathname + '#kassa'); })();</script>
+<script>/* Касса ставится отдельным приложением со своим манифестом. ?app=kassa — ссылка «Открыть в Chrome» из приложения. */ (function () { var c = /^#card-([\w-]{12,32})$/.exec(location.hash); if (c) { document.querySelector('link[rel="manifest"]').href = 'api/card?manifest=1&t=' + c[1]; return; } var k = location.hash === '#kassa' || /[?&]app=kassa/.test(location.search); if (!k) return; document.querySelector('link[rel="manifest"]').href = 'kassa.webmanifest'; if (location.hash !== '#kassa') history.replaceState(null, '', location.pathname + '#kassa'); })();</script>
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -60,6 +60,7 @@
 <script src="assets/js/importer.js"></script>
 <script src="assets/js/views/admin.js"></script>
 <script src="assets/js/views/kassa.js"></script>
+<script src="assets/js/views/card.js"></script>
 <script src="assets/js/pwa.js"></script>
 <script src="assets/js/app.js"></script>
 </body>

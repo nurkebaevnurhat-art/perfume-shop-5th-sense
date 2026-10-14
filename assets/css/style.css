@@ -1245,6 +1245,45 @@ h1[tabindex="-1"]:focus { outline: none; }
 @media (prefers-reduced-motion: reduce) { .ks-pin.is-enter, .ks-pin.is-wrong .ks-dots { animation: none; } }
 @media (max-width: 360px) { .ks-keypad { grid-template-columns: repeat(3, 68px); gap: 14px 18px; } .ks-key { width: 68px; height: 68px; font-size: 27px; } }
 
+/* Карта клиента (#card-…) */
+.cd-stage .kassa { width: min(100% - 2 * var(--gutter), 460px); }
+.cd-card { display: grid; justify-items: center; text-align: center; animation: ks-rise 0.7s var(--ease) both; }
+.cd-logo { width: auto; height: clamp(84px, 13vh, 116px); margin-bottom: 16px; filter: drop-shadow(0 10px 30px rgba(201, 173, 125, 0.18)); }
+.cd-name { margin: 10px 0 0; font-family: var(--ff-serif); font-weight: 400; font-size: clamp(36px, 9vw, 52px); line-height: 1.05; }
+.cd-phone { margin: 6px 0 0; font-size: 14px; opacity: 0.6; font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+.cd-steps { list-style: none; display: flex; justify-content: center; gap: 10px; margin: 28px 0 0; padding: 0; }
+.cd-step { width: 54px; height: 54px; display: grid; place-items: center; border: 1px solid rgba(201, 173, 125, 0.4); border-radius: 50%; font-family: var(--ff-serif); font-size: 20px; color: rgba(241, 234, 223, 0.55); }
+.cd-step.is-on { background: #c9ad7d; border-color: #c9ad7d; color: #0e0c0a; box-shadow: 0 0 18px rgba(201, 173, 125, 0.35); }
+.cd-step.is-next { border-color: #c9ad7d; color: var(--on-dark); animation: cd-pulse 2.2s ease-in-out infinite; }
+.cd-step.is-gift { font-size: 22px; border-style: dashed; }
+.cd-step.is-gift.is-next { border-style: solid; }
+.cd-head { margin: 22px 0 0; font-family: var(--ff-serif); font-size: clamp(22px, 5.4vw, 28px); line-height: 1.2; max-width: 22ch; }
+.cd-head.is-gift { color: #e3c993; }
+.cd-count { margin: 10px 0 0; font-size: 14.5px; opacity: 0.75; }
+.cd-rule { margin: 18px 0 0; max-width: 36ch; font-size: 13.5px; line-height: 1.55; opacity: 0.6; }
+.cd-recent { width: 100%; margin-top: 26px; padding-top: 18px; border-top: 1px solid rgba(201, 173, 125, 0.25); text-align: left; }
+.cd-recent-title { margin: 0 0 8px; font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase; color: #c9ad7d; }
+.cd-recent ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.cd-recent li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; font-size: 14px; }
+.cd-recent em { font-style: normal; opacity: 0.6; }
+.cd-actions { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 14px 22px; margin-top: 28px; }
+.cd-shop { background: #c9ad7d; border-color: #c9ad7d; color: #0e0c0a; }
+.cd-shop:hover { background: #d8c095; }
+.cd-install { padding: 0; color: #c9ad7d; border-bottom: 1px solid currentColor; font-size: 14px; }
+.cd-note { margin: 16px 0 0; font-size: 12.5px; opacity: 0.5; }
+@keyframes cd-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(201, 173, 125, 0.35); } 50% { box-shadow: 0 0 0 8px rgba(201, 173, 125, 0); } }
+@media (prefers-reduced-motion: reduce) { .cd-card, .cd-step.is-next { animation: none; } }
+@media (max-width: 360px) { .cd-step { width: 46px; height: 46px; font-size: 18px; } .cd-steps { gap: 8px; } }
+
+/* Отправка карты с кассы */
+.ks-card-link { margin-top: 12px; font-size: 13.5px; }
+.ks-share { width: 100%; display: grid; justify-items: center; gap: 10px; margin-top: 22px; padding: 18px; border: 1px solid var(--line); background: var(--sheet); }
+.ks-share-title { margin: 0; font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-deep); }
+.ks-share-qr { width: 200px; }
+.ks-share .ks-hint { margin: 0; max-width: 34ch; }
+.ks-share-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.ks-qr-card .ks-share-btns .btn--outline { border-color: #c9ad7d; color: #c9ad7d; }
+
 /* QR-код на весь экран */
 .ks-qr-layer { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: var(--gutter); background: rgba(10, 8, 6, 0.86); backdrop-filter: blur(6px); }
 .ks-qr-card { width: min(100%, 380px); display: grid; justify-items: center; gap: 14px; padding: 26px 22px; background: #14110d; border: 1px solid rgba(201, 173, 125, 0.4); color: var(--on-dark); text-align: center; }
