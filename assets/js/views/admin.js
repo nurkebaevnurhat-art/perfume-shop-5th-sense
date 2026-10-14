@@ -452,9 +452,11 @@ FS.views.admin = (function () {
   const sourceName = (id) => (SOURCES.find((x) => x[0] === id) || [id, id])[1];
   const prettyPhone = (k) => (k && k.length === 11 ? `+${k[0]} ${k.slice(1, 4)} ${k.slice(4, 7)} ${k.slice(7, 9)} ${k.slice(9)}` : `+${k}`);
 
+  let kassaPinSet = null; // задан ли PIN-код кассы
   async function loadClients() {
     try {
       loyaltyData = await FS.backend.call('GET', '/api/loyalty', null, { auth: true });
+      kassaPinSet = (await FS.backend.call('GET', '/api/kassa?pin=status', null, { auth: true }).catch(() => ({ pinSet: null }))).pinSet;
       loyaltyError = '';
     } catch (err) {
       if (err.status === 401) { expired(); return; }
@@ -530,11 +532,21 @@ FS.views.admin = (function () {
             <label class="field"><span>Дата</span><input name="date" type="date" value="${new Date().toISOString().slice(0, 10)}"></label>
             <button class="btn btn--primary btn--sm" type="submit">Записать покупку</button>
           </form>
-          <p class="stat-note">Быстрее через бота: <code>/buy 87011234567 45000 Baccarat 10 мл</code>, проверить клиента: <code>/client 87011234567</code>.</p>
+          <p class="stat-note">Быстрее — на экране <a class="text-link" href="#kassa">«Касса»</a> или через бота: <code>/buy 87011234567 45000</code>.</p>
         </section>
         <section class="admin-panel">
           <h2>Правила подарков</h2>
           ${settingsForm(s)}
+        </section>
+        <section class="admin-panel kassa-panel">
+          <div class="panel-head"><h2>Касса</h2><a class="text-link" href="#kassa">Открыть кассу</a></div>
+          <p class="stat-note">Быстрая запись покупок в бутике с телефона или планшета: найти клиента по номеру или имени, вписать сумму, «Записать». Один PIN-код для владельца и сотрудников.</p>
+          <p class="stat-note">Адрес кассы: <span class="selectable">${esc(location.origin + location.pathname)}#kassa</span>. Откройте его на телефоне бутика и добавьте на главный экран.</p>
+          <form class="lp-settings kassa-pin-form" data-kassa-pin novalidate>
+            <label class="field"><span>${kassaPinSet ? 'Новый PIN-код' : 'PIN-код'}, 4–8 цифр</span><input name="pin" type="text" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="Например, 2580"></label>
+            <button class="btn btn--primary btn--sm" type="submit">${kassaPinSet ? 'Сменить PIN-код' : 'Сохранить PIN-код'}</button>
+          </form>
+          <p class="stat-note">${kassaPinSet ? 'PIN-код задан. После смены все телефоны, где открыта касса, выйдут — войдите заново с новым PIN-кодом.' : kassaPinSet === false ? '<b>PIN-код ещё не задан</b> — касса не откроется, пока вы его не сохраните.' : ''}</p>
         </section>
       </div>
       <div class="admin-toolbar">
@@ -1204,6 +1216,22 @@ FS.views.admin = (function () {
         } else {
           error.textContent = `Неверный пароль. В демо-версии пароль: ${DEMO_PASSWORD}`;
           $('#admin-password', el).focus();
+        }
+        return;
+      }
+      if (e.target.matches('[data-kassa-pin]')) {
+        e.preventDefault();
+        const input = e.target.elements.pin;
+        const pin = input.value.trim();
+        if (!/^\d{4,8}$/.test(pin)) { toast('PIN-код — от 4 до 8 цифр'); input.focus(); return; }
+        try {
+          await FS.backend.call('POST', '/api/kassa', { action: 'setPin', pin }, { auth: true });
+          kassaPinSet = true;
+          toast('PIN-код кассы сохранён');
+          renderBody();
+        } catch (err) {
+          if (err.status === 401) { expired(); return; }
+          toast(err.message, null, { duration: 8000 });
         }
         return;
       }
