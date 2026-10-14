@@ -514,10 +514,6 @@ FS.views.admin = (function () {
     if (loyaltyError) return `<div class="panel-empty"><p>Не удалось загрузить клиентов: ${esc(loyaltyError)}</p><button class="btn btn--outline btn--sm" type="button" data-lp-reload>Повторить</button></div>`;
     if (!loyaltyData) return '<p class="panel-empty">Загружаем клиентов…</p>';
     const s = loyaltyData.settings;
-    const q = clientQ.trim().toLowerCase();
-    const digits = q.replace(/\D/g, '');
-    const list = loyaltyData.clients.filter((c) => !q || (c.name || '').toLowerCase().includes(q) || (digits.length >= 3 && c.phone.includes(digits)));
-    const due = loyaltyData.clients.filter((c) => c.status.nextIsGift).length;
     return `
       <div class="admin-cols">
         <section class="admin-panel">
@@ -534,10 +530,6 @@ FS.views.admin = (function () {
           </form>
           <p class="stat-note">Быстрее — на экране <a class="text-link" href="kassa/">«Касса»</a> или через бота: <code>/buy 87011234567 45000</code>.</p>
         </section>
-        <section class="admin-panel">
-          <h2>Правила подарков</h2>
-          ${settingsForm(s)}
-        </section>
         <section class="admin-panel kassa-panel">
           <div class="panel-head"><h2>Касса</h2><a class="text-link" href="kassa/">Открыть кассу</a></div>
           <p class="stat-note">Быстрая запись покупок в бутике с телефона или планшета: найти клиента по номеру или имени, вписать сумму, «Записать». Один PIN-код для владельца и сотрудников.</p>
@@ -551,12 +543,7 @@ FS.views.admin = (function () {
           </form>
           <p class="stat-note">${kassaPinSet ? 'PIN-код задан. После смены все телефоны, где открыта касса, выйдут — войдите заново с новым PIN-кодом.' : kassaPinSet === false ? '<b>PIN-код ещё не задан</b> — касса не откроется, пока вы его не сохраните.' : ''}</p>
         </section>
-      </div>
-      <div class="admin-toolbar">
-        <label class="toolbar-search"><span class="visually-hidden">Поиск клиента</span>${FS.ui.icon.search}<input id="client-search" type="search" placeholder="Имя или телефон" value="${esc(clientQ)}" autocomplete="off"></label>
-      </div>
-      <p class="result-count">${loyaltyData.clients.length} ${plural(loyaltyData.clients.length, 'клиент', 'клиента', 'клиентов')}${due ? ` · у ${due} следующая покупка с подарком` : ''}</p>
-      ${list.length ? `<div class="orders">${list.map((c) => clientRow(c, s)).join('')}</div>` : `<p class="panel-empty">${loyaltyData.clients.length ? 'Никого не нашли.' : 'Покупок пока нет. Они появятся, когда заказы с сайта станут «Выполнен» или вы запишете покупку из бутика.'}</p>`}`;
+      </div>`;
   }
 
   async function loyaltyAction(body, okText) {
@@ -599,13 +586,28 @@ FS.views.admin = (function () {
         </label>
         <a class="btn btn--primary btn--sm" href="#admin-new">Добавить товар</a>
       </div>
-      <div class="admin-toolbar admin-toolbar--files">
-        <button class="btn ${pe ? 'btn--primary' : 'btn--outline'} btn--sm" type="button" data-price-edit>${pe ? 'Закончить правку цен' : 'Править цены'}</button>
-        <label class="btn btn--outline btn--sm file-btn">Загрузить таблицу<input type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" data-import-file></label>
-        <button class="btn btn--outline btn--sm" type="button" data-export-xlsx>Скачать таблицу</button>
-        ${canPhotos() ? '<label class="btn btn--outline btn--sm file-btn">Загрузить фото<input type="file" accept="image/*" multiple data-photos></label>' : ''}
-        <button class="btn btn--outline btn--sm" type="button" data-price-open>Изменить цены</button>
-        <a class="btn btn--outline btn--sm" href="assets/files/5th-sense-catalog.xlsx" download>Шаблон таблицы</a>
+      <div class="admin-tools">
+        <div class="tool-group">
+          <p class="tool-label">Цены</p>
+          <div class="tool-btns">
+            <button class="btn ${pe ? 'btn--primary' : 'btn--outline'} btn--sm" type="button" data-price-edit>${pe ? 'Закончить правку цен' : 'Править цены'}</button>
+            <button class="btn btn--outline btn--sm" type="button" data-price-open>Изменить цены</button>
+          </div>
+        </div>
+        <div class="tool-group">
+          <p class="tool-label">Таблица Excel</p>
+          <div class="tool-btns">
+            <button class="btn btn--outline btn--sm" type="button" data-export-xlsx>Скачать таблицу</button>
+            <label class="btn btn--outline btn--sm file-btn">Загрузить таблицу<input type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" data-import-file></label>
+            <a class="btn btn--outline btn--sm" href="assets/files/5th-sense-catalog.xlsx" download>Шаблон таблицы</a>
+          </div>
+        </div>
+        ${canPhotos() ? `<div class="tool-group">
+          <p class="tool-label">Фото</p>
+          <div class="tool-btns">
+            <label class="btn btn--outline btn--sm file-btn">Загрузить фото<input type="file" accept="image/*" multiple data-photos></label>
+          </div>
+        </div>` : ''}
       </div>
       ${importPanel()}
       ${pricePanel()}
