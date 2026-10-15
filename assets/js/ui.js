@@ -146,7 +146,6 @@ FS.ui = (function () {
         </div>
         <nav class="footer-col" aria-label="Коллекция">
           <h2>Коллекция</h2>
-          <a href="#brands">Бренды</a>
           ${FS.categories.map((cat) => `<a href="#catalog-${cat.id}">${esc(cat.name)}</a>`).join('')}
         </nav>
         <nav class="footer-col" aria-label="Покупателям">
