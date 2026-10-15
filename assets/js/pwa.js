@@ -82,10 +82,37 @@ FS.pwa = (function () {
     FS.ui.toast('Установите 5th SENSE на телефон', { label: 'Установить', run: install }, { duration: 8000 });
   }
 
+  /* Обновления сайта. Сервис-воркер сразу показывает сохранённую копию, а новую версию
+     скачивает в фоне. Чтобы изменения были видны сразу, а не «при следующем запуске»
+     (приложение на телефоне часто не закрывается до конца), перезагружаем страницу,
+     как только новая версия готова. Там, где человек что-то вводит (оформление заказа,
+     админка, касса), не перебиваем — предлагаем обновить кнопкой. */
+  const UPDATE_CHECK = 10 * 60 * 1000;
+  function watchUpdates(reg) {
+    const hadController = Boolean(navigator.serviceWorker.controller);
+    let reloading = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadController || reloading) return; // первая установка — обновлять нечего
+      if (isKassa() || /^#(checkout|admin)/.test(location.hash)) {
+        FS.ui.toast('Сайт обновился', { label: 'Обновить', run: () => location.reload() }, { duration: 12000 });
+        return;
+      }
+      reloading = true;
+      location.reload();
+    });
+    // Открытое в фоне приложение: при возвращении на экран проверяем, нет ли новой версии.
+    let checked = Date.now();
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState !== 'visible' || Date.now() - checked < UPDATE_CHECK) return;
+      checked = Date.now();
+      reg.update().catch(() => {});
+    });
+  }
+
   function init() {
     if (supported()) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').catch(() => { /* без офлайн-кэша сайт работает как обычно */ });
+        navigator.serviceWorker.register('sw.js').then(watchUpdates).catch(() => { /* без офлайн-кэша сайт работает как обычно */ });
       });
     }
     window.addEventListener('beforeinstallprompt', (e) => {
