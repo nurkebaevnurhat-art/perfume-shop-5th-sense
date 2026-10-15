@@ -23,8 +23,22 @@ const words = (v) => (Array.isArray(v) ? v : []).map((x) => str(x, 60)).filter(B
 
 /* Приводит товар к допустимому виду. Неизвестные поля отбрасываются,
    ошибки описываются понятным текстом. */
-// Цена объёма по цене за 1 мл (так же считает сайт: FS.api.priceFor).
-const priceFor = (perMl, ml) => Math.round(perMl * ml);
+// Цена объёма по цене за 1 мл и поправке объёма в % (так же считает сайт: FS.api.priceFor).
+function priceFor(perMl, ml, adj) {
+  const base = perMl * ml;
+  const a = Number(adj) || 0;
+  return a ? Math.max(10, Math.round((base * (1 + a / 100)) / 10) * 10) : Math.round(base);
+}
+// Поправка по объёмам { мл: % }: нули и выход за −90…+300 % отбрасываем.
+function cleanAdj(adj) {
+  const out = {};
+  if (!adj || typeof adj !== 'object') return out;
+  Object.keys(adj).map(Number).filter((ml) => ml > 0).sort((a, b) => a - b).slice(0, 12).forEach((ml) => {
+    const a = Math.round(Number(adj[ml]) * 10) / 10;
+    if (a && a > -90 && a <= 300) out[ml] = a;
+  });
+  return out;
+}
 
 function normalize(p, pos) {
   const bad = (msg) => new HttpError(400, 'invalid_product', `Товар «${str(p && p.name, 60) || (p && p.id) || pos + 1}»: ${msg}`);
@@ -40,10 +54,11 @@ function normalize(p, pos) {
     return out;
   });
   if (!volumes.length) throw bad('нет ни одного объёма');
-  // Цена за 1 мл: цены объёмов считаются из неё, ровно по миллилитрам.
+  // Цена за 1 мл: цены объёмов считаются из неё по миллилитрам, с поправкой объёма, если она есть.
   const perMl = Math.round(Number(p.perMl) * 100) / 100;
   if (p.perMl !== undefined && p.perMl !== null && p.perMl !== '' && !(perMl > 0)) throw bad('цена за 1 мл должна быть больше нуля');
-  if (perMl > 0) volumes.forEach((v) => { v.price = priceFor(perMl, v.ml); });
+  const volAdj = cleanAdj(p.volAdj);
+  if (perMl > 0) volumes.forEach((v) => { v.price = priceFor(perMl, v.ml, volAdj[v.ml]); });
   if (volumes.some((v) => !(v.ml > 0) || !(v.price > 0))) throw bad('у каждого объёма должны быть миллилитры и цена больше нуля');
   if (new Set(volumes.map((v) => v.ml)).size !== volumes.length) throw bad('объёмы повторяются');
   volumes.sort((a, b) => a.ml - b.ml);
@@ -56,6 +71,7 @@ function normalize(p, pos) {
     family: str(p.family, 30) || 'woody',
     concentration: CONCENTRATIONS.includes(p.concentration) ? p.concentration : 'EDP',
     ...(perMl > 0 ? { perMl } : {}),
+    ...(Object.keys(volAdj).length ? { volAdj } : {}),
     volumes,
     main: volumes.some((v) => v.ml === Number(p.main)) ? Number(p.main) : volumes[Math.floor((volumes.length - 1) / 2)].ml,
     short: str(p.short, 160),

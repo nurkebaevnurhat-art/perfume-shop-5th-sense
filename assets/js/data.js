@@ -7,7 +7,7 @@
    type        — 'perfume' | 'set'
    gender      — 'men' | 'women' | 'unisex'
    family      — id из FS.families
-   perMl       — цена за 1 мл: цена каждого объёма = perMl × мл, без скидок
+   perMl       — цена за 1 мл: цена каждого объёма = perMl × мл (± volAdj — поправка объёма в %)
                  (FS.api.priceFor). Если не задана, цены объёмов указаны вручную
    volumes     — объёмы на распив [{ ml, price, stock }] — stock: остаток на складе
    main        — объём, который показываем в карточке

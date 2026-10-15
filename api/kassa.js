@@ -11,10 +11,8 @@ const { send, readJson, handler, HttpError, requireAdmin } = require('../server/
 const db = require('../server/db');
 const loyalty = require('../server/loyalty');
 const kassa = require('../server/kassa');
-const telegram = require('../server/telegram');
 
 const UNDO_MINUTES = 15;
-const money = (n) => `${Math.round(Number(n) || 0).toLocaleString('ru-RU').replace(/ /g, ' ')} ₸`;
 
 function requireStorage() {
   if (!db.configured()) throw new HttpError(503, 'storage_not_configured', 'Подключите хранилище Upstash Redis');
@@ -37,19 +35,6 @@ function card(c, s) {
     hideMoney: hide,
     recent: c.purchases.slice(-3).reverse().map((p) => ({ id: p.id, date: p.date, amount: hide ? null : p.amount, note: p.note || '', source: p.source }))
   };
-}
-
-async function notify(c, purchase, s) {
-  const st = loyalty.status(c, s);
-  const last = st.gifts[st.gifts.length - 1];
-  const giftNow = last && last.number === st.count ? last : null;
-  const who = `👤 ${telegram.escape(c.name || 'Без имени')}, ${loyalty.prettyPhone(c.phone)}`;
-  const n = `${st.count}-я покупка`;
-  const full = [`🧾 <b>Касса: покупка записана</b>`, who, `${money(purchase.amount)}${purchase.note ? ` · ${telegram.escape(purchase.note)}` : ''}`,
-    giftNow ? `🎁 <b>${n} — положен подарок: ${telegram.escape(giftNow.gift)}</b>` : st.nextIsGift ? `${n}. Следующая — с подарком: ${telegram.escape(st.nextGift)}` : `${n}. Подарок — на ${st.count + st.left + 1}-й.`].join('\n');
-  const short = [`🧾 <b>Касса: покупка записана</b>`, who, giftNow ? `🎁 ${n} — с подарком` : `${n}`].join('\n');
-  const owner = s.notify === 'owner' && s.ownerChat ? String(s.ownerChat) : '';
-  try { await telegram.send((chat) => (!owner || String(chat.id) === owner ? full : short)); } catch (err) { console.error(err); }
 }
 
 module.exports = handler({
@@ -90,7 +75,6 @@ module.exports = handler({
       const name = String(body.name || '').trim();
       if (!existing.name && !name) throw new HttpError(400, 'need_name', 'Впишите имя клиента');
       const { client, purchase } = await loyalty.addPurchase({ phone, name: name || existing.name, amount: body.amount, note: body.note, source: 'boutique' }, 'касса');
-      await notify(client, purchase, s);
       const st = loyalty.status(client, s);
       const last = st.gifts[st.gifts.length - 1];
       const giftNow = Boolean(last && last.number === st.count);
