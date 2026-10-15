@@ -22,8 +22,11 @@ FS.views.catalog = (function () {
   function freshState(route, params) {
     return {
       category: route.category || null,
+      // Страница бренда (#brand-…): фильтр по бренду задан адресом.
+      brand: route.brand || null,
+      brandMissing: Boolean(route.brandMissing),
       families: route.family ? [route.family] : [],
-      brands: [],
+      brands: route.brand ? [route.brand] : [],
       genders: [],
       priceMin: null,
       priceMax: null,
@@ -33,7 +36,15 @@ FS.views.catalog = (function () {
     };
   }
 
+  // Бренд страницы бренда — не фильтр покупателя: не считаем его в «Фильтры (N)».
+  const userBrands = () => state.brands.filter((b) => b !== state.brand).length;
+
   function heading() {
+    if (state.brandMissing) return { title: 'Бренд не найден', lead: 'Возможно, его уже нет в каталоге. Посмотрите все бренды бутика.' };
+    if (state.brand) {
+      const n = FS.api.filter({ brands: [state.brand] }).length;
+      return { title: state.brand, lead: `${n} ${plural(n, 'аромат', 'аромата', 'ароматов')} бренда в бутике 5th SENSE.` };
+    }
     const cat = FS.categories.find((c) => c.id === state.category);
     if (cat) return { title: cat.name, lead: cat.lead };
     if (state.families.length === 1) {
@@ -80,7 +91,7 @@ FS.views.catalog = (function () {
           <label><span class="visually-hidden">Цена до</span><input id="price-max" type="number" inputmode="numeric" min="0" step="1000" placeholder="до" value="${state.priceMax || ''}" name="priceMax"></label>
         </div>
       </fieldset>
-      ${brands.length > 12
+      ${state.brand ? '' : brands.length > 12
     ? checkboxGroup('brands', 'Бренд', brands, state.brands).replace('<div class="filter-options">', `<label class="brand-search"><span class="visually-hidden">Найти бренд</span><input type="search" placeholder="Найти бренд" data-brand-search autocomplete="off"></label><div class="filter-options filter-options--scroll">`)
     : checkboxGroup('brands', 'Бренд', brands, state.brands)}
       <label class="check check--switch">
@@ -97,7 +108,7 @@ FS.views.catalog = (function () {
     if (state.q) chips.push(['q', '', `«${state.q}»`]);
     state.families.forEach((id) => chips.push(['families', id, FS.families.find((f) => f.id === id).name]));
     state.genders.forEach((id) => chips.push(['genders', id, FS.genderLabel[id]]));
-    state.brands.forEach((b) => chips.push(['brands', b, b]));
+    state.brands.filter((b) => b !== state.brand).forEach((b) => chips.push(['brands', b, b]));
     if (state.priceMin) chips.push(['priceMin', '', `от ${FS.ui.money(state.priceMin)}`]);
     if (state.priceMax) chips.push(['priceMax', '', `до ${FS.ui.money(state.priceMax)}`]);
     if (state.inStock) chips.push(['inStock', '', 'В наличии']);
@@ -105,14 +116,19 @@ FS.views.catalog = (function () {
   }
 
   function results() {
-    const list = FS.api.filter(state);
-    const filtered = state.families.length + state.brands.length + state.genders.length + (state.q ? 1 : 0) + (state.priceMin ? 1 : 0) + (state.priceMax ? 1 : 0) + (state.inStock ? 1 : 0);
+    const list = state.brandMissing ? [] : FS.api.filter(state);
+    const filtered = state.families.length + userBrands() + state.genders.length + (state.q ? 1 : 0) + (state.priceMin ? 1 : 0) + (state.priceMax ? 1 : 0) + (state.inStock ? 1 : 0);
     const allowWide = list.length >= 5 && !filtered;
     let wideUsed = 0;
     const grid = list.length ? list.slice(0, shown).map((p, i) => {
       const wide = allowWide && p.featured && wideUsed < 2 && (wideUsed += 1);
       return card(p, { wide, index: Math.min(i % PAGE, 8) });
-    }).join('') : `
+    }).join('') : state.brandMissing ? `
+      <div class="empty">
+        <p class="empty-title">Такого бренда сейчас нет</p>
+        <p>Посмотрите все бренды бутика или найдите аромат через поиск.</p>
+        <a class="line-link" href="#brands">Все бренды</a>
+      </div>` : `
       <div class="empty">
         <p class="empty-title">Ничего не нашлось</p>
         <p>Уберите часть фильтров или измените запрос. Можно искать по бренду, названию или ноте, например «сандал».</p>
@@ -134,7 +150,7 @@ FS.views.catalog = (function () {
     renderMore(list.length);
     $('[data-count]', root).textContent = `${list.length} ${plural(list.length, 'аромат', 'аромата', 'ароматов')}`;
     $('[data-chips]', root).innerHTML = activeChips();
-    const n = state.families.length + state.brands.length + state.genders.length + (state.priceMin ? 1 : 0) + (state.priceMax ? 1 : 0) + (state.inStock ? 1 : 0);
+    const n = state.families.length + userBrands() + state.genders.length + (state.priceMin ? 1 : 0) + (state.priceMax ? 1 : 0) + (state.inStock ? 1 : 0);
     const badge = $('[data-filter-count]', root);
     badge.hidden = !n;
     badge.textContent = n;
@@ -146,23 +162,48 @@ FS.views.catalog = (function () {
     });
   }
 
+  // Витрины над каталогом: «Весь каталог», «Бренды», затем категории. active — id категории, 'all' или 'brands'.
+  function plaques(active) {
+    const tabs = [{ href: '#catalog', id: 'all', short: 'Весь каталог' }, { href: '#brands', id: 'brands', short: 'Бренды' }]
+      .concat(FS.categories.map((c) => ({ href: `#catalog-${c.id}`, id: c.id, short: c.short })));
+    return `<nav class="plaques" aria-label="Витрины">
+        ${tabs.map((t) => `<a class="plaque-tab ${t.id === active ? 'is-active' : ''}" href="${t.href}" ${t.id === active ? 'aria-current="page"' : ''}>${esc(t.short)}</a>`).join('')}
+      </nav>`;
+  }
+
+  // Бренды текущей витрины одной полосой над ароматами: нажал — открылась страница бренда.
+  function brandStrip() {
+    if (state.brand || state.brandMissing) return '';
+    const counts = new Map();
+    FS.api.filter({ category: state.category, families: state.families }).forEach((p) => counts.set(p.brand, (counts.get(p.brand) || 0) + 1));
+    if (counts.size < 2) return '';
+    const list = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    return `<section class="brand-strip" aria-label="Бренды">
+        <div class="brand-strip-head"><h2 class="brand-strip-title">Бренды</h2><a class="line-link brand-strip-all" href="#brands">Все бренды · ${FS.api.brands().length}</a></div>
+        <div class="brand-strip-row">${list.map(([b, n]) => `<a class="brand-chip" href="#brand-${FS.api.brandSlug(b)}"><span>${esc(b)}</span><span class="brand-chip-count">${n}</span></a>`).join('')}</div>
+      </section>`;
+  }
+
   function render(route, params) {
-    state = freshState(route, params);
+    const brand = route.brandSlug ? FS.api.brandBySlug(route.brandSlug) : null;
+    state = freshState({ ...route, brand, brandMissing: Boolean(route.brandSlug && !brand) }, params);
     const h = heading();
-    const cats = [{ id: null, short: 'Весь каталог' }].concat(FS.categories);
+    const byBrand = state.brand || state.brandMissing;
+    const crumbs = byBrand ? '<a href="#catalog">Каталог</a><span aria-hidden="true">/</span><a href="#brands">Бренды</a><span aria-hidden="true">/</span>'
+      : state.category || state.families.length ? '<a href="#catalog">Каталог</a><span aria-hidden="true">/</span>' : '';
+    const active = byBrand ? 'brands' : state.category || (state.families.length ? '' : 'all');
     return `
       <section class="page-head">
-        <nav class="crumbs" aria-label="Навигационная цепочка"><a href="#home">Главная</a><span aria-hidden="true">/</span>${state.category || state.families.length ? '<a href="#catalog">Каталог</a><span aria-hidden="true">/</span>' : ''}<span aria-current="page">${esc(h.title)}</span></nav>
+        <nav class="crumbs" aria-label="Навигационная цепочка"><a href="#home">Главная</a><span aria-hidden="true">/</span>${crumbs}<span aria-current="page">${esc(h.title)}</span></nav>
         <h1>${esc(h.title)}</h1>
-        <p class="page-lead">${esc(h.lead)}</p>
+        <p class="page-lead">${esc(h.lead)}${state.brandMissing ? ' <a class="line-link" href="#brands">Все бренды</a>' : ''}</p>
       </section>
-      <nav class="plaques" aria-label="Витрины">
-        ${cats.map((c) => `<a class="plaque-tab ${c.id === state.category && !(c.id === null && state.families.length) ? 'is-active' : ''}" href="#${c.id ? 'catalog-' + c.id : 'catalog'}" ${c.id === state.category ? 'aria-current="page"' : ''}>${esc(c.short)}</a>`).join('')}
-      </nav>
+      ${plaques(active)}
       <div class="catalog">
         <aside class="filters" id="catalog-filters" aria-label="Фильтры">${filtersMarkup()}</aside>
         <div class="filters-scrim" data-filters-toggle aria-hidden="true"></div>
         <div class="catalog-main">
+          ${brandStrip()}
           <div class="toolbar">
             <label class="toolbar-search">
               <span class="visually-hidden">Поиск в каталоге</span>
@@ -213,7 +254,7 @@ FS.views.catalog = (function () {
     const form = $('.filters', root);
     const values = (name) => $$(`input[name="${name}"]:checked`, form).map((i) => i.value);
     state.families = values('families');
-    state.brands = values('brands');
+    state.brands = state.brand ? [state.brand] : values('brands');
     state.genders = values('genders');
     state.inStock = $('input[name="inStock"]', form).checked;
     const min = Number($('#price-min', form).value);
@@ -262,8 +303,7 @@ FS.views.catalog = (function () {
         return;
       }
       if (e.target.closest('[data-reset]')) {
-        const keepCat = state.category;
-        state = freshState({ category: keepCat }, {});
+        state = freshState({ category: state.category, brand: state.brand, brandMissing: state.brandMissing }, {});
         $('#catalog-search', root).value = '';
         $('#catalog-sort', root).value = 'popular';
         $('.filters', root).innerHTML = filtersMarkup();
@@ -283,13 +323,92 @@ FS.views.catalog = (function () {
   }
 
   function title(route) {
+    if (route.brandSlug) return FS.api.brandBySlug(route.brandSlug) || 'Бренд';
     const cat = FS.categories.find((c) => c.id === route.category);
     if (cat) return cat.name;
     const f = FS.families.find((x) => x.id === route.family);
     return f ? `${f.name} ароматы` : 'Каталог';
   }
 
-  return { render, mount, unmount, title };
+  return { render, mount, unmount, title, plaques };
+})();
+
+/* Бренды: все бренды бутика по алфавиту, поиск по названию. Нажал — открылись ароматы бренда. */
+FS.views.brands = (function () {
+  const { $, $$, esc, plural } = FS.ui;
+  const letterOf = (b) => { const ch = b.trim().charAt(0).toUpperCase(); return /\d/.test(ch) ? '0–9' : /[A-ZА-ЯЁ]/.test(ch) ? ch : '#'; };
+
+  function groups() {
+    const counts = new Map();
+    FS.api.visible().forEach((p) => counts.set(p.brand, (counts.get(p.brand) || 0) + 1));
+    const out = [];
+    FS.api.brands().forEach((b) => {
+      const letter = letterOf(b);
+      let g = out[out.length - 1];
+      if (!g || g.letter !== letter) { g = { letter, items: [] }; out.push(g); }
+      g.items.push({ name: b, n: counts.get(b) || 0 });
+    });
+    return out;
+  }
+
+  function render() {
+    const gs = groups();
+    const total = gs.reduce((s, g) => s + g.items.length, 0);
+    return `
+      <section class="page-head">
+        <nav class="crumbs" aria-label="Навигационная цепочка"><a href="#home">Главная</a><span aria-hidden="true">/</span><a href="#catalog">Каталог</a><span aria-hidden="true">/</span><span aria-current="page">Бренды</span></nav>
+        <h1>Бренды</h1>
+        <p class="page-lead">${total} ${plural(total, 'бренд', 'бренда', 'брендов')} в бутике 5th SENSE. Выберите бренд — откроются все его ароматы.</p>
+      </section>
+      ${FS.views.catalog.plaques('brands')}
+      <div class="page-body brands-page">
+        <div class="brands-tools">
+          <label class="toolbar-search brands-search">
+            <span class="visually-hidden">Найти бренд</span>${FS.ui.icon.search}
+            <input id="brand-find" type="search" placeholder="Найти бренд" autocomplete="off">
+          </label>
+          ${gs.length > 3 ? `<nav class="brand-letters" aria-label="Бренды по буквам">${gs.map((g) => `<button type="button" class="brand-letter-btn" data-letter="${esc(g.letter)}">${esc(g.letter)}</button>`).join('')}</nav>` : ''}
+        </div>
+        <div class="brand-groups">
+          ${gs.map((g) => `<section class="brand-group" data-group="${esc(g.letter)}">
+              <h2 class="brand-group-letter">${esc(g.letter)}</h2>
+              <ul class="brand-list">${g.items.map((b) => `<li data-name="${esc(b.name.toLowerCase())}"><a class="brand-row" href="#brand-${FS.api.brandSlug(b.name)}"><span class="brand-row-name">${esc(b.name)}</span><span class="brand-row-count">${b.n} ${plural(b.n, 'аромат', 'аромата', 'ароматов')}</span></a></li>`).join('')}</ul>
+            </section>`).join('')}
+        </div>
+        <div class="empty" data-brands-empty hidden>
+          <p class="empty-title">Такого бренда нет</p>
+          <p>Проверьте написание или поищите аромат в каталоге: там поиск идёт и по названиям, и по нотам.</p>
+          <a class="line-link" href="#catalog">Перейти в каталог</a>
+        </div>
+      </div>`;
+  }
+
+  function mount(root, route, params, signal) {
+    const input = $('#brand-find', root);
+    input.addEventListener('input', () => {
+      const q = input.value.trim().toLowerCase();
+      let any = false;
+      $$('.brand-group', root).forEach((g) => {
+        let shown = 0;
+        $$('li', g).forEach((li) => { const on = !q || li.dataset.name.includes(q); li.hidden = !on; if (on) shown++; });
+        g.hidden = !shown;
+        if (shown) any = true;
+      });
+      $('[data-brands-empty]', root).hidden = any;
+      const letters = $('.brand-letters', root);
+      if (letters) letters.hidden = Boolean(q);
+    }, { signal });
+    root.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-letter]');
+      if (!btn) return;
+      const g = $(`.brand-group[data-group="${CSS.escape(btn.dataset.letter)}"]`, root);
+      if (!g) return;
+      const top = g.getBoundingClientRect().top + window.scrollY - (document.querySelector('.site-header').offsetHeight + 12);
+      window.scrollTo({ top, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    }, { signal });
+  }
+
+  return { render, mount, title: () => 'Бренды' };
 })();
 
 FS.views.favorites = (function () {

@@ -20,6 +20,8 @@ FS.app = (function () {
     if (t === 'catalog') return { name: 'catalog', key: t };
     if ((m = t.match(/^catalog-([a-z]+)$/)) && FS.categories.some((c) => c.id === m[1])) return { name: 'catalog', key: t, category: m[1] };
     if ((m = t.match(/^family-([a-z]+)$/)) && FS.families.some((f) => f.id === m[1])) return { name: 'catalog', key: t, family: m[1] };
+    if (t === 'brands') return { name: 'brands', key: t };
+    if ((m = t.match(/^brand-([a-z0-9-]+)$/))) return { name: 'catalog', key: t, brandSlug: m[1] };
     if ((m = t.match(/^product-([a-z0-9-]+)$/))) return { name: 'product', key: t, id: m[1] };
     if (t === 'checkout') return { name: 'checkout', key: t };
     if (t === 'favorites') return { name: 'favorites', key: t };
@@ -154,7 +156,7 @@ FS.app = (function () {
     });
     // Новый каталог: перерисовываем страницы со списками товаров, формы не трогаем.
     FS.api.onChange(() => {
-      if (current && ['home', 'catalog', 'product', 'favorites'].includes(current.name)) render(resolve(currentToken()), true, true);
+      if (current && ['home', 'catalog', 'brands', 'product', 'favorites'].includes(current.name)) render(resolve(currentToken()), true, true);
     });
     const first = () => { if (!current) render(resolve(currentToken())); };
     if (FS.catalog.hasCache() || !FS.backend.usable) first();

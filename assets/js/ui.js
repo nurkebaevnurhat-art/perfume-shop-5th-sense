@@ -87,7 +87,7 @@ FS.ui = (function () {
         </div>
       </div>`;
 
-    const menuItems = [{ href: '#catalog', name: 'Вся коллекция' }]
+    const menuItems = [{ href: '#catalog', name: 'Вся коллекция' }, { href: '#brands', name: 'Бренды' }]
       .concat(FS.categories.map((c) => ({ href: `#catalog-${c.id}`, name: c.name })))
       .concat({ href: '#delivery', name: 'Доставка и оплата' }, { href: '#gifts', name: 'Подарки за покупки' });
     $('#site-menu').innerHTML = `
@@ -146,6 +146,7 @@ FS.ui = (function () {
         </div>
         <nav class="footer-col" aria-label="Коллекция">
           <h2>Коллекция</h2>
+          <a href="#brands">Бренды</a>
           ${FS.categories.map((cat) => `<a href="#catalog-${cat.id}">${esc(cat.name)}</a>`).join('')}
         </nav>
         <nav class="footer-col" aria-label="Покупателям">

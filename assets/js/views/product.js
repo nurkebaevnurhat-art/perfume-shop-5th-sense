@@ -113,7 +113,7 @@ FS.views.product = (function () {
               <a href="#catalog">Коллекция</a><span aria-hidden="true">/</span>
               <a href="#catalog-${category.id}">${esc(category.name)}</a>
             </nav>
-            <a class="pd-brand" href="#catalog">${esc(product.brand)}</a>
+            <a class="pd-brand" href="#brand-${FS.api.brandSlug(product.brand)}">${esc(product.brand)}</a>
             <h1 class="pd-name" data-chars>${esc(product.name)}</h1>
             <p class="pd-sub">${esc(conc)}, ${esc(FS.genderLabel[product.gender].toLowerCase())}, ${esc(fam.name.toLowerCase())}</p>
             <p class="pd-lead">${esc(product.short)}</p>
