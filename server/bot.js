@@ -67,7 +67,7 @@ function statusText(o, shop) {
 async function notifyCreated(o) {
   const shop = catalog.load();
   for (const chatId of o.telegram || []) {
-    await html(chatId, `🛍 Заказ <b>${escape(o.number)}</b> на ${money(o.total, shop.config.currency)} принят.\n\nМы позвоним по номеру ${escape(o.customer.phone)}, чтобы подтвердить заказ. О смене статуса напишем сюда.`, menuKeyboard);
+    await html(chatId, `🛍 Заказ <b>${escape(o.number)}</b> на ${money(o.total, shop.config.currency)} принят.\n\nМы позвоним по номеру ${escape(o.customer.phone)}, чтобы подтвердить заказ. О смене статуса напишем сюда.`, hideOldKeyboard);
   }
 }
 
@@ -80,22 +80,22 @@ async function notifyCustomer(before, after) {
   let sent = 0;
   for (const chatId of after.telegram) {
     for (const text of texts.filter(Boolean)) {
-      try { await html(chatId, text, menuKeyboard); sent++; } catch (err) { console.error(err); }
+      try { await html(chatId, text, hideOldKeyboard); sent++; } catch (err) { console.error(err); }
     }
   }
   return sent;
 }
 
 /* ---------- Меню ---------- */
-// Постоянная кнопка «☰ Меню» внизу чата покупателя (над полем ввода). Telegram держит её,
-// пока бот её не уберёт, поэтому прикладываем её к сообщениям покупателю без своих кнопок.
-const MENU_BUTTON = '☰ Меню';
-const menuKeyboard = { reply_markup: { keyboard: [[{ text: MENU_BUTTON }]], resize_keyboard: true, is_persistent: true, input_field_placeholder: 'Вопрос консультанту' } };
+// Меню покупателя — одна кнопка «Меню» слева от поля ввода (список команд, см. setupMenu):
+// магазин, заказы, подарки, консультация, контакты. Магазин открывается из меню.
+const MENU_HINT = 'Всё нужное — в кнопке «Меню» слева внизу: магазин, мои заказы, подарки за покупки, консультация и контакты.';
+// Раньше у покупателя была ещё кнопка «☰ Меню» над полем ввода — убираем её, чтобы меню было одно.
+const hideOldKeyboard = { reply_markup: { remove_keyboard: true } };
 const isMenuButton = (text) => /^(☰\s*)?меню$/i.test(String(text || '').trim());
 
 const welcome = (shop) => `Добро пожаловать в <b>${escape(shop.config.brand)} ${escape(shop.config.tagline)}</b>.\n\n` +
-  'Здесь можно открыть магазин, следить за заказом и задать вопрос консультанту: просто напишите его в этот чат.\n\n' +
-  `Меню всегда под рукой: кнопка «${MENU_BUTTON}» внизу экрана.`;
+  'Здесь можно открыть магазин, следить за заказом и задать вопрос консультанту: просто напишите его в этот чат.\n\n' + MENU_HINT;
 
 function menu(site) {
   return {
@@ -110,11 +110,13 @@ function menu(site) {
   };
 }
 const showMenu = (chatId, site) => { const m = menu(site); return html(chatId, m.text, { reply_markup: m.markup }); };
-// /start: приветствие ставит кнопку «☰ Меню», следом — меню с кнопками.
+// /start: приветствие, следом — меню с кнопками.
 async function startMenu(chatId, site, shop, intro) {
-  await html(chatId, intro || welcome(shop), menuKeyboard);
+  await html(chatId, intro || welcome(shop), hideOldKeyboard);
   return showMenu(chatId, site);
 }
+const shopButton = (chatId, site) => html(chatId, '🛍 <b>Магазин</b> откроется прямо в Telegram:', { reply_markup: { inline_keyboard: [[{ text: '🛍 Открыть магазин', web_app: { url: site + '/' } }]] } });
+const CONSULT = 'Напишите вопрос прямо сюда: какой аромат ищете, для какого случая или в подарок кому. Консультант ответит в этом чате.';
 
 function contacts(shop) {
   const c = shop.config.contacts;
@@ -134,7 +136,7 @@ async function myOrders(chatId, shop) {
   const orders = (await Promise.all(numbers.map((n) => db.getOrder(n)))).filter(Boolean)
     .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))).slice(0, 5);
   if (!orders.length) {
-    return 'Здесь пока нет ваших заказов.\n\nОформите заказ в магазине (кнопка «Магазин» ниже) или нажмите «Следить за заказом в Telegram» на странице подтверждения заказа на сайте.';
+    return 'Здесь пока нет ваших заказов.\n\nОформите заказ в магазине («Меню» → «Открыть магазин») или нажмите «Следить за заказом в Telegram» на странице подтверждения заказа на сайте.';
   }
   return `Ваши заказы:\n\n${orders.map((o) => orderLine(o, shop)).join('\n')}\n\nО смене статуса мы напишем сюда.`;
 }
@@ -143,7 +145,7 @@ async function myOrders(chatId, shop) {
 async function relayToStaff(msg, shop) {
   const { chats } = await telegram.recipients();
   if (!chats.length || !db.configured()) {
-    return html(msg.chat.id, `Сейчас консультант недоступен. Позвоните нам: ${escape(shop.config.contacts.phone)}.`, menuKeyboard);
+    return html(msg.chat.id, `Сейчас консультант недоступен. Позвоните нам: ${escape(shop.config.contacts.phone)}.`, hideOldKeyboard);
   }
   if (!(await db.allow(`tg:${msg.chat.id}`, 20, 600))) return null;
   const u = msg.from || {};
@@ -168,7 +170,7 @@ async function relayToStaff(msg, shop) {
     } catch (err) { console.error(err); }
   }
   if (await db.once(`fs:tg:ack:${msg.chat.id}`, 30 * 60)) {
-    await html(msg.chat.id, 'Спасибо! Консультант ответит прямо здесь, в этом чате.', menuKeyboard);
+    await html(msg.chat.id, 'Спасибо! Консультант ответит прямо здесь, в этом чате.', hideOldKeyboard);
   }
   return null;
 }
@@ -176,7 +178,7 @@ async function relayToStaff(msg, shop) {
 // Сообщение сотрудника → покупателю, с подтверждением в чате сотрудника.
 async function deliver(msg, customer) {
   if (msg.text) {
-    await html(customer, `💬 <b>Консультант ${escape(catalog.load().config.brand)}</b>\n\n${escape(msg.text)}`, menuKeyboard);
+    await html(customer, `💬 <b>Консультант ${escape(catalog.load().config.brand)}</b>\n\n${escape(msg.text)}`, hideOldKeyboard);
   } else {
     await call('copyMessage', { chat_id: customer, from_chat_id: msg.chat.id, message_id: msg.message_id });
   }
@@ -352,16 +354,17 @@ async function acceptInvite(msg, code, shop) {
 /* ---------- Обработка обновлений от Telegram ---------- */
 async function handle(update, site) {
   const shop = catalog.load();
+  await ensureMenu();
 
   if (update.callback_query) {
     const q = update.callback_query;
     await call('answerCallbackQuery', { callback_query_id: q.id }).catch(() => {});
     const chatId = q.message && q.message.chat.id;
     if (!chatId) return;
-    if (q.data === 'orders') return html(chatId, await myOrders(chatId, shop), menuKeyboard);
-    if (q.data === 'consult') return html(chatId, 'Напишите вопрос прямо сюда: какой аромат ищете, для какого случая или в подарок кому. Консультант ответит в этом чате.', menuKeyboard);
-    if (q.data === 'contacts') return html(chatId, contacts(shop), menuKeyboard);
-    if (q.data === 'bonus') return html(chatId, await bonusForCustomer(chatId), menuKeyboard);
+    if (q.data === 'orders') return html(chatId, await myOrders(chatId, shop), hideOldKeyboard);
+    if (q.data === 'consult') return html(chatId, CONSULT, hideOldKeyboard);
+    if (q.data === 'contacts') return html(chatId, contacts(shop), hideOldKeyboard);
+    if (q.data === 'bonus') return html(chatId, await bonusForCustomer(chatId), hideOldKeyboard);
     return;
   }
 
@@ -378,7 +381,7 @@ async function handle(update, site) {
       const number = await db.get(`fs:order:track:${payload.slice(2)}`);
       const order = number && await linkOrder(number, msg.chat.id);
       if (!order) return html(msg.chat.id, 'Не нашли заказ по этой ссылке. Напишите нам, и мы поможем.');
-      return startMenu(msg.chat.id, site, shop, `Заказ ${orderLine(order, shop)} теперь здесь.\n\nМы напишем, когда его подтвердят и передадут в доставку. Вопросы можно задать прямо в этом чате.\n\nМеню всегда под рукой: кнопка «${MENU_BUTTON}» внизу экрана.`);
+      return startMenu(msg.chat.id, site, shop, `Заказ ${orderLine(order, shop)} теперь здесь.\n\nМы напишем, когда его подтвердят и передадут в доставку. Вопросы можно задать прямо в этом чате.\n\n${MENU_HINT}`);
     }
   }
 
@@ -389,17 +392,19 @@ async function handle(update, site) {
 
   // Ответ сотрудника покупателю.
   if (msg.reply_to_message && (await relayToCustomer(msg))) return;
-  // Кнопка «☰ Меню» внизу чата — не вопрос консультанту и не ответ покупателю.
+  // «Меню» текстом (или старая кнопка «☰ Меню») — не вопрос консультанту и не ответ покупателю.
   if (privateChat && isMenuButton(text)) return showMenu(msg.chat.id, site);
   // Пошаговая запись покупки (/buy без данных): ответ на вопрос бота.
   if (await continueBuy(msg)) return;
   if (!privateChat) return; // в группах сотрудников бот отвечает только на приглашения и ответы
 
   if (cmd) {
-    if (cmd[1] === 'orders') return html(msg.chat.id, await myOrders(msg.chat.id, shop), menuKeyboard);
-    if (cmd[1] === 'contacts') return html(msg.chat.id, contacts(shop), menuKeyboard);
-    if (cmd[1] === 'bonus') return html(msg.chat.id, await bonusForCustomer(msg.chat.id), menuKeyboard);
+    if (cmd[1] === 'orders') return html(msg.chat.id, await myOrders(msg.chat.id, shop), hideOldKeyboard);
+    if (cmd[1] === 'contacts') return html(msg.chat.id, contacts(shop), hideOldKeyboard);
+    if (cmd[1] === 'bonus') return html(msg.chat.id, await bonusForCustomer(msg.chat.id), hideOldKeyboard);
     if (cmd[1] === 'menu') return showMenu(msg.chat.id, site);
+    if (cmd[1] === 'shop') return shopButton(msg.chat.id, site);
+    if (cmd[1] === 'consult') return html(msg.chat.id, CONSULT, hideOldKeyboard);
     return startMenu(msg.chat.id, site, shop);
   }
   if (msg.web_app_data || msg.successful_payment) return;
@@ -420,17 +425,33 @@ async function enable(site) {
     allowed_updates: ['message', 'callback_query'],
     drop_pending_updates: true
   });
+  await setupMenu();
+  await call('setMyShortDescription', { short_description: `${shop.config.brand} ${shop.config.tagline}: магазин, заказы и консультации` }).catch(() => {});
+}
+
+// Кнопка «Меню» слева от поля ввода: список команд покупателя (вместо прежней кнопки «Магазин»).
+const MENU_VERSION = 2;
+async function setupMenu() {
   await call('setMyCommands', {
     commands: [
-      { command: 'start', description: 'Начать' },
-      { command: 'menu', description: 'Меню' },
-      { command: 'orders', description: 'Мои заказы' },
-      { command: 'contacts', description: 'Адрес и телефон' },
-      { command: 'bonus', description: 'Подарки за покупки' }
+      { command: 'shop', description: '🛍 Открыть магазин' },
+      { command: 'orders', description: '📦 Мои заказы' },
+      { command: 'bonus', description: '🎁 Подарки за покупки' },
+      { command: 'consult', description: '💬 Консультация' },
+      { command: 'contacts', description: '📍 Адрес и телефон' },
+      { command: 'menu', description: '☰ Всё меню кнопками' }
     ]
   });
-  await call('setChatMenuButton', { menu_button: { type: 'web_app', text: 'Магазин', web_app: { url: site + '/' } } });
-  await call('setMyShortDescription', { short_description: `${shop.config.brand} ${shop.config.tagline}: магазин, заказы и консультации` }).catch(() => {});
+  await call('setChatMenuButton', { menu_button: { type: 'commands' } });
+  if (db.configured()) await db.put('fs:tg:menu', String(MENU_VERSION), 365 * DAY);
+}
+// После выкладки новой версии меню бот сам обновляет кнопку при первом сообщении —
+// владельцу не нужно нажимать «Обновить настройки бота».
+async function ensureMenu() {
+  if (!db.configured()) return;
+  try {
+    if ((await db.get('fs:tg:menu')) !== String(MENU_VERSION)) await setupMenu();
+  } catch (err) { console.error(err); }
 }
 
 async function webhookState() {
