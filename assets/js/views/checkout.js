@@ -13,7 +13,6 @@ FS.views.checkout = (function () {
     { id: 'firstName', label: 'Имя', autocomplete: 'given-name', required: true },
     { id: 'lastName', label: 'Фамилия', autocomplete: 'family-name', required: true },
     { id: 'phone', label: 'Телефон', type: 'tel', autocomplete: 'tel', required: true, placeholder: '+7 ___ ___ __ __' },
-    { id: 'email', label: 'Email', type: 'email', autocomplete: 'email', required: true },
     { id: 'city', label: 'Город', autocomplete: 'address-level2', required: true },
     { id: 'address', label: 'Адрес', autocomplete: 'street-address', required: true, placeholder: 'Улица, дом, квартира', wide: true }
   ];
@@ -50,7 +49,8 @@ FS.views.checkout = (function () {
         <div><dt>Товары</dt><dd>${money(subtotal)}</dd></div>
         <div><dt>Доставка</dt><dd>${ship === null ? 'рассчитает менеджер' : ship === 0 ? 'бесплатно' : money(ship)}</dd></div>
         <div class="summary-total"><dt>Итого</dt><dd>${money(total)}${unpriced(full, ship === null)}</dd></div>
-      </dl>`;
+      </dl>
+      <p class="summary-note">Оплачивать на сайте не нужно: менеджер свяжется с вами, подтвердит итоговую цену, доставку и способ оплаты.</p>`;
   }
 
   // Что не входит в итог: цена полноразмерного флакона и доставка подтверждаются менеджером.
@@ -126,12 +126,12 @@ FS.views.checkout = (function () {
         <form class="checkout-form" novalidate data-checkout>
           <fieldset class="co-step">
             <legend>Покупатель</legend>
-            <div class="field-grid">${FIELDS.slice(0, 4).map((f) => field(f, values)).join('')}</div>
+            <div class="field-grid">${FIELDS.slice(0, 3).map((f) => field(f, values)).join('')}</div>
             <p class="co-hint">По номеру телефона мы считаем ваши покупки: каждая ${FS.config.gifts.every}-я — с подарком. <a class="text-link" href="#gifts" target="_blank" rel="noopener">Подробнее</a></p>
           </fieldset>
 
           <fieldset class="co-step">
-            <legend>Доставка</legend>
+            <legend>Получение заказа</legend>
             <div class="options">
               ${FS.delivery.map((d) => `
                 <label class="option">
@@ -139,7 +139,7 @@ FS.views.checkout = (function () {
                   <span class="option-body"><span class="option-name">${esc(d.name)}</span><span class="option-note">${esc(d.note)}</span></span>
                 </label>`).join('')}
             </div>
-            <div class="field-grid" data-address>${FIELDS.slice(4).map((f) => field(f, values)).join('')}</div>
+            <div class="field-grid" data-address>${FIELDS.slice(3).map((f) => field(f, values)).join('')}</div>
           </fieldset>
 
           <fieldset class="co-step">
@@ -171,7 +171,7 @@ FS.views.checkout = (function () {
             <label class="check check--consent">
               <input type="checkbox" name="consent">
               <span class="check-box" aria-hidden="true"></span>
-              <span class="check-label">Я принимаю условия <a href="#offer" target="_blank" rel="noopener">публичной оферты</a> и даю согласие на обработку персональных данных в соответствии с <a href="#privacy" target="_blank" rel="noopener">политикой конфиденциальности</a></span>
+              <span class="check-label">Согласен с <a href="#terms" target="_blank" rel="noopener">условиями заказа</a> и на обработку моих данных, чтобы со мной связались по заказу (<a href="#privacy" target="_blank" rel="noopener">политика конфиденциальности</a>)</span>
             </label>
             <p class="field-error" data-consent-error></p>
           </div>
@@ -202,8 +202,7 @@ FS.views.checkout = (function () {
     });
     const digits = String(data.phone || '').replace(/\D/g, '');
     if (data.phone && (digits.length < 10 || digits.length > 12)) errors.phone = 'Введите номер телефона из 10–11 цифр, например +7 701 123 45 67';
-    if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) errors.email = 'Проверьте адрес почты: в нём должны быть @ и домен, например name@mail.kz';
-    if (!data.consent) errors.consent = 'Чтобы оформить заказ, примите условия оферты и согласие на обработку данных';
+    if (!data.consent) errors.consent = 'Чтобы оформить заказ, отметьте согласие с условиями заказа';
     return errors;
   }
 
@@ -275,7 +274,7 @@ FS.views.checkout = (function () {
       const shipping = FS.shipping.quote(delivery.id, subtotal);
       try {
         const order = await FS.api.createOrder({
-          customer: { firstName: data.firstName.trim(), lastName: data.lastName.trim(), phone: data.phone.trim(), email: data.email.trim(), city: data.city.trim(), address: (data.address || '').trim() },
+          customer: { firstName: data.firstName.trim(), lastName: data.lastName.trim(), phone: data.phone.trim(), city: (data.city || '').trim(), address: (data.address || '').trim() },
           items: lines.map((l) => ({ id: l.product.id, name: l.product.name, brand: l.product.brand, ml: l.ml, qty: l.qty, price: l.volume.price, ...(l.volume.full ? { full: true } : {}) })),
           delivery: { id: delivery.id, name: delivery.name },
           payment: { id: payment.id, name: payment.name },

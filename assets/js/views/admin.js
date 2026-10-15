@@ -277,7 +277,7 @@ FS.views.admin = (function () {
               <dl class="order-sums"><div><dt>Товары</dt><dd>${money(o.subtotal)}</dd></div><div><dt>Доставка</dt><dd>${o.shipping === null ? 'рассчитает менеджер' : o.shipping === 0 ? 'бесплатно' : money(o.shipping)}</dd></div><div><dt>Итого</dt><dd>${money(o.total)}</dd></div></dl>
             </div>
             <div><h3>Покупатель</h3>
-              <p>${esc(o.customer.firstName)} ${esc(o.customer.lastName)}<br><span class="selectable">${esc(o.customer.phone)}</span><br><span class="selectable">${esc(o.customer.email)}</span></p>
+              <p>${esc(o.customer.firstName)} ${esc(o.customer.lastName)}<br><span class="selectable">${esc(o.customer.phone)}</span>${o.customer.email ? `<br><span class="selectable">${esc(o.customer.email)}</span>` : ''}</p>
               <h3>Доставка и оплата</h3>
               <p>${esc(o.delivery.name)}${o.delivery.id === 'pickup' ? '' : `<br>${esc(o.customer.city)}, ${esc(o.customer.address)}`}<br>${esc(o.payment.name)}</p>
               ${o.comment ? `<h3>Комментарий</h3><p>${esc(o.comment)}</p>` : ''}
