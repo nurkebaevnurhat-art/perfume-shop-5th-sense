@@ -87,7 +87,7 @@ FS.ui = (function () {
         </div>
       </div>`;
 
-    const menuItems = [{ href: '#catalog', name: 'Вся коллекция' }, { href: '#brands', name: 'Бренды' }]
+    const menuItems = [{ href: '#catalog', name: 'Вся коллекция' }]
       .concat(FS.categories.map((c) => ({ href: `#catalog-${c.id}`, name: c.name })))
       .concat({ href: '#delivery', name: 'Доставка и оплата' }, { href: '#gifts', name: 'Подарки за покупки' });
     $('#site-menu').innerHTML = `
