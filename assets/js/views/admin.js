@@ -55,7 +55,8 @@ FS.views.admin = (function () {
     return `
       <section class="admin-login">
         <form class="login-card" data-login novalidate>
-          <p class="corner-note">5th SENSE, админ-панель</p>
+          <img class="login-logo" src="${FS.assetUrl('assets/img/logo-intro.png')}" alt="5th SENSE" width="520" height="962">
+          <p class="corner-note">кабинет бутика</p>
           <h1>Вход для сотрудников</h1>
           <div class="field">
             <label for="admin-password">Пароль</label>
@@ -86,27 +87,78 @@ FS.views.admin = (function () {
     };
   }
 
+  /* Иконки кабинета: тонкая линия, как на витрине. */
+  const ICONS = {
+    overview: '<rect x="3.5" y="3.5" width="7" height="7"/><rect x="13.5" y="3.5" width="7" height="7"/><rect x="3.5" y="13.5" width="7" height="7"/><rect x="13.5" y="13.5" width="7" height="7"/>',
+    orders: '<path d="M5.5 8h13l-1.1 12.5H6.6L5.5 8z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>',
+    clients: '<circle cx="12" cy="8" r="3.6"/><path d="M4.8 20.5c.8-3.8 3.7-5.8 7.2-5.8s6.4 2 7.2 5.8"/>',
+    products: '<rect x="6.5" y="9.5" width="11" height="11" rx="1"/><path d="M9.5 9.5V7h5v2.5"/><path d="M10.5 7V3.5h3V7"/><path d="M9.5 14.5h5"/>',
+    data: '<ellipse cx="12" cy="6" rx="7" ry="2.6"/><path d="M5 6v12c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6V6"/><path d="M5 12c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6"/>',
+    kassa: '<path d="M6 3.5h12v17l-2-1.3-2 1.3-2-1.3-2 1.3-2-1.3-2 1.3z"/><path d="M9 8.5h6M9 12h6M9 15.5h3.5"/>',
+    site: '<path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+    logout: '<path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4"/><path d="M10 8l-4 4 4 4"/><path d="M6 12h10"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    excel: '<rect x="4" y="4" width="16" height="16" rx="1"/><path d="M4 9.5h16M4 15h16M9.5 9.5V20"/>'
+  };
+  const svg = (name) => `<svg class="adm-ico" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
+  const HEADS = {
+    orders: ['Заказы', 'Подтверждайте заказы, меняйте статус и оплату. О каждом новом заказе приходит сообщение в Telegram.'],
+    clients: ['Клиенты', 'Покупки из бутика, Instagram и WhatsApp — и касса для телефона бутика.'],
+    products: ['Товары', 'Каталог, цены, таблица Excel и фото ароматов.'],
+    data: ['Данные', 'Telegram-бот, копия каталога и сброс.']
+  };
+  function pageHead(tab) {
+    const now = new Date();
+    const day = now.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
+    const hello = now.getHours() < 5 ? 'Доброй ночи' : now.getHours() < 12 ? 'Доброе утро' : now.getHours() < 18 ? 'Добрый день' : 'Добрый вечер';
+    const [title, sub] = tab === 'overview' ? [hello, 'Вот что происходит в бутике сегодня.'] : HEADS[tab] || ['Админ-панель', ''];
+    return `<div class="adm-head">
+        <p class="adm-kicker"><span>${esc(day.charAt(0).toUpperCase() + day.slice(1))}</span>${statusPill()}</p>
+        <h1>${esc(title)}</h1>
+        ${sub ? `<p class="adm-sub">${esc(sub)}</p>` : ''}
+      </div>`;
+  }
+  // Состояние сервера — маленькая отметка; подробности по нажатию.
+  function statusPill() {
+    const ok = serverMode() && serverInfo().storage;
+    return `<details class="adm-status ${ok ? 'is-ok' : 'is-warn'}"><summary>${ok ? 'Сервер подключён' : serverMode() ? 'Хранилище не подключено' : 'Демо-режим'}</summary><p>${esc(notice())}</p></details>`;
+  }
+
   function shell(body) {
     const c = counts();
-    const tabCount = { orders: c.newOrders ? `<span class="tab-count">${c.newOrders}</span>` : '', products: `<span class="tab-count tab-count--mute">${c.products}</span>` };
+    const badge = { orders: c.newOrders ? `<span class="adm-badge">${c.newOrders}</span>` : '', products: `<span class="adm-badge adm-badge--mute">${c.products}</span>` };
     const activeTab = route.tab === 'edit' ? 'products' : route.tab;
+    const item = (t, cls) => `<a class="${cls} ${t.id === activeTab ? 'is-active' : ''}" href="#${t.token}" ${t.id === activeTab ? 'aria-current="page"' : ''}>${svg(t.id)}<span class="${cls}-label">${t.name}</span>${badge[t.id] || ''}</a>`;
     return `
-      <section class="admin">
-        <div class="admin-head">
-          <div>
-            <p class="corner-note">${serverMode() ? 'заказы на сервере' : 'демо-версия без сервера'}</p>
-            <h1>Админ-панель</h1>
+      <section class="admin adm">
+        <aside class="adm-side">
+          <a class="adm-brand" href="#admin" aria-label="Обзор">
+            <img src="${FS.assetUrl('assets/img/logo-intro.png')}" alt="" width="520" height="962">
+            <span><span class="adm-brand-name">5th SENSE</span><span class="adm-brand-sub">кабинет бутика</span></span>
+          </a>
+          <nav class="adm-nav" aria-label="Разделы админ-панели">${TABS.map((t) => item(t, 'adm-nav-item')).join('')}</nav>
+          <div class="adm-side-foot">
+            <a class="adm-side-link" href="kassa/">${svg('kassa')}Касса</a>
+            <a class="adm-side-link" href="#home">${svg('site')}Открыть сайт</a>
+            <button class="adm-side-link" type="button" data-admin-logout>${svg('logout')}Выйти</button>
           </div>
-          <div class="admin-head-actions">
-            <a class="btn btn--sm" href="#home">Открыть сайт</a>
-            <button class="btn btn--outline btn--sm" type="button" data-admin-logout>Выйти</button>
-          </div>
+        </aside>
+        <div class="adm-main">
+          <header class="adm-top">
+            <a class="adm-brand adm-brand--top" href="#admin" aria-label="Обзор">
+              <img src="${FS.assetUrl('assets/img/logo-intro.png')}" alt="" width="520" height="962">
+              <span><span class="adm-brand-name">5th SENSE</span><span class="adm-brand-sub">кабинет бутика</span></span>
+            </a>
+            <div class="adm-top-actions">
+              <a class="adm-icon-btn" href="kassa/">${svg('kassa')}<span>Касса</span></a>
+              <a class="adm-icon-btn" href="#home">${svg('site')}<span>Сайт</span></a>
+              <button class="adm-icon-btn" type="button" data-admin-logout>${svg('logout')}<span>Выйти</span></button>
+            </div>
+          </header>
+          ${route.tab === 'edit' ? '' : pageHead(activeTab)}
+          <div class="admin-body" data-admin-body>${body}</div>
         </div>
-        <p class="admin-notice">${notice()}</p>
-        <nav class="admin-tabs" aria-label="Разделы админ-панели">
-          ${TABS.map((t) => `<a class="admin-tab ${t.id === activeTab ? 'is-active' : ''}" href="#${t.token}" ${t.id === activeTab ? 'aria-current="page"' : ''}>${t.name}${tabCount[t.id] || ''}</a>`).join('')}
-        </nav>
-        <div class="admin-body" data-admin-body>${body}</div>
+        <nav class="adm-tabbar" aria-label="Разделы">${TABS.map((t) => item(t, 'adm-tab')).join('')}</nav>
       </section>`;
   }
 
@@ -155,8 +207,16 @@ FS.views.admin = (function () {
       ['Сумма заказов', money(revenue), 'без отменённых'],
       ['Товаров', FS.products.length, out ? `${out} нет в наличии` : 'все в наличии']
     ];
+    // Быстрые действия — то, что делают каждый день.
+    const quick = [
+      ['#admin-clients', 'clients', 'Добавить покупку', 'из бутика, Instagram, WhatsApp'],
+      ['#admin-new', 'plus', 'Добавить товар', 'новый аромат в каталог'],
+      ['kassa/', 'kassa', 'Касса', 'запись покупок с телефона'],
+      ['#admin-orders', 'orders', 'Заказы', counts().newOrders ? `${counts().newOrders} ${plural(counts().newOrders, 'новый', 'новых', 'новых')} ждут` : 'новых нет']
+    ];
     return `
       <div class="stats">${stats.map(([k, v, note]) => `<div class="stat"><p class="stat-label">${k}</p><p class="stat-value">${v}</p><p class="stat-note">${note}</p></div>`).join('')}</div>
+      <div class="adm-quick">${quick.map(([href, ic, name, note]) => `<a class="adm-quick-item" href="${href}">${svg(ic)}<span class="adm-quick-name">${name}</span><span class="adm-quick-note">${note}</span></a>`).join('')}</div>
       <div class="admin-cols">
         <section class="admin-panel">
           <div class="panel-head"><h2>Последние заказы</h2><a class="text-link" href="#admin-orders">Все заказы</a></div>

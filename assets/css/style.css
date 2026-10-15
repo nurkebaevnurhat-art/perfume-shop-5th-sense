@@ -1417,3 +1417,118 @@ h1[tabindex="-1"]:focus { outline: none; }
 .kassa-qr .ks-qr-code { width: 168px; flex: none; }
 .kassa-qr .stat-note { flex: 1 1 200px; margin: 0; }
 @media (max-width: 600px) { .kassa-pin-form { grid-template-columns: minmax(0, 1fr); } }
+
+/* ==========================================================================
+   Кабинет бутика (админ-панель): своя рамка вместо шапки и подвала магазина.
+   Компьютер — тёмная панель разделов слева; телефон — тёмная шапка и нижняя
+   панель с иконками, как в приложении. Цвета и шрифты — бренда 5th SENSE.
+   ========================================================================== */
+.route-admin .site-header, .route-admin .site-footer { display: none; }
+.route-admin { background: var(--paper); }
+.adm-ico { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+
+.admin.adm { width: 100%; max-width: none; margin: 0; padding: 0; display: grid; grid-template-columns: 264px minmax(0, 1fr); min-height: 100vh; min-height: 100svh; }
+.adm-side { position: sticky; top: 0; height: 100vh; height: 100svh; display: flex; flex-direction: column; gap: 28px; padding: 28px 18px 22px; background: var(--ink); color: var(--on-dark); background-image: radial-gradient(120% 60% at 0% 0%, rgba(176, 141, 91, 0.16), transparent 60%); overflow-y: auto; }
+.adm-brand { display: flex; align-items: center; gap: 12px; padding: 0 10px; color: inherit; }
+.adm-brand img { width: auto; height: 54px; }
+.adm-brand > span { display: grid; gap: 3px; }
+.adm-brand-name { font-family: var(--ff-serif); font-size: 21px; letter-spacing: 0.04em; line-height: 1; color: var(--on-dark); }
+.adm-brand-sub { font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-soft); }
+.adm-nav { display: grid; gap: 2px; }
+.adm-nav-item { position: relative; display: flex; align-items: center; gap: 14px; min-height: 48px; padding: 10px 12px; color: var(--on-dark-soft); font-size: 15px; letter-spacing: 0.02em; transition: color 0.3s, background-color 0.3s; }
+.adm-nav-item:hover { color: var(--on-dark); background: rgba(241, 234, 223, 0.05); }
+.adm-nav-item.is-active { color: var(--on-dark); background: rgba(176, 141, 91, 0.14); }
+.adm-nav-item.is-active::before { content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 2px; background: var(--gold-soft); }
+.adm-nav-item.is-active .adm-ico { color: var(--gold-soft); }
+.adm-nav-item-label { flex: 1; }
+.adm-badge { min-width: 22px; height: 22px; padding: 0 7px; border-radius: 11px; background: var(--gold-soft); color: var(--ink); font-size: 11.5px; font-weight: 500; line-height: 22px; text-align: center; font-variant-numeric: tabular-nums; }
+.adm-badge--mute { background: rgba(241, 234, 223, 0.1); color: var(--on-dark-soft); font-weight: 400; }
+.adm-side-foot { margin-top: auto; display: grid; gap: 2px; padding-top: 18px; border-top: 1px solid var(--line-dark); }
+.adm-side-link { display: flex; align-items: center; gap: 14px; min-height: 42px; padding: 8px 12px; background: none; border: 0; color: var(--on-dark-soft); font-size: 14px; text-align: left; cursor: pointer; transition: color 0.3s; }
+.adm-side-link:hover { color: var(--gold-soft); }
+
+.adm-main { min-width: 0; padding: clamp(28px, 3.4vw, 48px) clamp(20px, 3.6vw, 56px) 80px; }
+.adm-top { display: none; }
+.adm-head { display: grid; gap: 10px; margin-bottom: clamp(22px, 2.6vw, 32px); }
+.adm-kicker { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-deep); }
+.adm-head h1 { font-family: var(--ff-serif); font-size: clamp(38px, 4.4vw, 60px); line-height: 1; letter-spacing: 0.005em; }
+.adm-sub { max-width: 64ch; font-size: 15px; color: var(--ink-soft); }
+.adm-status { position: relative; letter-spacing: 0.12em; }
+.adm-status summary { display: inline-flex; align-items: center; gap: 8px; list-style: none; cursor: pointer; color: var(--ink-soft); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; }
+.adm-status summary::-webkit-details-marker { display: none; }
+.adm-status summary::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px rgba(77, 106, 69, 0.15); }
+.adm-status.is-warn summary::before { background: var(--warn); box-shadow: 0 0 0 3px rgba(148, 103, 43, 0.15); }
+.adm-status p { position: absolute; z-index: 20; top: calc(100% + 10px); left: 0; width: min(420px, 80vw); padding: 14px 16px; background: var(--ink); color: var(--on-dark); font-size: 13.5px; letter-spacing: 0; text-transform: none; line-height: 1.5; box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.5); }
+
+/* Карточки и панели */
+.adm .admin-body { padding-top: 0; gap: 18px; }
+.adm .stats { gap: 14px; }
+.adm .stat { position: relative; padding: 20px 20px 18px; gap: 6px; background: var(--sheet); border: 1px solid var(--line); box-shadow: 0 14px 28px -26px rgba(14, 12, 10, 0.32); }
+.adm .stat::after { content: ''; position: absolute; left: 20px; right: 20px; top: 0; height: 2px; background: linear-gradient(90deg, var(--gold), transparent); opacity: 0.55; }
+.adm .stat-label { font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; }
+.adm .stat-value { font-size: clamp(34px, 3vw, 46px); }
+.adm .stat:first-child { background: var(--ink); border-color: var(--ink); background-image: radial-gradient(120% 90% at 100% 0%, rgba(176, 141, 91, 0.22), transparent 60%); }
+.adm .stat:first-child .stat-value { color: var(--gold-soft); }
+.adm .stat:first-child::after { opacity: 0; }
+.adm .admin-panel { padding: clamp(18px, 2vw, 26px); border-color: var(--line); box-shadow: 0 14px 28px -26px rgba(14, 12, 10, 0.32); }
+.adm .admin-panel h2 { font-size: clamp(22px, 2vw, 26px); }
+.adm .admin-panel .panel-head { padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.adm-quick { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.adm-quick-item { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 14px; row-gap: 2px; align-items: center; padding: 16px 18px; background: var(--paper); border: 1px solid var(--line-strong); transition: border-color 0.3s, background-color 0.3s; }
+.adm-quick-item:hover { border-color: var(--gold); background: var(--sheet); }
+.adm-quick-item .adm-ico { grid-row: span 2; width: 26px; height: 26px; color: var(--gold-deep); }
+.adm-quick-name { font-family: var(--ff-serif); font-size: 19px; line-height: 1.15; }
+.adm-quick-note { font-size: 12.5px; color: var(--ink-soft); }
+/* Карточка товара в кабинете: подзаголовки разделов спокойнее, чем на оформлении заказа */
+.adm .editor { padding-top: clamp(4px, 1vw, 12px); }
+.adm .editor .co-step legend { font-size: clamp(20px, 2vw, 24px); text-transform: none; letter-spacing: 0.01em; padding-bottom: 10px; border-bottom: 1px solid var(--line); width: 100%; }
+/* Поля выбора в формах кабинета — как остальные поля */
+.adm .field select { width: 100%; min-width: 0; min-height: 54px; padding: 12px 40px 12px 14px; background-color: var(--sheet); border: 1px solid var(--line-strong); border-radius: 0; font-size: 16px; color: var(--ink); outline: 0; appearance: none; -webkit-appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--ink) 50%), linear-gradient(135deg, var(--ink) 50%, transparent 50%); background-position: calc(100% - 20px) 50%, calc(100% - 15px) 50%; background-size: 5px 5px; background-repeat: no-repeat; cursor: pointer; }
+.adm .field select:focus { border-color: var(--ink); box-shadow: 0 0 0 3px var(--focus-ring); }
+.adm .admin-tools { grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); }
+.adm .order { box-shadow: 0 14px 28px -26px rgba(14, 12, 10, 0.28); }
+
+/* Вход */
+.route-admin .admin-login { min-height: 100vh; min-height: 100svh; padding: 40px var(--gutter); background: var(--ink); background-image: radial-gradient(80% 60% at 50% 0%, rgba(176, 141, 91, 0.2), transparent 70%); }
+.route-admin .login-card { width: min(100%, 420px); gap: 16px; padding: 34px 30px 28px; justify-items: stretch; border: 1px solid rgba(201, 173, 125, 0.4); box-shadow: 0 40px 80px -40px rgba(0, 0, 0, 0.7); }
+.login-logo { justify-self: center; width: auto; height: 96px; margin-bottom: 4px; }
+.route-admin .login-card .corner-note { justify-self: center; font-size: 10.5px; letter-spacing: 0.26em; text-transform: uppercase; color: var(--gold-deep); }
+.route-admin .login-card h1 { text-align: center; font-size: clamp(30px, 3.6vw, 40px); }
+.route-admin .login-card .text-link { justify-self: center; }
+
+@media (max-width: 1100px) {
+  .adm .stats, .adm-quick { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 1000px) {
+  .admin.adm { grid-template-columns: minmax(0, 1fr); }
+  .adm-side { display: none; }
+  .adm-main { padding: 0 var(--gutter) calc(96px + env(safe-area-inset-bottom, 0px)); }
+  .adm-top { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 calc(-1 * var(--gutter)) 22px; padding: calc(10px + env(safe-area-inset-top, 0px)) var(--gutter) 10px; background: var(--ink); color: var(--on-dark); background-image: radial-gradient(90% 140% at 0% 0%, rgba(176, 141, 91, 0.18), transparent 60%); }
+  .adm-brand--top { padding: 0; gap: 10px; }
+  .adm-brand--top img { height: 40px; }
+  .adm-brand--top .adm-brand-name { font-size: 18px; }
+  .adm-top-actions { display: flex; gap: 4px; }
+  .adm-icon-btn { display: grid; justify-items: center; align-content: center; gap: 3px; width: 54px; height: 50px; background: none; border: 1px solid var(--line-dark); color: var(--on-dark); font-size: 9.5px; letter-spacing: 0.08em; cursor: pointer; }
+  .adm-icon-btn .adm-ico { width: 18px; height: 18px; }
+  .adm-icon-btn:hover { color: var(--gold-soft); border-color: var(--gold-soft); }
+  .adm-head h1 { font-size: clamp(34px, 9vw, 44px); }
+  .adm-tabbar { position: fixed; z-index: 40; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px)); background: var(--ink); border-top: 1px solid rgba(201, 173, 125, 0.28); box-shadow: 0 -12px 30px -18px rgba(0, 0, 0, 0.55); }
+  .adm-tab { position: relative; display: grid; justify-items: center; align-content: center; gap: 4px; min-height: 56px; padding: 4px 2px; color: var(--on-dark-soft); font-size: 10.5px; letter-spacing: 0.04em; }
+  .adm-tab .adm-ico { width: 22px; height: 22px; }
+  .adm-tab.is-active { color: var(--gold-soft); }
+  .adm-tab.is-active::before { content: ''; position: absolute; top: -6px; left: 28%; right: 28%; height: 2px; background: var(--gold-soft); }
+  .adm-tab .adm-badge { position: absolute; top: 2px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px; font-size: 10px; line-height: 18px; }
+  .adm-tab .adm-badge--mute { display: none; }
+  .route-admin .toasts { bottom: calc(86px + env(safe-area-inset-bottom, 0px)); }
+  .adm .price-bar { bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (min-width: 1001px) {
+  .adm-tabbar { display: none; }
+}
+@media (max-width: 600px) {
+  .adm-quick { gap: 10px; }
+  .adm-quick-item { grid-template-columns: minmax(0, 1fr); padding: 14px; row-gap: 6px; }
+  .adm-quick-item .adm-ico { grid-row: auto; }
+  .adm-quick-name { font-size: 17px; }
+  .adm .stat { padding: 16px; }
+}
