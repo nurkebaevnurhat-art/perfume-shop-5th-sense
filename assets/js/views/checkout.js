@@ -13,7 +13,7 @@ FS.views.checkout = (function () {
     { id: 'firstName', label: 'Имя', autocomplete: 'given-name', required: true },
     { id: 'lastName', label: 'Фамилия', autocomplete: 'family-name', required: true },
     { id: 'phone', label: 'Телефон', type: 'tel', autocomplete: 'tel', required: true, placeholder: '+7 ___ ___ __ __' },
-    { id: 'email', label: 'Email', type: 'email', autocomplete: 'email', required: true },
+    { id: 'email', label: 'Email', type: 'email', autocomplete: 'email', required: false },
     { id: 'city', label: 'Город', autocomplete: 'address-level2', required: true },
     { id: 'address', label: 'Адрес', autocomplete: 'street-address', required: true, placeholder: 'Улица, дом, квартира', wide: true }
   ];
@@ -50,7 +50,8 @@ FS.views.checkout = (function () {
         <div><dt>Товары</dt><dd>${money(subtotal)}</dd></div>
         <div><dt>Доставка</dt><dd>${ship === null ? 'рассчитает менеджер' : ship === 0 ? 'бесплатно' : money(ship)}</dd></div>
         <div class="summary-total"><dt>Итого</dt><dd>${money(total)}${unpriced(full, ship === null)}</dd></div>
-      </dl>`;
+      </dl>
+      <p class="summary-note">Оплачивать на сайте не нужно: менеджер свяжется с вами, подтвердит итоговую цену, доставку и способ оплаты.</p>`;
   }
 
   // Что не входит в итог: цена полноразмерного флакона и доставка подтверждаются менеджером.
@@ -171,7 +172,7 @@ FS.views.checkout = (function () {
             <label class="check check--consent">
               <input type="checkbox" name="consent">
               <span class="check-box" aria-hidden="true"></span>
-              <span class="check-label">Я принимаю условия <a href="#offer" target="_blank" rel="noopener">публичной оферты</a> и даю согласие на обработку персональных данных в соответствии с <a href="#privacy" target="_blank" rel="noopener">политикой конфиденциальности</a></span>
+              <span class="check-label">Согласен с <a href="#terms" target="_blank" rel="noopener">условиями заказа</a> и на обработку моих данных, чтобы со мной связались по заказу (<a href="#privacy" target="_blank" rel="noopener">политика конфиденциальности</a>)</span>
             </label>
             <p class="field-error" data-consent-error></p>
           </div>
@@ -203,7 +204,7 @@ FS.views.checkout = (function () {
     const digits = String(data.phone || '').replace(/\D/g, '');
     if (data.phone && (digits.length < 10 || digits.length > 12)) errors.phone = 'Введите номер телефона из 10–11 цифр, например +7 701 123 45 67';
     if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) errors.email = 'Проверьте адрес почты: в нём должны быть @ и домен, например name@mail.kz';
-    if (!data.consent) errors.consent = 'Чтобы оформить заказ, примите условия оферты и согласие на обработку данных';
+    if (!data.consent) errors.consent = 'Чтобы оформить заказ, отметьте согласие с условиями заказа';
     return errors;
   }
 

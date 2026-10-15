@@ -247,6 +247,7 @@ h1[tabindex="-1"]:focus { outline: none; }
 .drawer-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; margin-top: 6px; }
 .drawer-actions .line-link { font-size: 12.5px; min-height: 40px; }
 .drawer-note { font-size: 13px; color: var(--ink-soft); margin-bottom: 6px; }
+.summary-note { font-size: 13px; line-height: 1.5; color: var(--on-dark-soft); }
 .sum-row { display: flex; justify-content: space-between; align-items: baseline; font-family: var(--ff-serif); font-size: 28px; text-transform: uppercase; font-variant-numeric: tabular-nums; }
 .cart-ship { padding: 14px 0 18px; border-bottom: 1px solid var(--line); font-size: 13.5px; color: var(--ink-soft); }
 .cart-ship strong { color: var(--brand); font-weight: 500; }

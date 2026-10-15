@@ -153,7 +153,7 @@ FS.ui = (function () {
           <a href="#delivery">Доставка и оплата</a>
           <a href="#gifts">Подарки за покупки</a>
           <a href="#returns">Возврат и обмен</a>
-          <a href="#offer">Публичная оферта</a>
+          <a href="#terms">Условия заказа</a>
           <a href="#privacy">Политика конфиденциальности</a>
           <a href="#favorites">Избранное</a>
           <a href="#admin">Вход для сотрудников</a>
@@ -297,7 +297,7 @@ FS.ui = (function () {
         ${lines.length ? `
         <div class="drawer-foot">
           <div class="sum-row"><span>Товары</span><span>${money(subtotal)}</span></div>
-          <p class="drawer-note">${FS.store.hasFullBottle() ? 'Цену полноразмерного флакона и стоимость доставки подтвердит менеджер.' : 'Стоимость доставки подтвердит менеджер.'}</p>
+          <p class="drawer-note">${FS.store.hasFullBottle() ? 'Итоговую цену, цену полноразмерного флакона и доставку подтвердит менеджер.' : 'Итоговую цену и доставку подтвердит менеджер.'} Оплата — после подтверждения.</p>
           <div class="drawer-actions">
             <a class="line-link" href="#checkout" data-action="close-cart" data-autofocus>Оформить заказ</a>
             <button class="line-link line-link--soft" type="button" data-action="close-cart">Продолжить покупки</button>

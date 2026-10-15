@@ -31,13 +31,14 @@ function build(input, shop) {
   if (!payment) throw bad('Выберите способ оплаты');
 
   // При самовывозе город и адрес не спрашиваем: в форме эти поля скрыты.
-  const required = ['firstName', 'lastName', 'phone', 'email'].concat(delivery.id === 'pickup' ? [] : ['city', 'address']);
+  // Почта необязательна: менеджер связывается по телефону.
+  const required = ['firstName', 'lastName', 'phone'].concat(delivery.id === 'pickup' ? [] : ['city', 'address']);
   const labels = { firstName: 'имя', lastName: 'фамилию', phone: 'телефон', email: 'почту', city: 'город', address: 'адрес' };
   const missing = required.filter((k) => !customer[k]);
   if (missing.length) throw bad(`Заполните ${missing.map((k) => labels[k]).join(', ')}`);
   if (customer.phone.replace(/\D/g, '').length < 10) throw bad('Проверьте номер телефона');
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email)) throw bad('Проверьте адрес почты');
-  if (!body.consent || !body.consent.offer || !body.consent.privacy) throw bad('Примите условия оферты и согласие на обработку данных');
+  if (customer.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email)) throw bad('Проверьте адрес почты');
+  if (!body.consent || !body.consent.offer || !body.consent.privacy) throw bad('Отметьте согласие с условиями заказа');
 
   const lines = Array.isArray(body.items) ? body.items.slice(0, MAX_LINES) : [];
   if (!lines.length) throw bad('Корзина пуста');
@@ -124,7 +125,7 @@ function message(o, shop, adminUrl) {
     '',
     `<b>${escape(c.firstName)} ${escape(c.lastName)}</b>`,
     `📞 ${escape(c.phone)}`,
-    `✉️ ${escape(c.email)}`,
+    ...(c.email ? [`✉️ ${escape(c.email)}`] : []),
     '',
     ...o.items.map(itemLine),
     '',
