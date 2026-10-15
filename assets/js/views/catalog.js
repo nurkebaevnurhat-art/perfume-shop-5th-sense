@@ -162,9 +162,10 @@ FS.views.catalog = (function () {
     });
   }
 
-  // Витрины над каталогом: «Весь каталог», «Бренды», затем категории. active — id категории, 'all' или 'brands'.
+  // Витрины над каталогом: «Весь каталог», затем категории. active — id категории или 'all'.
+  // Вкладку «Бренды» владелец попросил убрать: к брендам ведут полоса над ароматами и «Все бренды».
   function plaques(active) {
-    const tabs = [{ href: '#catalog', id: 'all', short: 'Весь каталог' }, { href: '#brands', id: 'brands', short: 'Бренды' }]
+    const tabs = [{ href: '#catalog', id: 'all', short: 'Весь каталог' }]
       .concat(FS.categories.map((c) => ({ href: `#catalog-${c.id}`, id: c.id, short: c.short })));
     return `<nav class="plaques" aria-label="Витрины">
         ${tabs.map((t) => `<a class="plaque-tab ${t.id === active ? 'is-active' : ''}" href="${t.href}" ${t.id === active ? 'aria-current="page"' : ''}>${esc(t.short)}</a>`).join('')}
