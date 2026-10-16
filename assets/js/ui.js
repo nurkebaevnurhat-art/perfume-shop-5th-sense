@@ -81,7 +81,7 @@ FS.ui = (function () {
         </div>
         <a class="header-mark" href="#home" aria-label="5th SENSE Perfume Bar, на главную"><img class="header-logo" src="${FS.assetUrl('assets/img/logo-intro.png')}" alt="" width="520" height="962"></a>
         <div class="header-right">
-          <button class="hl hl--wide" type="button" data-action="search">Поиск</button>
+          <button class="hl hl--search" type="button" data-action="search">Поиск</button>
           <a class="hl hl--wide" href="#favorites">Избранное<span class="hl-count" data-fav-count hidden></span></a>
           <button class="hl" type="button" data-action="cart">Корзина<span class="hl-count" data-cart-count hidden></span></button>
         </div>
@@ -93,18 +93,18 @@ FS.ui = (function () {
     $('#site-menu').innerHTML = `
       <div class="menu-panel" role="dialog" aria-modal="true" aria-label="Меню">
         <div class="menu-top">
-          <span class="menu-note">5th SENSE · ${FS.config.tagline}<span class="menu-note-est"> · ${est()}</span></span>
+          <span class="menu-note">5th SENSE ${FS.config.tagline}</span>
           <button class="hl" type="button" data-action="close-menu" data-autofocus>Закрыть</button>
         </div>
         <div class="menu-grid">
           <nav class="menu-links" aria-label="Разделы">
-            ${menuItems.map((m, i) => `<a href="${m.href}" style="--i:${i}"><span class="menu-num">${String(i + 1).padStart(2, '0')}</span><span class="menu-name">${esc(m.name)}</span></a>`).join('')}
+            ${menuItems.map((m, i) => `<a href="${m.href}" style="--i:${i}"><span class="menu-name">${esc(m.name)}</span></a>`).join('')}
           </nav>
           <div class="menu-logo" aria-hidden="true"><img src="${FS.assetUrl('assets/img/logo-intro.png')}" alt="" width="520" height="962" decoding="async"></div>
         </div>
         <div class="menu-foot">
           <button type="button" data-action="search">Поиск</button>
-          <a href="#aromaty">Исследовать ароматы</a>
+          <a href="#aromaty">Ароматы по семействам</a>
           <a href="#favorites">Избранное</a>
           <a href="#admin">Вход для сотрудников</a>
           <button class="install-btn" type="button" data-action="install">Установить приложение</button>
@@ -181,6 +181,8 @@ FS.ui = (function () {
     // Ароматы на распив: «от 5 мл».
     const minMl = Math.min(...p.volumes.map((x) => x.ml));
     const meta = p.type === 'set' ? volumeLabel(v) : `${conc}, распив от ${minMl} мл`;
+    // Самая низкая цена, чтобы сравнивать ароматы, не открывая каждый.
+    const fromPrice = Math.min(...p.volumes.map((x) => x.price).filter((x) => x > 0));
     return `
       <article class="pcard ${o.wide ? 'pcard--wide' : ''} ${o.reveal === false ? '' : 'reveal'}" style="--i:${o.index || 0};--tint:${tint(p)}">
         <a class="pcard-media" href="#product-${p.id}" tabindex="-1" aria-hidden="true" data-cursor="Смотреть">
@@ -193,6 +195,7 @@ FS.ui = (function () {
           <h3 class="pcard-name"><a href="#product-${p.id}">${esc(p.name)}</a></h3>
           <p class="pcard-desc">${esc(p.short)}</p>
           <p class="pcard-meta">${esc(meta)}</p>
+          ${Number.isFinite(fromPrice) ? `<p class="pcard-from">от ${money(fromPrice)}</p>` : ''}
           <div class="pcard-price">
             <div class="pcard-actions">
               <button class="line-link" type="button" data-add="${p.id}" data-ml="${v.ml}" ${available ? '' : 'disabled'}>${available ? 'В корзину' : 'Нет в наличии'}</button>

@@ -28,25 +28,6 @@ FS.motion = (function () {
   }
 
   /* ---------- Разбивка текста на слова и буквы для анимаций ---------- */
-  function splitWords(el) {
-    if (!el || el.dataset.split) return [];
-    el.dataset.split = 'words';
-    const words = el.textContent.trim().split(/\s+/);
-    el.setAttribute('aria-label', el.textContent.trim());
-    el.innerHTML = words.map((w, i) => `<span class="w" aria-hidden="true" style="--wi:${i}"><span class="wi">${w}</span></span>`).join(' ');
-    return $$('.w', el);
-  }
-
-  function splitChars(el) {
-    if (!el || el.dataset.split) return;
-    el.dataset.split = 'chars';
-    const text = el.textContent;
-    el.setAttribute('aria-label', text.trim());
-    let i = 0;
-    el.innerHTML = text.split(/(\s+)/).map((part) => (/^\s+$/.test(part) ? ' ' :
-      `<span class="cw" aria-hidden="true">${[...part].map((ch) => `<span class="c" style="--ci:${i++}">${ch}</span>`).join('')}</span>`)).join('');
-  }
-
   /* ---------- Логотип во всю ширину ---------- */
   function fit(root) {
     $$('[data-fit]', root).forEach((el) => {
@@ -189,7 +170,7 @@ FS.motion = (function () {
 
   return {
     reduce, finePointer, clamp, ease,
-    init, intro, reveals, splitWords, splitChars, fit,
+    init, intro, reveals, fit,
     scene, clearScenes, progress, refresh: requestTick
   };
 })();

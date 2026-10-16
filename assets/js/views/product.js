@@ -59,10 +59,18 @@ FS.views.product = (function () {
         <button class="fav-btn fav-btn--inline ${FS.store.isFavorite(product.id) ? 'is-on' : ''}" type="button" data-fav="${product.id}" aria-pressed="${FS.store.isFavorite(product.id)}" aria-label="В избранное: ${esc(product.name)}">${icon.heart}</button>
       </div>
       <div class="buy-actions">
-        <button class="line-link line-link--lg" type="button" data-buy="add" ${v.stock > 0 && !product.hidden ? '' : 'disabled'}>Добавить в корзину</button>
+        <button class="buy-main" type="button" data-buy="add" ${v.stock > 0 && !product.hidden ? '' : 'disabled'}>Добавить в корзину</button>
         <button class="line-link line-link--lg line-link--gold" type="button" data-buy="now" ${v.stock > 0 && !product.hidden ? '' : 'disabled'}>${v.full ? 'Заказать флакон' : 'Купить сейчас'}</button>
       </div>
       ${v.full ? `<p class="buy-note">Менеджер свяжется с вами, подтвердит цену и срок поставки. Вопросы: ${FS.ui.managerLinks('text-link')}</p>` : ''}`;
+  }
+
+  // Телефон: цена и кнопка закреплены внизу экрана, пока основной блок покупки не виден.
+  function stickyBar() {
+    const v = selected;
+    const off = !(v.stock > 0) || product.hidden;
+    return `<div class="pd-sticky-info"><span class="pd-sticky-price">${v.full ? 'Цена по запросу' : money(v.price)}</span><span class="pd-sticky-vol">${esc(volumeLabel(v))}</span></div>
+      <button class="buy-main buy-main--sm" type="button" data-buy="${v.full ? 'now' : 'add'}" ${off ? 'disabled' : ''}>${v.full ? 'Заказать флакон' : 'В корзину'}</button>`;
   }
 
   function render(route) {
@@ -114,7 +122,7 @@ FS.views.product = (function () {
               <a href="#catalog-${category.id}">${esc(category.name)}</a>
             </nav>
             <a class="pd-brand" href="#brand-${FS.api.brandSlug(product.brand)}">${esc(product.brand)}</a>
-            <h1 class="pd-name" data-chars>${esc(product.name)}</h1>
+            <h1 class="pd-name">${esc(product.name)}</h1>
             <p class="pd-sub">${esc(conc)}, ${esc(FS.genderLabel[product.gender].toLowerCase())}, ${esc(fam.name.toLowerCase())}</p>
             <p class="pd-lead">${esc(product.short)}</p>
 
@@ -132,6 +140,7 @@ FS.views.product = (function () {
             </fieldset>
 
             <div class="buy" data-buy-box>${buyBox()}</div>
+            <div class="pd-sticky" data-pd-sticky aria-label="Купить: ${esc(product.name)}">${stickyBar()}</div>
 
             <ul class="perks">
               <li>Доставка курьером по городу в день заказа</li>
@@ -177,18 +186,27 @@ FS.views.product = (function () {
 
   function refreshBuy() {
     $('[data-buy-box]', root).innerHTML = buyBox();
+    const bar = $('[data-pd-sticky]', root);
+    if (bar) bar.innerHTML = stickyBar();
   }
 
   function mount(el, route, params, signal) {
     root = el;
     if (!product) return;
-    FS.motion.splitChars($('[data-chars]', root));
     requestAnimationFrame(() => requestAnimationFrame(() => $('.pd', root).classList.add('is-in')));
 
     $$('input[name="volume"]', root).forEach((input) => input.addEventListener('change', () => {
       selected = FS.api.variant(product, input.value);
       refreshBuy();
     }));
+
+    // Полоска «цена — В корзину» появляется, когда основной блок покупки ушёл с экрана.
+    const bar = $('[data-pd-sticky]', root);
+    if (bar && 'IntersectionObserver' in window) {
+      const io = new IntersectionObserver(([entry]) => bar.classList.toggle('is-on', !entry.isIntersecting), { rootMargin: '0px 0px -40px 0px' });
+      io.observe($('[data-buy-box]', root));
+      signal.addEventListener('abort', () => io.disconnect());
+    }
 
     root.addEventListener('click', (e) => {
       const thumb = e.target.closest('[data-view]');

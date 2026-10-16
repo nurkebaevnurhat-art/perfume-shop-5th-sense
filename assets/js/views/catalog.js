@@ -51,7 +51,7 @@ FS.views.catalog = (function () {
       const f = FS.families.find((x) => x.id === state.families[0]);
       return { title: `${f.name} ароматы`, lead: `Семейство с нотами: ${f.notes}.` };
     }
-    return { title: 'Каталог ароматов', lead: 'Все ароматы бутика 5th SENSE. Используйте поиск и фильтры, чтобы найти свой.' };
+    return { title: 'Каталог ароматов', lead: 'Все ароматы бутика. Ищите по бренду, названию или ноте — например, «сандал».' };
   }
 
   function checkboxGroup(name, legend, options, selected) {
@@ -180,7 +180,7 @@ FS.views.catalog = (function () {
     if (counts.size < 2) return '';
     const list = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
     return `<section class="brand-strip" aria-label="Бренды">
-        <div class="brand-strip-head"><h2 class="brand-strip-title">Бренды</h2><a class="line-link brand-strip-all" href="#brands">Все бренды · ${FS.api.brands().length}</a></div>
+        <div class="brand-strip-head"><h2 class="brand-strip-title">Бренды</h2><a class="line-link brand-strip-all" href="#brands">Все бренды (${FS.api.brands().length})</a></div>
         <div class="brand-strip-row">${list.map(([b, n]) => `<a class="brand-chip" href="#brand-${FS.api.brandSlug(b)}"><span>${esc(b)}</span><span class="brand-chip-count">${n}</span></a>`).join('')}</div>
       </section>`;
   }
