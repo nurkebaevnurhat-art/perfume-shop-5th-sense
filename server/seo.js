@@ -41,6 +41,9 @@ async function page(req, token) {
     set(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${esc(m.title)}">`);
     set(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${esc(m.description)}">`);
     set(/<meta property="og:image" content="[^"]*">/, `<meta property="og:image" content="${esc(m.image)}">`);
+    // Размеры в index.html — для вывески; у фото аромата они другие, поэтому убираем.
+    if (!/brand-sign\.jpg$/.test(m.image)) html = html.replace(/<meta property="og:image:(width|height)" content="[^"]*">\n?/g, '');
+    set(/<meta property="og:image:alt" content="[^"]*">/, `<meta property="og:image:alt" content="${esc(m.title)}">`);
     if (/^product-/.test(token)) set(/<meta property="og:type" content="[^"]*">/, '<meta property="og:type" content="product">');
     set(/<meta property="og:url" content="[^"]*">/, `<meta property="og:url" content="${esc(m.url)}">`);
     set(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${esc(m.url)}">`);

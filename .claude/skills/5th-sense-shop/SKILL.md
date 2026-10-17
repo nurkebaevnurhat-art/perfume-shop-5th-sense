@@ -104,6 +104,9 @@ Telegram-бот для покупателей и сотрудников, кат�
   Открытые адреса Vercel отдаёт через `api/page.js` (server/seo.js): та же index.html,
   но с заголовком, описанием, фото (og:) и schema.org страницы из `FS.seo.meta` — один код
   для сайта и сервера. `/sitemap.xml` и `/robots.txt` — `api/sitemap.js`, из каталога сами.
+  Превью ссылок: `FS.config.site.url` = https://perfume-shop-5th-sense.vercel.app (свой домен —
+  вписать туда); на главной og:image — вывеска brand-sign.jpg 1280×854. Telegram хранит старое
+  превью ссылки — обновить можно через бота @WebpageBot (прислать ему ссылку).
   `FS.config.site`: `city` — Актобе (в заголовки главной, каталога, витрин, брендов;
   «в Актобе» не склоняется) и `url` (постоянный домен; пусто — адрес Vercel). Главная «/»
   отдаётся как файл index.html — её title/description/og там прописаны руками, держи их
