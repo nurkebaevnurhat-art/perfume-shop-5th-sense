@@ -51,9 +51,11 @@ self.addEventListener('fetch', (event) => {
   // Запросы к серверу (заказы, админка) всегда идут в сеть.
   if (url.pathname.startsWith('/api/')) return;
 
-  // Страница: без сети открываем сохранённую главную (маршруты сайта — якоря).
+  // Страница: без сети открываем сохранённую главную. Адреса страниц сайта
+  // (/catalog, /product-x) — та же index.html: сайт сам нарисует нужную страницу.
   if (request.mode === 'navigate') {
-    event.respondWith(staleWhileRevalidate(request, CACHE, './index.html'));
+    const page = /^\/[a-z0-9-]+$/.test(url.pathname);
+    event.respondWith(staleWhileRevalidate(page ? new Request(new URL('./index.html', self.location).href) : request, CACHE, './index.html'));
     return;
   }
   event.respondWith(staleWhileRevalidate(request, CACHE));
