@@ -47,7 +47,7 @@ FS.seo = (function () {
     let m;
     if (t === 'home') {
       out.title = withCity(`${BRAND} — нишевая и селективная парфюмерия на распив`);
-      out.description = 'Бутик-парфюмерный бар 5th SENSE: оригинальные селективные и нишевые ароматы на распив от 5 мл и полными флаконами. Подбор аромата, доставка и самовывоз.';
+      out.description = (city() ? `Парфюмерный бар 5th SENSE в ${city()}: ` : 'Парфюмерный бар 5th SENSE: ') + 'оригинальные селективные и нишевые ароматы на распив от 5 мл и полными флаконами. Подбор аромата, доставка и самовывоз.';
       out.schema = { '@context': 'https://schema.org', '@type': 'Store', name: BRAND, url, description: out.description, foundingDate: String(FS.config.founded || '') };
       const c = FS.config.contacts || {};
       if (c.phone && !/000/.test(c.phone)) out.schema.telephone = c.phone;
@@ -56,12 +56,12 @@ FS.seo = (function () {
       return out;
     }
     if (t === 'catalog') {
-      out.title = `Каталог ароматов на распив | ${BRAND}`;
+      out.title = `${withCity('Каталог ароматов на распив')} | ${BRAND}`;
       out.description = `${list.length} оригинальных ароматов: распив 5, 10, 15 и 20 мл и полные флаконы. Ищите по бренду, названию или ноте.`;
     } else if ((m = t.match(/^catalog-([a-z]+)$/))) {
       const c = (FS.categories || []).find((x) => x.id === m[1]);
       if (!c) return { ...out, found: false, title: `Страница не найдена | ${BRAND}` };
-      out.title = `${c.name} на распив | ${BRAND}`;
+      out.title = `${withCity(c.name + ' на распив')} | ${BRAND}`;
       out.description = `${c.lead} Распив от 5 мл и полные флаконы в бутике 5th SENSE.`;
     } else if ((m = t.match(/^family-([a-z]+)$/))) {
       const f = (FS.families || []).find((x) => x.id === m[1]);
@@ -70,7 +70,7 @@ FS.seo = (function () {
       out.description = `${f.name} ароматы с нотами: ${f.notes}. Распив от 5 мл и полные флаконы в бутике 5th SENSE.`;
     } else if (t === 'brands') {
       const n = new Set(list.map((p) => p.brand)).size;
-      out.title = `Бренды парфюмерии | ${BRAND}`;
+      out.title = `${withCity('Бренды парфюмерии')} | ${BRAND}`;
       out.description = `${n} парфюмерных домов в бутике 5th SENSE: селективная и нишевая парфюмерия на распив и полными флаконами.`;
     } else if ((m = t.match(/^brand-([a-z0-9-]+)$/))) {
       const items = list.filter((p) => brandSlug(p.brand) === m[1]);
