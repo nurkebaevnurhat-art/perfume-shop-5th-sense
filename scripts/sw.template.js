@@ -1,15 +1,17 @@
 /* 5th SENSE — сервис-воркер приложения (PWA).
    Файл собирается скриптом scripts/build-sw.mjs: не правьте sw.js вручную.
    Сайт целиком сохраняется на телефоне, поэтому каталог открывается без интернета.
-   Обновления: при каждом открытии файлы тихо обновляются в фоне,
-   как только новая версия готова, сайт сам перезагружает страницу (FS.pwa). */
+   Обновления: страница, стили и код при интернете берутся из сети (сохранённая копия —
+   только без связи или если сеть не ответила за 3 секунды), поэтому после выкладки
+   новая версия видна с первого же открытия. Фото — из копии, обновляются в фоне. */
 const VERSION = '__VERSION__';
 const CACHE = `fs-${VERSION}`;
 const FONTS = 'fs-fonts';
 const PRECACHE = __PRECACHE__;
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
+  // cache: 'reload' — мимо кэша браузера, чтобы в новую версию не попали старые файлы.
+  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(PRECACHE.map((u) => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (event) => {
@@ -37,6 +39,25 @@ async function staleWhileRevalidate(request, cacheName, fallback) {
   return Response.error();
 }
 
+// Сначала сеть (свежая версия сайта), без сети или при долгом ответе — сохранённая копия.
+// store: false — не сохранять ответ (страницы /product-x: без сети их заменяет index.html).
+async function networkFirst(request, cacheName, fallback, store = true) {
+  const cache = await caches.open(cacheName);
+  const key = request;
+  const network = fetch(request, { cache: 'no-cache' }).then((res) => {
+    if (store && res && res.ok) cache.put(key, res.clone());
+    return res;
+  });
+  const slow = new Promise((resolve) => setTimeout(resolve, 3000, null));
+  try {
+    const res = await Promise.race([network, slow]);
+    if (res && res.ok) return res;
+  } catch (e) { /* нет сети */ }
+  const cached = (await cache.match(key, { ignoreSearch: true })) || (fallback && (await cache.match(fallback)));
+  if (cached) return cached;
+  return network.catch(() => Response.error());
+}
+
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
@@ -55,7 +76,12 @@ self.addEventListener('fetch', (event) => {
   // (/catalog, /product-x) — та же index.html: сайт сам нарисует нужную страницу.
   if (request.mode === 'navigate') {
     const page = /^\/[a-z0-9-]+$/.test(url.pathname);
-    event.respondWith(staleWhileRevalidate(page ? new Request(new URL('./index.html', self.location).href) : request, CACHE, './index.html'));
+    event.respondWith(networkFirst(request, CACHE, './index.html', !page));
+    return;
+  }
+  // Код и стили — тоже свежие: иначе новая страница открылась бы со старым оформлением.
+  if (/\.(js|css|webmanifest)$/.test(url.pathname)) {
+    event.respondWith(networkFirst(request, CACHE));
     return;
   }
   event.respondWith(staleWhileRevalidate(request, CACHE));
