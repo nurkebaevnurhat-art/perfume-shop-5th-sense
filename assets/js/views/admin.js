@@ -56,7 +56,7 @@ FS.views.admin = (function () {
       <section class="admin-login">
         <form class="login-card" data-login novalidate>
           <img class="login-logo" src="${FS.assetUrl('assets/img/logo-intro.png')}" alt="5th SENSE" width="520" height="962">
-          <p class="corner-note">кабинет бутика</p>
+          <p class="corner-note">Кабинет бутика</p>
           <h1>Вход для сотрудников</h1>
           <div class="field login-field">
             <label for="admin-password">Пароль</label>
@@ -68,7 +68,7 @@ FS.views.admin = (function () {
           </div>
           <button class="btn btn--primary btn--block" type="submit">Войти</button>
           ${serverMode()
-    ? '<p class="login-hint">Пароль задаётся в настройках проекта на Vercel (переменная ADMIN_PASSWORD).</p>'
+    ? '<p class="login-hint">Пароль выдаёт владелец бутика.</p>'
     : `<p class="login-hint">Демо-пароль: <strong class="selectable">${DEMO_PASSWORD}</strong>. В демо-версии пароль ничего не защищает: на настоящем сайте вход проверяет сервер.</p>`}
           <a class="text-link" href="#home">Вернуться на сайт</a>
         </form>
