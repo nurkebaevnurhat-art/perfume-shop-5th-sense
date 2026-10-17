@@ -1547,9 +1547,15 @@ h1[tabindex="-1"]:focus { outline: none; }
 .hscroll-nav .hero-link { margin-left: 8px; }
 /* Пауза смены флаконов на первом экране */
 .hero-count { display: flex; align-items: center; gap: 12px; }
-.hero-pause { position: relative; width: 32px; height: 32px; border: 1px solid var(--line-strong); background: none; cursor: pointer; }
-.hero-pause span, .hero-pause span::before { position: absolute; top: 50%; left: 50%; }
-.hero-pause span { width: 10px; height: 12px; transform: translate(-50%, -50%); border-left: 2px solid var(--ink); border-right: 2px solid var(--ink); }
-.hero-pause.is-paused span { width: 0; height: 0; border: 0; border-left: 10px solid var(--ink); border-top: 6px solid transparent; border-bottom: 6px solid transparent; transform: translate(-35%, -50%); }
+.hero-pause { position: relative; flex: none; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--ink); cursor: pointer; display: inline-grid; place-items: center; -webkit-tap-highlight-color: transparent; }
+.hero-pause svg { position: absolute; inset: 3px; width: 38px; height: 38px; transform: rotate(-90deg); overflow: visible; }
+.hero-pause circle { fill: none; }
+.hero-pause .hp-track { stroke: rgba(14, 12, 10, 0.16); stroke-width: 1; transition: stroke 0.3s; }
+.hero-pause .hp-arc { stroke: var(--gold-deep); stroke-width: 2; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; animation: hpRing 5.2s linear forwards; }
+.hero-pause.is-paused .hp-arc, .hero-pause.is-held .hp-arc { animation-play-state: paused; }
+@keyframes hpRing { to { stroke-dashoffset: 0; } }
+.hero-pause .hp-icon { position: relative; width: 9px; height: 12px; border-left: 2px solid currentColor; border-right: 2px solid currentColor; transition: border-color 0.2s; }
+.hero-pause.is-paused .hp-icon { width: 0; height: 0; border-right: 0; border-left: 10px solid currentColor; border-top: 6px solid transparent; border-bottom: 6px solid transparent; margin-left: 3px; }
+@media (hover: hover) { .hero-pause:hover .hp-track { stroke: var(--ink); } }
 /* Ссылки первого экрана: больше область нажатия пальцем, вид тот же */
 .hero-cta .hero-link { padding-top: 14px; }
