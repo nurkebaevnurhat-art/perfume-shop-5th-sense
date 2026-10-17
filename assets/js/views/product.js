@@ -20,7 +20,7 @@ FS.views.product = (function () {
     const title = large ? `${product.brand} ${product.name}` : '';
     if (view === 'detail' && !product.image) return FS.bottle.render(product, { view: 'detail', title });
     if (view === 'bottle') return FS.bottle.render(product, { title });
-    return FS.bottle.media(product, { title });
+    return FS.bottle.media(product, { title, eager: large });
   }
 
   function scale(value, labels) {

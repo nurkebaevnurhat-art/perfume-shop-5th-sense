@@ -3,7 +3,7 @@
    Сайт целиком сохраняется на телефоне, поэтому каталог открывается без интернета.
    Обновления: при каждом открытии файлы тихо обновляются в фоне,
    как только новая версия готова, сайт сам перезагружает страницу (FS.pwa). */
-const VERSION = '533c4b8434';
+const VERSION = '924dd88e17';
 const CACHE = `fs-${VERSION}`;
 const FONTS = 'fs-fonts';
 const PRECACHE = [
@@ -27,6 +27,7 @@ const PRECACHE = [
   "assets/js/motion.js",
   "assets/js/pwa.js",
   "assets/js/qr.js",
+  "assets/js/seo.js",
   "assets/js/store.js",
   "assets/js/telegram.js",
   "assets/js/ui.js",
@@ -87,9 +88,11 @@ self.addEventListener('fetch', (event) => {
   // Запросы к серверу (заказы, админка) всегда идут в сеть.
   if (url.pathname.startsWith('/api/')) return;
 
-  // Страница: без сети открываем сохранённую главную (маршруты сайта — якоря).
+  // Страница: без сети открываем сохранённую главную. Адреса страниц сайта
+  // (/catalog, /product-x) — та же index.html: сайт сам нарисует нужную страницу.
   if (request.mode === 'navigate') {
-    event.respondWith(staleWhileRevalidate(request, CACHE, './index.html'));
+    const page = /^\/[a-z0-9-]+$/.test(url.pathname);
+    event.respondWith(staleWhileRevalidate(page ? new Request(new URL('./index.html', self.location).href) : request, CACHE, './index.html'));
     return;
   }
   event.respondWith(staleWhileRevalidate(request, CACHE));

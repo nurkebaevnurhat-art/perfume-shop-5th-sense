@@ -58,8 +58,23 @@ global.fetch = async (url, init = {}) => {
   return realFetch(url, init);
 };
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json', '.json': 'application/json', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
+// Адреса из vercel.json (rewrites), как на Vercel: работают, только если такого файла нет.
+// ROOT=…/public (проверка выкладки) — vercel.json и api/ берём из папки проекта.
+const PROJECT = fs.existsSync(path.join(ROOT, 'vercel.json')) ? ROOT : path.dirname(ROOT);
+const REWRITES = (() => {
+  try { return (JSON.parse(fs.readFileSync(path.join(PROJECT, 'vercel.json'), 'utf8')).rewrites || []); } catch (e) { return []; }
+})().map((r) => {
+  const m = /^\/:(\w+)\((.*)\)$/.exec(r.source);
+  return m ? { re: new RegExp(`^/(${m[2]})$`), dest: (x) => r.destination.replace(':' + m[1], x[1]) } : { re: new RegExp(`^${r.source.replace(/[.]/g, '\\.')}$`), dest: () => r.destination };
+});
 http.createServer(async (req, res) => {
-  const u = new URL(req.url, 'http://x');
+  let u = new URL(req.url, 'http://x');
+  if (!fs.existsSync(path.join(ROOT, decodeURIComponent(u.pathname)))) {
+    for (const r of REWRITES) {
+      const x = r.re.exec(u.pathname);
+      if (x) { const d = new URL(r.dest(x), 'http://x'); u.searchParams.forEach((v, k) => d.searchParams.set(k, v)); req.url = d.pathname + d.search; u = d; break; }
+    }
+  }
   if (u.pathname === '/__tg') { res.setHeader('Content-Type', 'application/json'); return res.end(JSON.stringify(tgLog)); }
   if (u.pathname === '/__calls') { res.setHeader('Content-Type', 'application/json'); return res.end(JSON.stringify(tgCalls)); }
   if (u.pathname === '/__secret') { return res.end(require(ROOT + '/server/telegram').webhookSecret()); }
@@ -74,7 +89,7 @@ http.createServer(async (req, res) => {
   }
   if (u.pathname.startsWith('/api/')) {
     if (MODE === 'none') { res.statusCode = 404; return res.end('Not found'); }
-    const file = path.join(ROOT, 'api', u.pathname.slice(5) + '.js');
+    const file = path.join(PROJECT, 'api', u.pathname.slice(5) + '.js');
     if (!fs.existsSync(file)) { res.statusCode = 404; return res.end('nf'); }
     return require(file)(req, res);
   }

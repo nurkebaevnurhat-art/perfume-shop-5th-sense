@@ -23,8 +23,30 @@
     "api/image.js": {
       "includeFiles": "assets/js/*.js",
       "maxDuration": 30
+    },
+    "api/page.js": {
+      "includeFiles": "{index.html,assets/js/*.js}",
+      "maxDuration": 10
+    },
+    "api/sitemap.js": {
+      "includeFiles": "assets/js/*.js",
+      "maxDuration": 10
     }
   },
+  "rewrites": [
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
+    },
+    {
+      "source": "/robots.txt",
+      "destination": "/api/sitemap?robots=1"
+    },
+    {
+      "source": "/:p(catalog|catalog-[a-z]+|family-[a-z]+|brands|brand-[a-z0-9-]+|product-[a-z0-9-]+|delivery|gifts|terms|privacy|returns)",
+      "destination": "/api/page?p=:p"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

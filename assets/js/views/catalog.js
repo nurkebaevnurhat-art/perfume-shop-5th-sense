@@ -158,7 +158,7 @@ FS.views.catalog = (function () {
       '@context': 'https://schema.org',
       '@type': 'ItemList',
       name: heading().title,
-      itemListElement: list.slice(0, 30).map((p, i) => ({ '@type': 'ListItem', position: i + 1, url: `#product-${p.id}`, name: p.name }))
+      itemListElement: list.slice(0, 30).map((p, i) => ({ '@type': 'ListItem', position: i + 1, url: FS.app.href('product-' + p.id), name: p.name }))
     });
   }
 

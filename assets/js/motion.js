@@ -134,15 +134,15 @@ FS.motion = (function () {
     document.body.classList.add('is-intro');
     const counter = el.querySelector('[data-intro-count]');
     const start = performance.now();
-    const dur = 1500;
+    const dur = 550; // заставка — около 0,8 секунды (решение владельца)
     const tick = (t) => {
       const k = clamp((t - start) / dur, 0, 1);
       counter.textContent = String(Math.round(ease(k) * 100)).padStart(3, '0');
       if (k < 1) requestAnimationFrame(tick);
       else {
         el.classList.add('is-leaving');
-        setTimeout(done, 350);
-        setTimeout(() => { document.body.classList.remove('is-intro'); el.remove(); }, 1300);
+        setTimeout(done, 150);
+        setTimeout(() => { document.body.classList.remove('is-intro'); el.remove(); }, 700);
       }
     };
     requestAnimationFrame(tick);

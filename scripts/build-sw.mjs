@@ -13,9 +13,13 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const index = readFileSync(join(root, 'index.html'), 'utf8');
 const swap = (s, from, to) => { if (!s.includes(from)) throw new Error(`kassa/index.html: не нашли «${from}» в index.html`); return s.replace(from, to); };
 let kassaHtml = swap(index, '<head>\n', '<head>\n<!-- Собрано из index.html скриптом scripts/build-sw.mjs — не правьте руками. -->\n<base href="../">\n');
-kassaHtml = swap(kassaHtml, '<title>5th SENSE</title>', '<title>Касса — 5th SENSE</title>');
+kassaHtml = kassaHtml.replace(/<title>[^<]*<\/title>/, '<title>Касса — 5th SENSE</title>');
 kassaHtml = swap(kassaHtml, '<link rel="manifest" href="manifest.webmanifest">', `<link rel="manifest" href="kassa.webmanifest">\n<script>if (location.hash !== '#kassa') history.replaceState(null, '', location.pathname + '#kassa');</script>`);
 kassaHtml = swap(kassaHtml, '<meta name="apple-mobile-web-app-title" content="5th SENSE">', '<meta name="apple-mobile-web-app-title" content="Касса">');
+// Касса — рабочая страница: поисковикам не показываем.
+kassaHtml = swap(kassaHtml, '<link rel="canonical" href="/">', '<meta name="robots" content="noindex">');
+// На сайте код кассы догружается при входе (LAZY в app.js), а здесь он нужен сразу.
+kassaHtml = swap(kassaHtml, '<script src="assets/js/pwa.js"></script>', '<script src="assets/js/qr.js"></script>\n<script src="assets/js/views/kassa.js"></script>\n<script src="assets/js/pwa.js"></script>');
 mkdirSync(join(root, 'kassa'), { recursive: true });
 writeFileSync(join(root, 'kassa/index.html'), kassaHtml);
 const walk = (dir) => readdirSync(join(root, dir)).flatMap((f) => {

@@ -157,10 +157,10 @@ h1[tabindex="-1"]:focus { outline: none; }
 .reveal, .reveal.is-in { opacity: 1; transform: none; }
 
 /* ---------- Вступление ---------- */
-.intro { position: fixed; inset: 0; z-index: 150; display: grid; place-items: center; align-content: center; gap: 22px; background: var(--ink); color: var(--on-dark); clip-path: inset(0 0 0 0); transition: clip-path 1.1s var(--ease-io); }
+.intro { position: fixed; inset: 0; z-index: 150; display: grid; place-items: center; align-content: center; gap: 22px; background: var(--ink); color: var(--on-dark); clip-path: inset(0 0 0 0); transition: clip-path 0.55s var(--ease-io); }
 .intro.is-leaving { clip-path: inset(0 0 100% 0); }
 /* Логотип бутика на заставке: проявляется и слегка поднимается */
-.intro-logo { width: auto; height: min(58vh, 520px); max-width: 72vw; object-fit: contain; opacity: 0; transform: translate3d(0, 16px, 0) scale(0.97); animation: logoIn 1.3s var(--ease) 0.1s forwards; }
+.intro-logo { width: auto; height: min(58vh, 520px); max-width: 72vw; object-fit: contain; opacity: 0; transform: translate3d(0, 16px, 0) scale(0.97); animation: logoIn 0.5s var(--ease) forwards; }
 @keyframes logoIn { to { opacity: 1; transform: none; } }
 .intro-count { position: absolute; right: var(--gutter); bottom: var(--gutter); font-family: var(--ff-serif); font-size: clamp(40px, 6vw, 80px); line-height: 1; font-variant-numeric: tabular-nums; }
 @keyframes draw { to { stroke-dashoffset: 0; } }
@@ -346,8 +346,8 @@ h1[tabindex="-1"]:focus { outline: none; }
   background: linear-gradient(180deg, #b08d5b 0%, #8a6a3d 34%, #5f4524 72%, #4a3519 100%);
   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 1px 0 rgba(255, 249, 238, 0.55)) drop-shadow(0 10px 14px rgba(46, 31, 14, 0.22)); }
-.is-ready .wordmark--hero { transform: none; transition: transform 1.6s var(--ease) 0.15s; }
-.is-ready .hero-caption { animation: fadeUp 1.4s var(--ease) 0.6s both; }
+.is-ready .wordmark--hero { transform: none; transition: transform 1s var(--ease); }
+.is-ready .hero-caption { animation: fadeUp 0.9s var(--ease) 0.15s both; }
 @keyframes fadeUp { from { opacity: 0; transform: translate3d(0, 20px, 0); } }
 
 /* История бренда */
@@ -623,7 +623,7 @@ h1[tabindex="-1"]:focus { outline: none; }
 .pd-brand:hover { color: var(--ink); }
 .pd-name { font-family: var(--ff-serif); font-size: clamp(44px, 5.2vw, 92px); line-height: 0.95; }
 .pd-sub { color: var(--ink-soft); font-size: 14px; }
-.pd-lead { font-size: 19px; font-weight: 300; line-height: 1.5; max-width: 42ch; }
+.pd-lead { font-size: 19px; font-weight: 400; line-height: 1.5; max-width: 42ch; }
 .volumes { border: 0; margin: 6px 0 0; padding: 0; min-width: 0; }
 .volumes legend { font-size: 12.5px; letter-spacing: 0.01em; color: var(--ink-soft); margin-bottom: 10px; padding: 0; }
 .volume-list { display: flex; flex-wrap: wrap; gap: 8px; }

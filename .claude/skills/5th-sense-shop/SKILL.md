@@ -87,8 +87,23 @@ Telegram-бот для покупателей и сотрудников, кат�
 
 ## Устройство в двух словах
 
-- Статический SPA без фреймворка, маршруты-якоря (`#catalog`, `#product-<id>`,
-  `#admin-products`…), общий объект `window.FS`. Данные идут только через
+- Статический SPA без фреймворка, общий объект `window.FS`. Адреса (для Google/Яндекса):
+  открытые страницы — обычные адреса `/catalog`, `/catalog-men`, `/family-woody`, `/brands`,
+  `/brand-<слаг>`, `/product-<id>`, `/delivery`, `/gifts`, `/terms`, `/privacy`, `/returns`
+  (список — `PUBLIC` в `assets/js/seo.js`, ОН ЖЕ в `rewrites` vercel.json: меняешь один —
+  меняй второй). Рабочие — якоря `/#checkout`, `/#favorites`, `/#admin-…`, `/#card-…`.
+  В разметке ссылки по-прежнему пишутся `href="#product-x"` — `FS.app` сам превращает их в
+  адреса (fixLinks); из кода — `FS.app.go(token)` или `FS.app.href(token)`. Старые ссылки
+  `/#product-x` (бот, закладки) открываются и меняются на `/product-x`. Без сервера (файл
+  с диска, однофайловая сборка, касса `/kassa/`) всё работает на якорях, как раньше.
+  Открытые адреса Vercel отдаёт через `api/page.js` (server/seo.js): та же index.html,
+  но с заголовком, описанием, фото (og:) и schema.org страницы из `FS.seo.meta` — один код
+  для сайта и сервера. `/sitemap.xml` и `/robots.txt` — `api/sitemap.js`, из каталога сами.
+  `FS.config.site`: `city` (в заголовок главной) и `url` (постоянный домен; пусто — адрес
+  Vercel). Админка, касса и карта клиента грузятся только при входе (`LAZY` в app.js;
+  build-single берёт список оттуда, на /kassa/ build-sw вставляет kassa.js сразу).
+  Заставка ~0,8 с (решение владельца, может попросить убрать). Шрифты Google грузятся
+  без задержки показа (preload + onload); Onest — веса 400/500/600. Данные идут только через
   `FS.api` / `FS.catalog` / `FS.backend` (`assets/js/api.js`).
 - Сервер — функции Vercel в `api/*.js` (CommonJS, без зависимостей), общий код в
   `server/*.js`. База — Upstash Redis через REST. Сайт сам определяет режим:

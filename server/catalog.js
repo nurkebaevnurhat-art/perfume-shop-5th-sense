@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-const FILES = ['assets/js/config.js', 'assets/js/data.js'];
+const FILES = ['assets/js/config.js', 'assets/js/data.js', 'assets/js/seo.js'];
 let cached = null;
 
 function locate(file) {
@@ -22,7 +22,7 @@ function load() {
   for (const file of FILES) vm.runInContext(fs.readFileSync(locate(file), 'utf8'), sandbox, { filename: file });
   const FS = sandbox.FS;
   const products = new Map(FS.defaultProducts.map((p) => [p.id, p]));
-  cached = { config: FS.config, delivery: FS.delivery, payments: FS.paymentMethods, products };
+  cached = { config: FS.config, delivery: FS.delivery, payments: FS.paymentMethods, products, seo: FS.seo };
   return cached;
 }
 

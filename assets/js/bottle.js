@@ -321,12 +321,13 @@ FS.bottle = (function () {
   }
 
   /* Возвращает либо <img> с фото, либо SVG-иллюстрацию.
-     style: 'blueprint' (чертёж) или 'render' (объёмный флакон); photo:false — только рисунок. */
+     style: 'blueprint' (чертёж) или 'render' (объёмный флакон); photo:false — только рисунок.
+     eager:true — главное фото первого экрана: грузится сразу и первым (скорость показа). */
   function media(product, opts) {
     const o = opts || {};
     if (product.image && o.photo !== false) {
       const alt = String(o.title || `${product.brand} ${product.name}`).replace(/"/g, '&quot;');
-      return `<img class="bottle-img" src="${FS.assetUrl(product.image)}" alt="${alt}" loading="lazy" decoding="async">`;
+      return `<img class="bottle-img" src="${FS.assetUrl(product.image)}" alt="${alt}" ${o.eager ? 'fetchpriority="high"' : 'loading="lazy" decoding="async"'}>`;
     }
     return o.style === 'blueprint' ? blueprint(product, o) : render(product, o);
   }

@@ -50,7 +50,7 @@ FS.views.home = (function () {
           <div class="hero-scene" data-cursor="Смотреть">
             ${slides.map((p, i) => `
               <a class="slide ${i === 0 ? 'is-active' : ''}" href="#product-${p.id}" data-slide="${i}" tabindex="${i === 0 ? 0 : -1}" aria-label="${esc(p.brand)} ${esc(p.name)}">
-                <span class="slide-img">${FS.bottle.media(p, { title: '' })}</span>
+                <span class="slide-img">${FS.bottle.media(p, { title: '', eager: i === 0 })}</span>
               </a>`).join('')}
           </div>
           <div class="hero-caption">

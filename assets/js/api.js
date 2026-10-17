@@ -299,12 +299,8 @@ FS.api = (function () {
   function brands() {
     return [...new Set(visible().map((p) => p.brand))].sort((a, b) => a.localeCompare(b));
   }
-  // Адрес страницы бренда: #brand-maison-francis-kurkdjian.
-  function brandSlug(b) {
-    return String(b || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9а-яё]+/g, '-').replace(/[а-яё]/g, (ch) => TRANSLIT[ch] || '').replace(/-+/g, '-').replace(/^-|-$/g, '');
-  }
-  const TRANSLIT = { а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'e', ж: 'zh', з: 'z', и: 'i', й: 'y', к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ф: 'f', х: 'h', ц: 'c', ч: 'ch', ш: 'sh', щ: 'sch', ы: 'y', э: 'e', ю: 'yu', я: 'ya' };
+  // Адрес страницы бренда — общий с сервером (FS.seo.brandSlug).
+  const brandSlug = (b) => FS.seo.brandSlug(b);
   const brandBySlug = (slug) => brands().find((b) => brandSlug(b) === slug) || null;
   // Ароматы, которые видят покупатели (без отмеченных «Скрыть с сайта»).
   function visible() { return FS.products.filter((p) => !p.hidden); }

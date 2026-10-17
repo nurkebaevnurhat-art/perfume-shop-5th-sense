@@ -12,7 +12,10 @@ const html = read('index.html');
 const svgData = (p) => `data:image/svg+xml;base64,${Buffer.from(read(p)).toString('base64')}`;
 const css = read('assets/css/style.css').replace(/url\("\.\.\/img\/([\w-]+\.svg)"\)/g, (_, f) => `url("${svgData('assets/img/' + f)}")`);
 
-const scripts = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map((m) => m[1]);
+const pageScripts = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map((m) => m[1]);
+// Админка, касса и карта клиента на сайте догружаются при входе (LAZY в app.js) — здесь встраиваем всё сразу.
+const lazy = [...new Set([...read('assets/js/app.js').match(/const LAZY = \{[\s\S]*?\n  \};/)[0].matchAll(/'(assets\/js\/[\w/.-]+\.js)'/g)].map((m) => m[1]))];
+const scripts = [...pageScripts.filter((s) => s !== 'assets/js/app.js' && !lazy.includes(s)), ...lazy, 'assets/js/app.js'];
 // Фото товаров и фото бренда встраиваются как data:-адреса; код находит их через FS.assetUrl(path).
 const photos = readdirSync(join(root, 'assets/products')).filter((f) => /\.(jpe?g|png|webp)$/i.test(f));
 const mime = (f) => (/\.png$/i.test(f) ? 'image/png' : /\.webp$/i.test(f) ? 'image/webp' : 'image/jpeg');
