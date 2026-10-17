@@ -1374,7 +1374,7 @@ FS.views.admin = (function () {
             if (st.authorized) { FS.backend.setAdminKey(value); FS.app.go(r.key); return; }
             error.textContent = 'Неверный пароль';
           } catch (err) {
-            error.textContent = 'Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.';
+            error.textContent = err && err.status === 429 ? err.message : 'Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.';
           }
           btn.disabled = false;
           $('#admin-password', el).focus();

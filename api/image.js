@@ -17,7 +17,7 @@ module.exports = handler({
   },
 
   async POST(req, res) {
-    requireAdmin(req);
+    await requireAdmin(req);
     const body = await readJson(req);
     send(res, 200, await products.saveImage(body.name, body.type, body.data));
   }

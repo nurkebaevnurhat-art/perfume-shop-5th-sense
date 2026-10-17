@@ -14,7 +14,7 @@ function requireStorage() {
 
 module.exports = handler({
   async GET(req, res) {
-    requireAdmin(req);
+    await requireAdmin(req);
     requireStorage();
     const s = await loyalty.settings();
     const phone = new URL(req.url, 'http://x').searchParams.get('phone');
@@ -27,7 +27,7 @@ module.exports = handler({
   },
 
   async POST(req, res) {
-    requireAdmin(req);
+    await requireAdmin(req);
     requireStorage();
     const body = await readJson(req);
     const s = await loyalty.settings();

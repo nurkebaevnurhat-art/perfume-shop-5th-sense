@@ -43,7 +43,7 @@ FS.seo = (function () {
     const list = visible(products);
     const t = token || 'home';
     const url = origin + path(t);
-    const out = { title: '', description: '', image: abs(origin, 'assets/img/brand-sign.jpg'), url, schema: null, found: true };
+    const out = { title: '', description: '', image: abs(origin, 'assets/img/og-cover.jpg'), url, schema: null, found: true };
     let m;
     if (t === 'home') {
       out.title = withCity(`${BRAND} — нишевая и селективная парфюмерия на распив`);

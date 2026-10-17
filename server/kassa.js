@@ -3,7 +3,7 @@
    получает токен на 30 дней; смена PIN-кода отключает все старые входы. */
 const crypto = require('node:crypto');
 const db = require('./db');
-const { HttpError, isAdmin, clientIp } = require('./http');
+const { HttpError, checkAdmin, clientIp } = require('./http');
 
 const PIN_KEY = 'fs:kassa:pin';
 const tokenKey = (t) => `fs:kassa:token:${t}`;
@@ -37,11 +37,17 @@ async function login(pin, req) {
 
 // Вход в кассу: токен после PIN-кода или пароль админки.
 async function requireKassa(req) {
-  if (isAdmin(req)) return;
   const m = /^Bearer\s+(.+)$/i.exec(String(req.headers.authorization || ''));
-  const token = m ? decodeURIComponent(m[1]) : '';
+  let token = '';
+  try { token = m ? decodeURIComponent(m[1]) : ''; } catch (e) { token = ''; }
   const [v, info] = token ? await Promise.all([db.get(tokenKey(token)), pinInfo()]) : [null, null];
-  if (!v || !info || String(info.v) !== String(v)) throw new HttpError(401, 'unauthorized', 'Войдите по PIN-коду заново');
+  if (v && info && String(info.v) === String(v)) return;
+  // Старый токен кассы (после смены PIN) — сразу на вход по PIN, без счётчика попыток пароля:
+  // иначе телефоны кассы в общей сети бутика могли бы закрыть вход в админку.
+  if (/^[A-Za-z0-9_-]{32}$/.test(token)) throw new HttpError(401, 'unauthorized', 'Войдите по PIN-коду заново');
+  // Не токен кассы — может быть пароль админки (с той же защитой от перебора).
+  if (await checkAdmin(req)) return;
+  throw new HttpError(401, 'unauthorized', 'Войдите по PIN-коду заново');
 }
 
 module.exports = { pinInfo, setPin, login, requireKassa };

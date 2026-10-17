@@ -22,27 +22,27 @@ module.exports = handler({
   },
 
   async PUT(req, res) {
-    requireAdmin(req);
+    await requireAdmin(req);
     const body = await readJson(req);
     const meta = await products.replace(body.products);
     send(res, 200, { ok: true, ...meta });
   },
 
   async PATCH(req, res) {
-    requireAdmin(req);
+    await requireAdmin(req);
     const body = await readJson(req);
     send(res, 200, await products.upsert(body.product));
   },
 
   async DELETE(req, res) {
-    requireAdmin(req);
+    await requireAdmin(req);
     const id = new URL(req.url, 'http://x').searchParams.get('id');
     if (!id) throw new HttpError(400, 'invalid', 'Не указан товар');
     send(res, 200, { ok: true, meta: await products.remove(id) });
   },
 
   async POST(req, res) {
-    requireAdmin(req);
+    await requireAdmin(req);
     const { action } = await readJson(req);
     if (action !== 'reset') throw new HttpError(400, 'invalid', 'Неизвестное действие');
     await products.reset();
