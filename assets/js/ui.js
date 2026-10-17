@@ -164,13 +164,7 @@ FS.ui = (function () {
   }
 
   /* ---------- Карточка товара ---------- */
-  function badges(p) {
-    const out = [];
-    if (p.isNew) out.push('<span class="tag-chip">Новинка</span>');
-    if (p.bestseller) out.push('<span class="tag-chip tag-chip--brand">Бестселлер</span>');
-    if (!FS.api.inStock(p)) out.push('<span class="tag-chip tag-chip--out">Нет в наличии</span>');
-    return out.join('');
-  }
+  // Надписей поверх фото («Новинка», «Бестселлер») нет — решение владельца: фото чистые.
 
   function card(p, opts) {
     const o = opts || {};
@@ -187,7 +181,6 @@ FS.ui = (function () {
       <article class="pcard ${o.wide ? 'pcard--wide' : ''} ${o.reveal === false ? '' : 'reveal'}" style="--i:${o.index || 0};--tint:${tint(p)}">
         <a class="pcard-media" href="#product-${p.id}" tabindex="-1" aria-hidden="true" data-cursor="Смотреть">
           <span class="pcard-img">${FS.bottle.media(p)}</span>
-          <span class="pcard-tags">${badges(p)}</span>
         </a>
         <button class="fav-btn ${fav ? 'is-on' : ''}" type="button" data-fav="${p.id}" aria-pressed="${fav}" aria-label="${fav ? 'Убрать из избранного' : 'В избранное'}: ${esc(p.name)}">${icon.heart}</button>
         <div class="pcard-body">
