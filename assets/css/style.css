@@ -1480,6 +1480,9 @@ h1[tabindex="-1"]:focus { outline: none; }
 .route-admin .login-field label { color: var(--on-dark-soft); }
 .login-pass { position: relative; }
 .route-admin .login-pass input { background: transparent; border: 0; border-bottom: 1px solid rgba(241, 234, 223, 0.42); padding: 6px 92px 10px 0; color: var(--on-dark); font-size: 18px; letter-spacing: 0.08em; caret-color: var(--gold-soft); }
+/* Chrome красит поле с сохранённым паролем в голубой — оставляем тёмный фон и светлый текст. */
+.route-admin .login-pass input:-webkit-autofill, .route-admin .login-pass input:-webkit-autofill:hover, .route-admin .login-pass input:-webkit-autofill:focus { -webkit-box-shadow: 0 0 0 1000px #16130f inset; -webkit-text-fill-color: var(--on-dark); caret-color: var(--gold-soft); transition: background-color 9999s; }
+.route-admin .login-pass input:-webkit-autofill:focus { -webkit-box-shadow: 0 0 0 1000px #16130f inset, 0 1px 0 var(--gold-soft); }
 .route-admin .login-pass input:focus { border-bottom-color: var(--gold-soft); box-shadow: 0 1px 0 var(--gold-soft); }
 .login-eye { position: absolute; right: 0; top: 50%; transform: translateY(-50%); min-height: 44px; padding: 0 2px 0 12px; background: none; border: 0; color: var(--gold-soft); font-family: var(--ff); font-size: 13px; letter-spacing: 0.02em; cursor: pointer; }
 .login-eye:hover { color: var(--on-dark); }
