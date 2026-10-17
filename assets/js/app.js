@@ -108,6 +108,13 @@ FS.app = (function () {
     if (!FS.views[route.name] && LAZY[route.name]) {
       // Раздел ещё не загружен: догружаем и рисуем, если за это время не ушли на другую страницу.
       const want = route.key;
+      // Пока код раздела загружается (на медленном интернете — до пары секунд), сразу показываем,
+      // что вход начался, а не оставляем прежнюю страницу без ответа.
+      const view = $('#view');
+      if (!view.querySelector('.view-loading')) {
+        view.innerHTML = '<div class="view-loading" role="status"><span class="view-loading-mark" aria-hidden="true"></span><span>Открываем…</span></div>';
+        window.scrollTo(0, 0);
+      }
       ensureView(route.name).then(
         () => { if (resolve(currentToken()).key === want) render(route, force, quiet); },
         () => { FS.ui.toast('Не удалось загрузить раздел. Проверьте интернет и обновите страницу.', null, { duration: 8000 }); }
@@ -126,7 +133,8 @@ FS.app = (function () {
 
     const impl = FS.views[route.name] || FS.views.notfound;
     const first = !current;
-    const animate = !first && !quiet && !reduceMotion.matches;
+    // Рабочие экраны (админка, касса, карта клиента) открываются сразу, без шторки.
+    const animate = !first && !quiet && !reduceMotion.matches && !LAZY[route.name];
     if (busy) clearTimeout(busy);
     if (current && current.impl.unmount) current.impl.unmount();
 
@@ -231,6 +239,11 @@ FS.app = (function () {
     FS.ui.renderFooter();
     FS.ui.bind();
     window.addEventListener('hashchange', onUrl);
+    // Палец коснулся ссылки на админку или карту клиента — начинаем грузить её код, не дожидаясь отпускания.
+    document.addEventListener('pointerdown', (e) => {
+      const a = e.target.closest('a[href*="#admin"], a[href*="#card-"]');
+      if (a) ensureView(/#admin/.test(a.getAttribute('href')) ? 'admin' : 'card').catch(() => {});
+    }, { passive: true });
     // Все внутренние ссылки идут через маршрутизатор.
     document.addEventListener('click', (e) => {
       const a = e.target.closest('a[href^="#"], a[href^="/"]');

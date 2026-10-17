@@ -464,7 +464,8 @@ FS.ui = (function () {
 
     // Переход по ссылке внутри меню или поиска закрывает слой.
     document.addEventListener('click', (e) => {
-      const a = e.target.closest('a[href^="#"]');
+      // Ссылки сайта — #якоря и адреса вида /catalog, /#admin (см. FS.app.href).
+      const a = e.target.closest('a[href^="#"], a[href^="/"]');
       if (a && openLayer && openLayer.contains(a)) close(true);
     });
 
