@@ -115,13 +115,13 @@ module.exports = handler({
   },
 
   async GET(req, res) {
-    requireAdmin(req);
+    await requireAdmin(req);
     requireStorage();
     send(res, 200, { orders: await db.listOrders() });
   },
 
   async PATCH(req, res) {
-    requireAdmin(req);
+    await requireAdmin(req);
     requireStorage();
     const body = await readJson(req);
     const current = await db.getOrder(String(body.number || ''));
@@ -140,7 +140,7 @@ module.exports = handler({
   },
 
   async DELETE(req, res) {
-    requireAdmin(req);
+    await requireAdmin(req);
     requireStorage();
     await db.clearOrders();
     send(res, 200, { ok: true });

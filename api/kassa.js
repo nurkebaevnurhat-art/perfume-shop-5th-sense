@@ -42,7 +42,7 @@ module.exports = handler({
     requireStorage();
     const url = new URL(req.url, 'http://x');
     if (url.searchParams.get('pin') === 'status') {
-      requireAdmin(req);
+      await requireAdmin(req);
       return send(res, 200, { pinSet: Boolean(await kassa.pinInfo()) });
     }
     await kassa.requireKassa(req);
@@ -62,7 +62,7 @@ module.exports = handler({
     const body = await readJson(req);
     if (body.action === 'login') return send(res, 200, { token: await kassa.login(body.pin, req) });
     if (body.action === 'setPin') {
-      requireAdmin(req);
+      await requireAdmin(req);
       await kassa.setPin(body.pin);
       return send(res, 200, { ok: true, pinSet: true });
     }

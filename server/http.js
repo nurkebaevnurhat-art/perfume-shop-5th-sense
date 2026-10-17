@@ -53,9 +53,24 @@ function isAdmin(req) {
   return crypto.timingSafeEqual(digest(given), digest(pass));
 }
 
-function requireAdmin(req) {
+/* Проверка пароля с защитой от перебора: после 10 неверных попыток с одного адреса
+   вход закрыт на 15 минут (даже с верным паролем). Счётчик — в Redis; без него — без лимита. */
+const ADMIN_TRIES = 10;
+const ADMIN_WINDOW = 15 * 60;
+async function checkAdmin(req) {
+  const db = require('./db');
+  const key = `adminfail:${clientIp(req)}`;
+  if (db.configured() && Number(await db.command('GET', `fs:rl:${key}`)) >= ADMIN_TRIES) {
+    throw new HttpError(429, 'too_many', 'Слишком много неверных попыток. Подождите 15 минут.');
+  }
+  if (isAdmin(req)) return true;
+  if (db.configured() && req.headers.authorization) await db.allow(key, ADMIN_TRIES, ADMIN_WINDOW);
+  return false;
+}
+
+async function requireAdmin(req) {
   if (!adminConfigured()) throw new HttpError(503, 'admin_not_configured', 'Пароль админ-панели не задан на сервере');
-  if (!isAdmin(req)) throw new HttpError(401, 'unauthorized', 'Неверный пароль');
+  if (!(await checkAdmin(req))) throw new HttpError(401, 'unauthorized', 'Неверный пароль');
 }
 
 function clientIp(req) {
@@ -87,4 +102,4 @@ function handler(routes) {
   };
 }
 
-module.exports = { send, readJson, HttpError, adminConfigured, isAdmin, requireAdmin, clientIp, siteUrl, handler };
+module.exports = { send, readJson, HttpError, adminConfigured, isAdmin, checkAdmin, requireAdmin, clientIp, siteUrl, handler };

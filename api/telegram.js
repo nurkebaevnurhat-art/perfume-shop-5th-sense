@@ -23,12 +23,12 @@ async function state() {
 
 module.exports = handler({
   async GET(req, res) {
-    requireAdmin(req);
+    await requireAdmin(req);
     send(res, 200, await state());
   },
 
   async POST(req, res) {
-    requireAdmin(req);
+    await requireAdmin(req);
     if (!telegram.configured()) throw new HttpError(503, 'telegram_not_configured', 'Токен бота не задан на сервере');
     const { action } = await readJson(req);
     const brand = catalog.load().config.brand;
