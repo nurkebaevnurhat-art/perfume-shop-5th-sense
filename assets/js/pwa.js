@@ -93,7 +93,9 @@ FS.pwa = (function () {
     let reloading = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (!hadController || reloading) return; // первая установка — обновлять нечего
-      if (isKassa() || /^#(checkout|admin)/.test(location.hash)) {
+      // Где можно потерять набранное (касса, оформление, кабинет) — спрашиваем; экран входа — нет.
+      const safe = /^#admin/.test(location.hash) && document.querySelector('.login-card');
+      if (!safe && (isKassa() || /^#(checkout|admin)/.test(location.hash))) {
         FS.ui.toast('Сайт обновился', { label: 'Обновить', run: () => location.reload() }, { duration: 12000 });
         return;
       }
