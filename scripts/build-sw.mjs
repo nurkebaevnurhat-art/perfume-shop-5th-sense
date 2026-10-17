@@ -29,7 +29,7 @@ const walk = (dir) => readdirSync(join(root, dir)).flatMap((f) => {
 const files = ['index.html', 'kassa/index.html', 'manifest.webmanifest', 'kassa.webmanifest', ...walk('assets')]
   // Фото товаров и файлы для скачивания не скачиваем заранее: при сотнях товаров это десятки мегабайт.
   // Они сохраняются в телефон по мере просмотра (см. sw.template.js).
-  .filter((f) => !/\.(md|DS_Store)$/.test(f) && !f.includes('brand-sign') && !/^assets[\\/](products|files)[\\/]/.test(f))
+  .filter((f) => !/\.(md|DS_Store)$/.test(f) && !f.includes('brand-sign') && !f.includes('og-cover') && !/^assets[\\/](products|files)[\\/]/.test(f))
   .map((f) => f.split('\\').join('/'))
   .sort();
 const hash = createHash('sha256');
