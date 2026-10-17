@@ -1471,23 +1471,23 @@ h1[tabindex="-1"]:focus { outline: none; }
 
 /* Вход */
 .route-admin .admin-login { min-height: 100vh; min-height: 100svh; padding: 40px var(--gutter); background: var(--ink); background-image: radial-gradient(80% 60% at 50% 0%, rgba(176, 141, 91, 0.2), transparent 70%); }
-.route-admin .login-card { position: relative; width: min(100%, 400px); gap: 16px; padding: 44px 34px 34px; justify-items: stretch; background: #16130f; color: var(--on-dark); border: 1px solid rgba(201, 173, 125, 0.45); outline: 1px solid rgba(201, 173, 125, 0.18); outline-offset: -9px; box-shadow: 0 50px 90px -40px rgba(0, 0, 0, 0.85); animation: loginIn 0.45s var(--ease) both; }
+.route-admin .login-card { position: relative; width: min(100%, 400px); gap: 14px; padding: 46px 36px 34px; justify-items: stretch; background: #16130f; color: var(--on-dark); border: 1px solid rgba(201, 173, 125, 0.32); box-shadow: 0 50px 90px -40px rgba(0, 0, 0, 0.85); animation: loginIn 0.45s var(--ease) both; }
 @keyframes loginIn { from { opacity: 0; transform: translate3d(0, 14px, 0); } }
 @media (prefers-reduced-motion: reduce) { .route-admin .login-card { animation: none; } }
-.login-logo { justify-self: center; width: auto; height: 84px; margin-bottom: 2px; }
-.route-admin .login-card .corner-note { justify-self: center; font-size: 10.5px; letter-spacing: 0.26em; text-transform: uppercase; color: var(--gold-soft); }
-.route-admin .login-card h1 { text-align: center; font-size: clamp(30px, 3.4vw, 38px); line-height: 1.04; color: var(--on-dark); margin-bottom: 10px; }
+.login-logo { justify-self: center; width: auto; height: 64px; margin-bottom: 6px; }
+.route-admin .login-card .corner-note { justify-self: center; font-family: var(--ff-serif); font-size: 16px; letter-spacing: 0.02em; text-transform: none; color: var(--gold-soft); }
+.route-admin .login-card h1 { text-align: center; font-size: 32px; line-height: 1.04; color: var(--on-dark); margin-bottom: 18px; }
 .route-admin .login-field label { color: var(--on-dark-soft); }
 .login-pass { position: relative; }
 .route-admin .login-pass input { background: transparent; border: 0; border-bottom: 1px solid rgba(241, 234, 223, 0.42); padding: 6px 92px 10px 0; color: var(--on-dark); font-size: 18px; letter-spacing: 0.08em; caret-color: var(--gold-soft); }
 .route-admin .login-pass input:focus { border-bottom-color: var(--gold-soft); box-shadow: 0 1px 0 var(--gold-soft); }
-.login-eye { position: absolute; right: 0; top: 50%; transform: translateY(-50%); min-height: 44px; padding: 0 2px 0 12px; background: none; border: 0; color: var(--gold-soft); font-family: var(--ff); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; cursor: pointer; }
+.login-eye { position: absolute; right: 0; top: 50%; transform: translateY(-50%); min-height: 44px; padding: 0 2px 0 12px; background: none; border: 0; color: var(--gold-soft); font-family: var(--ff); font-size: 13px; letter-spacing: 0.02em; cursor: pointer; }
 .login-eye:hover { color: var(--on-dark); }
 .route-admin .login-card .field-error { color: #f2a99c; }
-.route-admin .login-card .btn--primary { margin-top: 6px; min-height: 52px; background: var(--gold); border-color: var(--gold); color: var(--ink); letter-spacing: 0.22em; }
-.route-admin .login-card .btn--primary:hover:not(:disabled) { background: var(--gold-soft); border-color: var(--gold-soft); color: var(--ink); }
+.route-admin .login-card .btn--primary { margin-top: 6px; min-height: 50px; background: transparent; border: 1px solid var(--gold-soft); color: var(--on-dark); font-size: 11.5px; letter-spacing: 0.24em; transition: background-color 0.25s, color 0.25s; }
+.route-admin .login-card .btn--primary:hover:not(:disabled) { background: rgba(201, 173, 125, 0.14); border-color: var(--gold-soft); color: var(--on-dark); }
 .route-admin .login-card .btn--primary:disabled { opacity: 0.6; }
-.route-admin .login-hint { text-align: center; font-size: 12.5px; line-height: 1.5; color: var(--on-dark-soft); }
+.route-admin .login-hint { text-align: center; font-size: 13px; line-height: 1.5; color: var(--on-dark-soft); }
 .route-admin .login-hint strong { color: var(--gold-soft); }
 .route-admin .login-card .text-link { justify-self: center; color: var(--on-dark); }
 .route-admin .login-card :focus-visible { outline-color: var(--gold-soft); }
