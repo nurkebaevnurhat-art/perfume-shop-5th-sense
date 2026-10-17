@@ -12,7 +12,6 @@ FS.views.home = (function () {
     return list.slice(0, n);
   };
 
-  let timer = null;
   const pad = (n) => String(n).padStart(2, '0');
 
   function heroSlides() {
@@ -54,7 +53,7 @@ FS.views.home = (function () {
               </a>`).join('')}
           </div>
           <div class="hero-caption">
-            <p class="hero-count"><span><span data-hero-index>01</span> / ${pad(slides.length)}</span>${slides.length > 1 ? '<button class="hero-pause" type="button" data-hero-pause aria-pressed="false" aria-label="Остановить смену ароматов"><span aria-hidden="true"></span></button>' : ''}</p>
+            <p class="hero-count"><span><span data-hero-index>01</span> / ${pad(slides.length)}</span>${slides.length > 1 ? '<button class="hero-pause" type="button" data-hero-pause aria-pressed="false" aria-label="Остановить смену ароматов"><svg viewBox="0 0 40 40" aria-hidden="true" focusable="false"><circle class="hp-track" cx="20" cy="20" r="19"/><circle class="hp-arc" data-hero-ring cx="20" cy="20" r="19" pathLength="100"/></svg><span class="hp-icon" aria-hidden="true"></span></button>' : ''}</p>
             <p class="hero-now"><span data-hero-brand>${esc(first.brand)}</span><a data-hero-name href="#product-${first.id}">${esc(first.name)}</a></p>
             <div class="hero-cta">
               <a class="hero-link" href="#catalog">Весь каталог</a>
@@ -155,6 +154,15 @@ FS.views.home = (function () {
     const slides = $$('.slide', hero);
     const list = heroSlides();
     let index = 0;
+    /* Кольцо вокруг кнопки паузы — время до следующего флакона: золотая линия идёт по кругу,
+       дошла — сменился флакон. На паузе, при наведении фокуса, вне экрана линия замирает. */
+    const ring = $('[data-hero-ring]', hero);
+    const restartRing = () => {
+      if (!ring) return;
+      ring.style.animation = 'none';
+      void ring.getBoundingClientRect();
+      ring.style.animation = '';
+    };
     const show = (i) => {
       const prev = index;
       index = (i + slides.length) % slides.length;
@@ -164,6 +172,7 @@ FS.views.home = (function () {
         s.tabIndex = k === index ? 0 : -1;
       });
       const p = list[index];
+      restartRing();
       $('[data-hero-index]', hero).textContent = pad(index + 1);
       $('[data-hero-brand]', hero).textContent = p.brand;
       const name = $('[data-hero-name]', hero);
@@ -178,6 +187,7 @@ FS.views.home = (function () {
     let stopped = reduce;
     let holding = false;
     const pauseBtn = $('[data-hero-pause]', hero);
+    const syncRing = () => { if (pauseBtn) pauseBtn.classList.toggle('is-held', holding || !heroVisible || document.hidden); };
     const setStopped = (on) => {
       stopped = on;
       if (!pauseBtn) return;
@@ -187,14 +197,13 @@ FS.views.home = (function () {
     };
     setStopped(stopped);
     if (pauseBtn) pauseBtn.addEventListener('click', () => setStopped(!stopped), { signal });
-    pin.addEventListener('focusin', (e) => { holding = !e.target.closest('[data-hero-pause]'); }, { signal });
-    pin.addEventListener('focusout', () => { holding = false; }, { signal });
+    // Держим флакон, пока на ссылках героя фокус с клавиатуры; заголовок (фокус после перехода) не считается.
+    pin.addEventListener('focusin', (e) => { holding = e.target.matches('a, button') && !e.target.closest('[data-hero-pause]'); syncRing(); }, { signal });
+    pin.addEventListener('focusout', () => { holding = false; syncRing(); }, { signal });
     pin.addEventListener('touchstart', () => setStopped(true), { passive: true, signal });
-    if (slides.length > 1) {
-      clearInterval(timer);
-      timer = setInterval(() => { if (!stopped && !holding && heroVisible && !document.hidden) show(index + 1); }, 5200);
-      signal.addEventListener('abort', () => clearInterval(timer));
-    }
+    document.addEventListener('visibilitychange', syncRing, { signal });
+    // Флакон меняется, когда линия кольца прошла круг (5,2 с; на паузе она стоит).
+    if (ring) ring.addEventListener('animationend', () => { if (!stopped && !holding && heroVisible && !document.hidden) show(index + 1); else restartRing(); }, { signal });
     if (M.finePointer.matches && !reduce) {
       pin.addEventListener('pointermove', (e) => {
         const r = pin.getBoundingClientRect();
@@ -203,7 +212,10 @@ FS.views.home = (function () {
       }, { signal });
     }
     // Смена флаконов идёт, только пока герой виден на экране.
-    M.scene(() => { heroVisible = hero.getBoundingClientRect().bottom > 0; });
+    M.scene(() => {
+      const v = hero.getBoundingClientRect().bottom > 0;
+      if (v !== heroVisible) { heroVisible = v; syncRing(); }
+    });
 
     /* --- Избранное: активная строка у центра экрана меняет картинку --- */
     const rows = $$('.irow', root);
@@ -246,7 +258,6 @@ FS.views.home = (function () {
     track.addEventListener('scroll', syncBar, { passive: true, signal });
   }
 
-  function unmount() { clearInterval(timer); }
 
-  return { render, mount, unmount, title: () => 'Бутик парфюмерии' };
+  return { render, mount, title: () => 'Бутик парфюмерии' };
 })();

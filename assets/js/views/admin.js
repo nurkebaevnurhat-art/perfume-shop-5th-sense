@@ -58,9 +58,12 @@ FS.views.admin = (function () {
           <img class="login-logo" src="${FS.assetUrl('assets/img/logo-intro.png')}" alt="5th SENSE" width="520" height="962">
           <p class="corner-note">кабинет бутика</p>
           <h1>Вход для сотрудников</h1>
-          <div class="field">
+          <div class="field login-field">
             <label for="admin-password">Пароль</label>
-            <input id="admin-password" type="password" autocomplete="current-password" data-autofocus>
+            <div class="login-pass">
+              <input id="admin-password" type="password" autocomplete="current-password" aria-describedby="admin-password-error" data-autofocus>
+              <button class="login-eye" type="button" data-pass-toggle aria-controls="admin-password" aria-pressed="false">Показать</button>
+            </div>
             <p class="field-error" id="admin-password-error" aria-live="polite"></p>
           </div>
           <button class="btn btn--primary btn--block" type="submit">Войти</button>
@@ -1345,6 +1348,18 @@ FS.views.admin = (function () {
   function mount(el, r, params, signal) {
     root = el;
     fillKassaQr();
+
+    // Вход: «Показать» — пароль видно, чтобы не ошибиться на телефоне.
+    el.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-pass-toggle]');
+      if (!t) return;
+      const input = $('#admin-password', el);
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      t.textContent = show ? 'Скрыть' : 'Показать';
+      t.setAttribute('aria-pressed', String(show));
+      input.focus();
+    }, { signal });
 
     el.addEventListener('submit', async (e) => {
       if (e.target.matches('[data-login]')) {
