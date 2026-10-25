@@ -13,6 +13,16 @@ FS.views.home = (function () {
   };
 
   const pad = (n) => String(n).padStart(2, '0');
+  // «от 13 600 ₸» — самая низкая цена объёма аромата.
+  const tasteFrom = (p) => {
+    const v = Math.min(...p.volumes.map((x) => x.price).filter((x) => x > 0));
+    return Number.isFinite(v) ? `от ${money(v)}` : '';
+  };
+
+  // «Что попробовать первым».
+  function featuredList() {
+    return pick(['baccarat-rouge-540', 'oud-wood', 'santal-33', 'lv-stellar-times', 'tom-ford-ombre-leather', 'byredo-bal-dafrique', 'clive-christian-matsukita', 'creed-green-irish-tweed'], 8);
+  }
 
   function heroSlides() {
     return pick(['baccarat-rouge-540', 'lv-les-sables-roses', 'dior-sauvage-elixir', 'kilian-straight-to-heaven', 'marly-althair'], 5);
@@ -20,7 +30,7 @@ FS.views.home = (function () {
 
   function render() {
     const slides = heroSlides();
-    const featured = pick(['baccarat-rouge-540', 'oud-wood', 'santal-33', 'lv-stellar-times', 'tom-ford-ombre-leather', 'byredo-bal-dafrique', 'clive-christian-matsukita', 'creed-green-irish-tweed'], 8);
+    const featured = featuredList();
     const best = FS.api.filter({ category: 'bestsellers' });
     const fresh = FS.api.filter({ category: 'new', sort: 'new' }).slice(0, 8);
     const first = slides[0];
@@ -77,27 +87,35 @@ FS.views.home = (function () {
         </div>
       </section>
 
-      <section class="index" data-head="light" aria-labelledby="index-title">
-        <div class="index-head">
-          <h2 id="index-title" class="index-title">Что попробовать первым</h2>
+      <section class="taste" data-head="light" aria-labelledby="taste-title" aria-roledescription="карусель" data-taste>
+        <div class="taste-head">
+          <h2 id="taste-title" class="taste-title">Что попробовать первым</h2>
         </div>
-        <div class="index-grid">
-          <div class="index-stack" aria-hidden="true">
-            ${featured.map((p, i) => `<a class="stack-item ${i === 0 ? 'is-active' : ''}" href="#product-${p.id}" tabindex="-1" data-stack="${i}" data-cursor="Смотреть" style="--tint:${tint(p)}">${FS.bottle.media(p, { title: '' })}</a>`).join('')}
+        <div class="taste-stage" style="--bg:${tint(featured[0], 0.6)}">
+          <p class="taste-word" aria-hidden="true">PERFUME</p>
+          <div class="taste-track">
+            ${featured.map((p, i) => `<a class="taste-item" href="#product-${p.id}" data-taste-item="${i}" tabindex="-1" aria-hidden="true" data-cursor="Смотреть">${FS.bottle.media(p, { title: '', eager: i === 0 })}</a>`).join('')}
           </div>
-          <ol class="index-list">
-            ${featured.map((p, i) => `
-              <li class="irow ${i === 0 ? 'is-active' : ''}" data-row="${i}">
-                <a class="irow-img" href="#product-${p.id}" tabindex="-1" aria-hidden="true" data-cursor="Смотреть" style="--tint:${tint(p)}">${FS.bottle.media(p, { title: '' })}</a>
-                <span class="irow-brand">${esc(p.brand)}</span>
-                <a class="irow-name" href="#product-${p.id}">${esc(p.name)}</a>
-                <span class="irow-meta">${esc(p.short)}</span>
-                <span class="irow-actions">
-                  <a class="line-link" href="#product-${p.id}">Смотреть</a>
-                  <button class="line-link line-link--soft" type="button" data-add="${p.id}" data-ml="${FS.api.mainVolume(p).ml}" ${FS.api.mainVolume(p).stock > 0 ? '' : 'disabled'}>В корзину</button>
-                </span>
-              </li>`).join('')}
-          </ol>
+        </div>
+        <div class="taste-bar">
+          <div class="taste-info" aria-live="polite">
+            <p class="taste-brand" data-taste-brand>${esc(featured[0].brand)}</p>
+            <a class="taste-name" href="#product-${featured[0].id}" data-taste-name>${esc(featured[0].name)}</a>
+            <p class="taste-desc" data-taste-desc>${esc(featured[0].short)}</p>
+          </div>
+          <div class="taste-buy">
+            <p class="taste-from" data-taste-from>${tasteFrom(featured[0])}</p>
+            <div class="taste-actions">
+              <button class="buy-main buy-main--sm" type="button" data-add="${featured[0].id}" data-ml="${FS.api.mainVolume(featured[0]).ml}" data-taste-add>В корзину</button>
+              <a class="line-link" href="#product-${featured[0].id}" data-taste-more>Смотреть</a>
+            </div>
+          </div>
+          <div class="taste-nav">
+            <button class="hs-arrow" type="button" data-taste-go="-1" aria-label="Предыдущий аромат">←</button>
+            <p class="taste-count"><span data-taste-index>01</span> / ${pad(featured.length)}</p>
+            <button class="hs-arrow" type="button" data-taste-go="1" aria-label="Следующий аромат">→</button>
+            <button class="hero-pause taste-pause" type="button" data-taste-pause aria-pressed="false" aria-label="Остановить смену ароматов"><svg viewBox="0 0 40 40" aria-hidden="true" focusable="false"><circle class="hp-track" cx="20" cy="20" r="19"/><circle class="hp-arc" data-taste-ring cx="20" cy="20" r="19" pathLength="100"/></svg><span class="hp-icon" aria-hidden="true"></span></button>
+          </div>
         </div>
       </section>
 
@@ -217,27 +235,87 @@ FS.views.home = (function () {
       if (v !== heroVisible) { heroVisible = v; syncRing(); }
     });
 
-    /* --- Избранное: активная строка у центра экрана меняет картинку --- */
-    const rows = $$('.irow', root);
-    const stack = $$('.stack-item', root);
-    let active = 0;
-    const setActive = (i) => {
-      if (i === active) return;
-      active = i;
-      rows.forEach((r, k) => r.classList.toggle('is-active', k === i));
-      stack.forEach((s, k) => { s.classList.toggle('is-active', k === i); });
-    };
-    M.scene((y, h) => {
-      let best = 0;
-      let dist = Infinity;
-      rows.forEach((r, i) => {
-        const b = r.getBoundingClientRect();
-        const d = Math.abs(b.top + b.height / 2 - h * 0.5);
-        if (d < dist) { dist = d; best = i; }
+    /* --- «Что попробовать первым»: флакон в центре крупно, соседние — по бокам.
+       Смена: центральный уменьшается и уходит в сторону, соседний выезжает в центр,
+       фон перетекает в тон аромата. Кольцо на кнопке паузы — время до следующего. --- */
+    const taste = $('[data-taste]', root);
+    const tItems = $$('[data-taste-item]', taste);
+    const tList = featuredList();
+    const tRing = $('[data-taste-ring]', taste);
+    const tPause = $('[data-taste-pause]', taste);
+    let tIndex = 0;
+    let tStopped = reduce;
+    let tHold = false;
+    let tVisible = false;
+    const tRestart = () => { tRing.style.animation = 'none'; void tRing.getBoundingClientRect(); tRing.style.animation = ''; };
+    const tSync = () => tPause.classList.toggle('is-held', tHold || !tVisible || document.hidden);
+    const tPlace = () => {
+      const n = tItems.length;
+      tItems.forEach((el, k) => {
+        let d = (k - tIndex + n) % n;
+        if (d > n / 2) d -= n;
+        el.dataset.pos = d === 0 ? 'center' : d === -1 ? 'prev' : d === 1 ? 'next' : d < 0 ? 'far-prev' : 'far-next';
       });
-      setActive(best);
-    });
-    rows.forEach((r, i) => r.addEventListener('pointerenter', () => setActive(i), { signal }));
+    };
+    const tShow = (i) => {
+      tIndex = (i + tItems.length) % tItems.length;
+      const p = tList[tIndex];
+      tPlace();
+      $('.taste-stage', taste).style.setProperty('--bg', tint(p, 0.6));
+      $('[data-taste-index]', taste).textContent = pad(tIndex + 1);
+      const info = $('.taste-info', taste);
+      info.classList.remove('is-swap'); void info.offsetWidth; info.classList.add('is-swap');
+      $('[data-taste-brand]', taste).textContent = p.brand;
+      const name = $('[data-taste-name]', taste);
+      name.textContent = p.name;
+      name.setAttribute('href', FS.app.href('product-' + p.id));
+      $('[data-taste-more]', taste).setAttribute('href', FS.app.href('product-' + p.id));
+      $('[data-taste-desc]', taste).textContent = p.short || '';
+      $('[data-taste-from]', taste).textContent = tasteFrom(p);
+      const add = $('[data-taste-add]', taste);
+      add.dataset.add = p.id;
+      add.dataset.ml = FS.api.mainVolume(p).ml;
+      tRestart();
+    };
+    const tSetStopped = (on) => {
+      tStopped = on;
+      tPause.setAttribute('aria-pressed', String(on));
+      tPause.setAttribute('aria-label', on ? 'Продолжить смену ароматов' : 'Остановить смену ароматов');
+      tPause.classList.toggle('is-paused', on);
+    };
+    tPlace();
+    tSetStopped(tStopped);
+    tPause.addEventListener('click', () => tSetStopped(!tStopped), { signal });
+    taste.addEventListener('click', (e) => {
+      // После листания пальцем «клик» по флакону не открывает страницу.
+      if (swiped && e.target.closest('.taste-stage')) { swiped = false; e.preventDefault(); return; }
+      const go = e.target.closest('[data-taste-go]');
+      if (go) { tShow(tIndex + Number(go.dataset.tasteGo)); return; }
+      // Нажали на соседний флакон — он выезжает в центр (а не открывает страницу).
+      const item = e.target.closest('[data-taste-item]');
+      if (item && item.dataset.pos !== 'center') { e.preventDefault(); tShow(Number(item.dataset.tasteItem)); }
+    }, { signal });
+    tRing.addEventListener('animationend', () => { if (!tStopped && !tHold && tVisible && !document.hidden) tShow(tIndex + 1); else tRestart(); }, { signal });
+    // Пока покупатель читает или наводит курсор на блок, смена стоит.
+    taste.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') { tHold = true; tSync(); } }, { signal });
+    taste.addEventListener('pointerleave', () => { tHold = false; tSync(); }, { signal });
+    taste.addEventListener('focusin', (e) => { tHold = !e.target.closest('[data-taste-pause]'); tSync(); }, { signal });
+    taste.addEventListener('focusout', () => { tHold = false; tSync(); }, { signal });
+    document.addEventListener('visibilitychange', tSync, { signal });
+    // Листание пальцем по сцене.
+    const stage = $('.taste-stage', taste);
+    let sx = null;
+    let swiped = false;
+    stage.addEventListener('pointerdown', (e) => { sx = e.clientX; }, { signal });
+    stage.addEventListener('pointerup', (e) => {
+      if (sx == null) return;
+      const dx = e.clientX - sx; sx = null;
+      if (Math.abs(dx) > 40) { swiped = true; tShow(tIndex + (dx < 0 ? 1 : -1)); if (e.pointerType !== 'mouse') tSetStopped(true); }
+    }, { signal });
+    const tObs = new IntersectionObserver(([en]) => { tVisible = en.isIntersecting; tSync(); }, { threshold: 0.35 });
+    tObs.observe(stage);
+    signal.addEventListener('abort', () => tObs.disconnect());
+    tSync();
 
     /* --- Бестселлеры: обычная лента — листают пальцем или стрелками, вертикальную прокрутку не перехватываем --- */
     const hs = $('.hscroll', root);
