@@ -1587,3 +1587,5 @@ h1[tabindex="-1"]:focus { outline: none; }
 .volume { border-radius: 14px; }
 .stepper { border-radius: 999px; overflow: hidden; }
 .field input, .field textarea, .field select, .option { border-radius: 12px; }
+/* Поле пароля на входе в кабинет — одна линия снизу: без скругления, иначе линия загибается. */
+.route-admin .login-pass input { border-radius: 0; }
