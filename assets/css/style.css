@@ -1574,3 +1574,16 @@ h1[tabindex="-1"]:focus { outline: none; }
   .taste-stage, .taste-item { transition: none; }
   .taste-info.is-swap { animation: none; }
 }
+
+/* ---------- Мягкие углы (вариант Б, выбор владельца) ----------
+   Фото ароматов, сцена карусели и миниатюры — со скруглёнными углами; стрелки и главная
+   кнопка «В корзину» — круглые. Фото на странице аромата во всю ширину остаются без скругления. */
+.pcard-media { border-radius: 22px; }
+.taste-stage { border-radius: 28px; }
+.menu-shots, .menu-shot-wrap { border-radius: 22px; overflow: hidden; }
+.cart-thumb, .summary-thumb, .search-thumb { border-radius: 12px; overflow: hidden; }
+.hs-arrow, .buy-main { border-radius: 999px; }
+/* Выбор объёма и количество — тоже со скруглёнными углами, в одном стиле с кнопкой. */
+.volume { border-radius: 14px; }
+.stepper { border-radius: 999px; overflow: hidden; }
+.field input, .field textarea, .field select, .option { border-radius: 12px; }
