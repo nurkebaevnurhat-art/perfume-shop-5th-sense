@@ -29,10 +29,10 @@ FS.views.home = (function () {
   }
 
   function render() {
-    const slides = heroSlides();
+    // Первый экран спокойный: один флакон, без смены слайдов (владелец любит минимализм).
+    const slides = heroSlides().slice(0, 1);
     const featured = featuredList();
     const best = FS.api.filter({ category: 'bestsellers' });
-    const fresh = FS.api.filter({ category: 'new', sort: 'new' }).slice(0, 8);
     const first = slides[0];
 
     FS.ui.setStructuredData({
@@ -44,14 +44,6 @@ FS.views.home = (function () {
       telephone: FS.config.contacts.phone
     });
 
-    const family = (f, i) => {
-      const list = FS.api.visible().filter((p) => p.family === f.id);
-      return `<a class="fam" href="#family-${f.id}" style="--i:${i}">
-          <span class="fam-name">${esc(f.name)}</span>
-          <span class="fam-notes">${esc(f.notes)}</span>
-          <span class="fam-count">${list.length} ${plural(list.length, 'аромат', 'аромата', 'ароматов')}</span>
-        </a>`;
-    };
 
     return `
       <section class="hero" data-head="light" aria-labelledby="hero-title">
@@ -63,11 +55,8 @@ FS.views.home = (function () {
               </a>`).join('')}
           </div>
           <div class="hero-caption">
-            <p class="hero-count"><span><span data-hero-index>01</span> / ${pad(slides.length)}</span>${slides.length > 1 ? '<button class="hero-pause" type="button" data-hero-pause aria-pressed="false" aria-label="Остановить смену ароматов"><svg viewBox="0 0 40 40" aria-hidden="true" focusable="false"><circle class="hp-track" cx="20" cy="20" r="19"/><circle class="hp-arc" data-hero-ring cx="20" cy="20" r="19" pathLength="100"/></svg><span class="hp-icon" aria-hidden="true"></span></button>' : ''}</p>
-            <p class="hero-now"><span data-hero-brand>${esc(first.brand)}</span><a data-hero-name href="#product-${first.id}">${esc(first.name)}</a></p>
             <div class="hero-cta">
               <a class="hero-link" href="#catalog">Весь каталог</a>
-              <a class="hero-link" href="#aromaty">Ароматы по семействам</a>
             </div>
           </div>
           <h1 id="hero-title" class="hero-mark"><span class="visually-hidden">5th SENSE Perfume Bar, бутик парфюмерии, основан в 2025 году</span>${wordmark('wordmark--hero')}</h1>
@@ -77,13 +66,7 @@ FS.views.home = (function () {
       <section class="story" data-head="dark" aria-labelledby="story-title">
         <div class="story-inner">
           <h2 id="story-title" class="visually-hidden">О бутике 5th SENSE</h2>
-          <p class="story-text">5th SENSE — парфюмерный бар. Селективные и нишевые ароматы можно попробовать в бутике и взять на распив от 5 мл, а понравившийся — заказать полным флаконом.</p>
-          <ul class="services">
-            <li><h3>Подбор аромата</h3><p>Расскажите, что вам нравилось раньше, — консультант предложит несколько вариантов.</p></li>
-            <li><h3>Распив 5, 10, 15 и 20 мл</h3><p>Хватит, чтобы поносить аромат неделю и решить, нужен ли флакон.</p></li>
-            <li><h3>Подарки за покупки</h3><p>Каждая ${FS.config.gifts.every}-я покупка — с подарком. <a class="text-link" href="#gifts">Как это работает</a></p></li>
-            <li><h3>Только оригиналы</h3><p>Отливаем из оригинальных флаконов. Документы на товар покажем по запросу.</p></li>
-          </ul>
+          <p class="story-text">Парфюмерный бар в Актобе: селективные и нишевые ароматы на распив от 5 мл. Каждая ${FS.config.gifts.every}-я покупка — с подарком.</p>
         </div>
       </section>
 
@@ -137,20 +120,8 @@ FS.views.home = (function () {
       </section>
 
       <section class="families" id="aromaty" data-head="light" aria-labelledby="fam-title">
-        <div class="families-head">
-          <h2 id="fam-title">Ароматы по семействам</h2>
-          <p class="families-lead">Знаете, какие ноты вам нравятся? Начните с семейства.</p>
-        </div>
-        <div class="fam-list">${FS.families.map(family).join('')}</div>
-      </section>
-
-      <section class="arrivals" data-head="light" aria-labelledby="new-title">
-        <div class="arrivals-head">
-          <h2 id="new-title">Новинки</h2>
-          <p>Что недавно появилось в бутике.</p>
-          <a class="hero-link" href="#catalog-new">Все новинки</a>
-        </div>
-        <div class="shelf-grid shelf-grid--four">${fresh.map((p, i) => card(p, { index: i % 4 })).join('')}</div>
+        <h2 id="fam-title" class="families-title">Ароматы по семействам</h2>
+        <nav class="fam-row" aria-label="Семейства ароматов">${FS.families.filter((f) => FS.api.visible().some((p) => p.family === f.id)).map((f) => `<a href="#family-${f.id}">${esc(f.name)}</a>`).join('')}</nav>
       </section>
 
       <section class="finale" data-head="dark" aria-labelledby="finale-title">
@@ -169,59 +140,7 @@ FS.views.home = (function () {
     /* --- Герой: смена флаконов, параллакс, сжатие кадра при прокрутке --- */
     const hero = $('.hero', root);
     const pin = $('.hero-pin', hero);
-    const slides = $$('.slide', hero);
-    const list = heroSlides();
-    let index = 0;
-    /* Кольцо вокруг кнопки паузы — время до следующего флакона: золотая линия идёт по кругу,
-       дошла — сменился флакон. На паузе, при наведении фокуса, вне экрана линия замирает. */
-    const ring = $('[data-hero-ring]', hero);
-    const restartRing = () => {
-      if (!ring) return;
-      ring.style.animation = 'none';
-      void ring.getBoundingClientRect();
-      ring.style.animation = '';
-    };
-    const show = (i) => {
-      const prev = index;
-      index = (i + slides.length) % slides.length;
-      slides.forEach((s, k) => {
-        s.classList.toggle('is-active', k === index);
-        s.classList.toggle('is-prev', k === prev && k !== index);
-        s.tabIndex = k === index ? 0 : -1;
-      });
-      const p = list[index];
-      restartRing();
-      $('[data-hero-index]', hero).textContent = pad(index + 1);
-      $('[data-hero-brand]', hero).textContent = p.brand;
-      const name = $('[data-hero-name]', hero);
-      name.textContent = p.name;
-      name.setAttribute('href', `#product-${p.id}`);
-      hero.querySelector('.hero-now').classList.remove('is-swap');
-      void hero.offsetWidth;
-      hero.querySelector('.hero-now').classList.add('is-swap');
-    };
-    let heroVisible = true;
-    // Смену флаконов можно остановить: кнопкой «пауза», касанием или переходом по ссылкам с клавиатуры.
-    let stopped = reduce;
-    let holding = false;
-    const pauseBtn = $('[data-hero-pause]', hero);
-    const syncRing = () => { if (pauseBtn) pauseBtn.classList.toggle('is-held', holding || !heroVisible || document.hidden); };
-    const setStopped = (on) => {
-      stopped = on;
-      if (!pauseBtn) return;
-      pauseBtn.setAttribute('aria-pressed', String(on));
-      pauseBtn.setAttribute('aria-label', on ? 'Продолжить смену ароматов' : 'Остановить смену ароматов');
-      pauseBtn.classList.toggle('is-paused', on);
-    };
-    setStopped(stopped);
-    if (pauseBtn) pauseBtn.addEventListener('click', () => setStopped(!stopped), { signal });
-    // Держим флакон, пока на ссылках героя фокус с клавиатуры; заголовок (фокус после перехода) не считается.
-    pin.addEventListener('focusin', (e) => { holding = e.target.matches('a, button') && !e.target.closest('[data-hero-pause]'); syncRing(); }, { signal });
-    pin.addEventListener('focusout', () => { holding = false; syncRing(); }, { signal });
-    pin.addEventListener('touchstart', () => setStopped(true), { passive: true, signal });
-    document.addEventListener('visibilitychange', syncRing, { signal });
-    // Флакон меняется, когда линия кольца прошла круг (5,2 с; на паузе она стоит).
-    if (ring) ring.addEventListener('animationend', () => { if (!stopped && !holding && heroVisible && !document.hidden) show(index + 1); else restartRing(); }, { signal });
+    // Первый экран без смены флаконов: один флакон, лёгкий параллакс за курсором.
     if (M.finePointer.matches && !reduce) {
       pin.addEventListener('pointermove', (e) => {
         const r = pin.getBoundingClientRect();
@@ -229,11 +148,6 @@ FS.views.home = (function () {
         pin.style.setProperty('--my', ((e.clientY - r.top) / r.height - 0.5).toFixed(3));
       }, { signal });
     }
-    // Смена флаконов идёт, только пока герой виден на экране.
-    M.scene(() => {
-      const v = hero.getBoundingClientRect().bottom > 0;
-      if (v !== heroVisible) { heroVisible = v; syncRing(); }
-    });
 
     /* --- «Что попробовать первым»: флакон в центре крупно, соседние — по бокам.
        Смена: центральный уменьшается и уходит в сторону, соседний выезжает в центр,

@@ -134,20 +134,12 @@ FS.ui = (function () {
     $('#site-footer').innerHTML = `
       <div class="footer-top">
         <div class="footer-col">
-          <h2>Контакты</h2>
+          <h2>Бутик</h2>
           <p class="selectable">${esc(c.phone)}</p>
-          <p class="selectable">${esc(c.email)}</p>
-          <p>${esc(c.hours)}</p>
-        </div>
-        <div class="footer-col">
-          <h2>Соцсети</h2>
           <p class="selectable">${esc(c.instagram)}</p>
           <p>${esc(c.address)}</p>
+          <p>${esc(c.hours)}</p>
         </div>
-        <nav class="footer-col" aria-label="Коллекция">
-          <h2>Коллекция</h2>
-          ${FS.categories.map((cat) => `<a href="#catalog-${cat.id}">${esc(cat.name)}</a>`).join('')}
-        </nav>
         <nav class="footer-col" aria-label="Покупателям">
           <h2>Покупателям</h2>
           <a href="#delivery">Доставка и оплата</a>
@@ -155,7 +147,6 @@ FS.ui = (function () {
           <a href="#returns">Возврат и обмен</a>
           <a href="#terms">Условия заказа</a>
           <a href="#privacy">Политика конфиденциальности</a>
-          <a href="#favorites">Избранное</a>
           <a href="#admin">Вход для сотрудников</a>
           <button class="install-btn" type="button" data-action="install">Установить приложение</button>
         </nav>
@@ -171,10 +162,7 @@ FS.ui = (function () {
     const v = FS.api.mainVolume(p);
     const fav = FS.store.isFavorite(p.id);
     const available = v.stock > 0;
-    const conc = FS.concentrationLabel[p.concentration] || '';
-    // Ароматы на распив: «от 5 мл».
-    const minMl = Math.min(...p.volumes.map((x) => x.ml));
-    const meta = p.type === 'set' ? volumeLabel(v) : `${conc}, распив от ${minMl} мл`;
+    // Минимализм (решение владельца): бренд, название, цена «от», «В корзину». Описание — на странице аромата.
     // Самая низкая цена, чтобы сравнивать ароматы, не открывая каждый.
     const fromPrice = Math.min(...p.volumes.map((x) => x.price).filter((x) => x > 0));
     return `
@@ -186,13 +174,10 @@ FS.ui = (function () {
         <div class="pcard-body">
           <p class="pcard-brand">${esc(p.brand)}</p>
           <h3 class="pcard-name"><a href="#product-${p.id}">${esc(p.name)}</a></h3>
-          <p class="pcard-desc">${esc(p.short)}</p>
-          <p class="pcard-meta">${esc(meta)}</p>
           ${Number.isFinite(fromPrice) ? `<p class="pcard-from">от ${money(fromPrice)}</p>` : ''}
           <div class="pcard-price">
             <div class="pcard-actions">
               <button class="line-link" type="button" data-add="${p.id}" data-ml="${v.ml}" ${available ? '' : 'disabled'}>${available ? 'В корзину' : 'Нет в наличии'}</button>
-              <a class="line-link line-link--soft" href="#product-${p.id}">Смотреть</a>
             </div>
           </div>
         </div>
