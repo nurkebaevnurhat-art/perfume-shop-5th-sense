@@ -328,18 +328,13 @@ h1[tabindex="-1"]:focus { outline: none; }
 .slide-img { position: relative; height: 70%; aspect-ratio: 3 / 4; max-width: 86vw; }
 .slide-img img, .slide-img svg { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }
 .hero-caption { position: absolute; z-index: 3; left: var(--gutter); right: var(--gutter); bottom: calc(17.4vw + 34px); display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: end; gap: 24px; }
-.hero-count { font-family: var(--ff-serif); font-size: 24px; font-variant-numeric: lining-nums tabular-nums; color: var(--gold-deep); }
-.hero-now { display: grid; gap: 4px; }
-.hero-now span { font-size: 12.5px; letter-spacing: 0.01em; color: var(--ink-soft); }
-.hero-now a { max-width: 24vw; font-family: var(--ff-serif); font-size: clamp(24px, 2vw, 32px); line-height: 1.02; }
-.hero-now.is-swap > * { animation: swapIn 0.9s var(--ease); }
 @keyframes swapIn { from { opacity: 0; transform: translateY(12px); } }
 /* Компактные действия у правого края, не заходят на флакон */
 .hero-cta { display: flex; flex-direction: column; align-items: flex-end; gap: 16px; }
 .hero-link { font-size: 11.5px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; line-height: 1; padding-bottom: 5px; border-bottom: 1px solid currentColor; white-space: nowrap; transition: color 0.4s, border-color 0.4s; }
 .hero-link:hover { color: var(--gold-deep); }
 [data-head="dark"] .hero-link:hover { color: var(--gold-soft); }
-.hscroll-head .hero-link, .arrivals-head .hero-link { align-self: end; margin-bottom: 6px; }
+.hscroll-head .hero-link { align-self: end; margin-bottom: 6px; }
 .hero-mark { position: absolute; z-index: 3; left: var(--gutter); right: var(--gutter); bottom: 3vh; padding-bottom: 14px; margin-bottom: -14px; color: var(--gold-deep); overflow: hidden; line-height: 0; }
 /* Логотип как буквы вывески: тёмная античная бронза, светлая кромка сверху и мягкая тень на стене */
 .wordmark--hero { transform: translate3d(0, 102%, 0); letter-spacing: 0.03em;
@@ -352,12 +347,8 @@ h1[tabindex="-1"]:focus { outline: none; }
 
 /* История бренда */
 .story { position: relative; background: var(--ink); color: var(--on-dark); }
-.story-inner { width: min(100% - 2 * var(--gutter), var(--max)); margin-inline: auto; padding-block: clamp(72px, 10vw, 150px) clamp(64px, 8vw, 120px); display: grid; gap: clamp(32px, 5vw, 64px); }
+.story-inner { width: min(100% - 2 * var(--gutter), var(--max)); margin-inline: auto; padding-block: clamp(56px, 7vw, 100px) clamp(56px, 7vw, 100px); display: grid; gap: clamp(32px, 5vw, 64px); }
 .story-text { font-family: var(--ff-serif); font-size: clamp(26px, 3vw, 46px); line-height: 1.18; letter-spacing: 0.005em; max-width: 30ch; }
-.services { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 28px; }
-.services li { display: grid; gap: 8px; padding-top: 18px; border-top: 1px solid var(--line-gold); }
-.services h3 { font-family: var(--ff-serif); font-size: 26px; letter-spacing: 0.02em; }
-.services p { font-size: 14.5px; color: var(--on-dark-soft); }
 
 /* Индекс избранных ароматов */
 
@@ -376,24 +367,14 @@ h1[tabindex="-1"]:focus { outline: none; }
 .hscroll-bar span { display: block; height: 100%; background: var(--gold-soft); transform-origin: left; transform: scaleX(0); }
 
 /* Семейства ароматов */
-.families { position: relative; background: var(--paper-2); color: var(--ink); padding-block: clamp(80px, 10vw, 150px); overflow: hidden; }
-.families-head { width: min(100% - 2 * var(--gutter), var(--max)); margin-inline: auto; display: grid; gap: 16px; margin-bottom: 40px; }
-.families-lead { color: var(--ink-soft); }
-.families-head h2 { font-family: var(--ff-serif); font-size: clamp(40px, 5.6vw, 96px); line-height: 0.95; }
-.families-lead { max-width: 52ch; }
-.fam-list { width: min(100% - 2 * var(--gutter), var(--max)); margin-inline: auto; border-bottom: 1px solid var(--line-strong); }
-.fam { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto; align-items: baseline; gap: 20px; padding: 18px 0; border-top: 1px solid var(--line-strong); transition: color 0.5s var(--ease), padding 0.7s var(--ease); }
-.fam-name { font-family: var(--ff-serif); font-size: clamp(32px, 4.6vw, 80px); line-height: 1; }
-.fam-notes { font-size: 14px; color: var(--ink-soft); }
-.fam-count { font-size: 13px; letter-spacing: 0.01em; color: var(--ink-soft); white-space: nowrap; }
-.fam:hover { color: var(--gold-deep); padding-left: 16px; }
+.families { position: relative; background: var(--paper-2); color: var(--ink); padding-block: clamp(48px, 6vw, 90px); }
+/* Семейства — одной строкой названий (минимализм): нажал — открылся каталог семейства. */
+.families-title { width: min(100% - 2 * var(--gutter), var(--max)); margin: 0 auto 20px; font-family: var(--ff-serif); font-size: clamp(28px, 3vw, 44px); line-height: 1.05; }
+.fam-row { width: min(100% - 2 * var(--gutter), var(--max)); margin-inline: auto; display: flex; flex-wrap: wrap; gap: 10px 28px; }
+.fam-row a { font-family: var(--ff-serif); font-size: clamp(20px, 2vw, 28px); line-height: 1.3; border-bottom: 1px solid var(--line-strong); padding-bottom: 2px; transition: color 0.3s, border-color 0.3s; }
+.fam-row a:hover { color: var(--gold-deep); border-color: var(--gold-deep); }
 
 /* Новинки */
-.arrivals { background: var(--paper); padding-block: clamp(72px, 10vw, 140px); }
-.arrivals-head { width: min(100% - 2 * var(--gutter), var(--max)); margin: 0 auto clamp(28px, 4vw, 48px); display: flex; flex-wrap: wrap; align-items: end; gap: 12px 32px; }
-.arrivals-head h2 { font-family: var(--ff-serif); font-size: clamp(44px, 6.4vw, 110px); line-height: 0.9; }
-.arrivals-head p { flex: 1 1 240px; color: var(--ink-soft); max-width: 36ch; }
-.arrivals .shelf-grid { width: min(100% - 2 * var(--gutter), var(--max)); margin-inline: auto; }
 
 /* Финал */
 .finale { background: radial-gradient(ellipse 60% 70% at 50% 40%, #1f1a14 0%, var(--ink) 70%); color: var(--on-dark); display: grid; justify-items: center; text-align: center; gap: 24px; padding: clamp(96px, 14vw, 200px) var(--gutter); }
@@ -426,8 +407,6 @@ h1[tabindex="-1"]:focus { outline: none; }
 .pcard-name { font-family: var(--ff-serif); font-size: clamp(22px, 1.8vw, 28px); line-height: 1.04; }
 .pcard-name a { background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat; transition: background-size 0.7s var(--ease); }
 .pcard-name a:hover { background-size: 100% 1px; }
-.pcard-desc { font-size: 14px; color: var(--ink-soft); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.pcard-meta { font-size: 12.5px; color: var(--ink-soft); }
 .pcard-price { margin-top: auto; padding-top: 10px; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 10px; border-top: 1px solid var(--line); }
 .price { font-size: 17px; font-weight: 500; white-space: nowrap; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
 .pcard-actions { display: flex; align-items: center; gap: 18px; }
@@ -454,7 +433,6 @@ h1[tabindex="-1"]:focus { outline: none; }
 .pcard--wide .pcard-name { font-size: clamp(28px, 2.6vw, 40px); }
 
 /* Карточки на тёмном фоне */
-[data-head="dark"] .pcard-desc, [data-head="dark"] .pcard-meta { color: var(--on-dark-soft); }
 [data-head="dark"] .pcard-brand { color: var(--gold-soft); }
 [data-head="dark"] .pcard-price { border-color: var(--line-dark); }
 [data-head="dark"] .fav-btn { color: var(--ink); }
@@ -778,7 +756,6 @@ h1[tabindex="-1"]:focus { outline: none; }
 @media (max-width: 1180px) {
   .shelf-grid--four { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .footer-top { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .services { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 1000px) {
@@ -786,11 +763,8 @@ h1[tabindex="-1"]:focus { outline: none; }
   .hl--wide { display: none; }
   .hero-caption { grid-template-columns: auto minmax(0, 1fr); }
   .hero-cta { grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: flex-start; gap: 22px; }
-  .hero-now a { max-width: none; }
   .menu-grid { grid-template-columns: minmax(0, 1fr); }
   .menu-shots, .menu-logo { display: none; }
-  .fam { grid-template-columns: minmax(0, 1fr) auto; }
-  .fam-notes { grid-column: 1 / -1; grid-row: 2; }
   .catalog { grid-template-columns: minmax(0, 1fr); }
   .filters-open { display: inline-flex; }
   .filters { position: fixed; z-index: 70; inset: 0 auto 0 0; top: 0; width: min(380px, 92vw); max-height: none; height: 100%; padding: calc(20px + env(safe-area-inset-top, 0px)) 24px calc(24px + env(safe-area-inset-bottom, 0px)); background: var(--paper); transform: translateX(-104%); visibility: hidden; transition: transform 0.7s var(--ease), visibility 0s linear 0.7s; align-content: start; }
@@ -818,23 +792,17 @@ h1[tabindex="-1"]:focus { outline: none; }
   .slide { --gy: 38%; }
   .slide-img { height: 58%; margin-bottom: 14vh; }
   .hero-caption { bottom: calc(18vw + 34px); gap: 12px 16px; }
-  .hero-now a { font-size: 22px; }
   .hero-cta { flex-wrap: wrap; gap: 12px 18px; }
   .hero-link { letter-spacing: 0.12em; }
   .story-text { font-size: clamp(24px, 6.6vw, 32px); }
-  .services { grid-template-columns: minmax(0, 1fr); }
   .shelf-grid, .shelf-grid--four { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 12px; }
   .pcard--wide { grid-column: span 2; }
-  .pcard-desc { display: none; }
   .pcard-name { font-size: 20px; }
   .price:not(.price--lg) { font-size: 15px; }
   .pcard-price { flex-direction: column; align-items: flex-start; gap: 4px; }
   .pcard-actions { gap: 14px; }
   .line-link { letter-spacing: 0.12em; }
   .hscroll-track > .pcard { flex-basis: 72vw; }
-  .fam { grid-template-columns: minmax(0, 1fr); gap: 6px 12px; }
-  .fam-count { grid-column: 1; }
-  .fam-name { font-size: 32px; }
   .page-head h1 { font-size: clamp(36px, 10.6vw, 64px); }
   .field-grid { grid-template-columns: minmax(0, 1fr); }
   .footer-top { grid-template-columns: minmax(0, 1fr); gap: 28px; }
@@ -850,7 +818,6 @@ h1[tabindex="-1"]:focus { outline: none; }
   .search-form input { font-size: 20px; }
   .hero-cta { gap: 12px 14px; }
   .hero-link { font-size: 10px; letter-spacing: 0.07em; }
-  .hero-count { display: none; }
   .hero-caption { grid-template-columns: minmax(0, 1fr); }
   .buy-row { flex-wrap: wrap; }
   .buy-row .pill--grow { order: 3; flex-basis: 100%; }
@@ -1539,7 +1506,6 @@ h1[tabindex="-1"]:focus { outline: none; }
 .hs-arrow:disabled { opacity: 0.3; cursor: default; }
 .hscroll-nav .hero-link { margin-left: 8px; }
 /* Пауза смены флаконов на первом экране */
-.hero-count { display: flex; align-items: center; gap: 12px; }
 .hero-pause { position: relative; flex: none; width: 38px; height: 38px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--ink); cursor: pointer; display: inline-grid; place-items: center; -webkit-tap-highlight-color: transparent; }
 .hero-pause svg { position: absolute; inset: 3px; width: 32px; height: 32px; transform: rotate(-90deg); overflow: visible; }
 .hero-pause circle { fill: none; }
