@@ -59,7 +59,7 @@ FS.views.kassa = (function () {
       <div class="ks-pin ${wrong ? 'is-wrong' : ''} ${shown !== 'pin' ? 'is-enter' : ''}">
         <img class="ks-pin-logo" src="${FS.assetUrl('assets/img/logo-intro.png')}" alt="5th SENSE" width="520" height="962" decoding="async">
         <p class="ks-pin-kicker">Касса бутика</p>
-        <h2 class="ks-pin-title">Введите PIN-код</h2>
+        <h1 class="ks-pin-title">Введите PIN-код</h1>
         <div class="ks-dots" role="status" aria-label="Введено цифр: ${pin.length}">${Array.from({ length: Math.max(4, pin.length) }, (_, i) => `<span class="${i < pin.length ? 'is-on' : ''}"></span>`).join('')}</div>
         <p class="ks-error ks-pin-error" role="alert">${esc(error)}</p>
         <div class="ks-keypad">

@@ -6,7 +6,9 @@
 window.FS = window.FS || {};
 
 FS.importer = (function () {
-  const SHEETJS = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  const SHEETJS = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+  // Отпечаток файла (SRI): подменённый на CDN код браузер не запустит. Обновили версию — пересчитайте.
+  const SHEETJS_SRI = 'sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw';
   let loading = null;
 
   function lib() {
@@ -15,6 +17,8 @@ FS.importer = (function () {
       loading = new Promise((resolve, reject) => {
         const s = document.createElement('script');
         s.src = SHEETJS;
+        s.integrity = SHEETJS_SRI;
+        s.crossOrigin = 'anonymous';
         s.onload = () => resolve(window.XLSX);
         s.onerror = () => { loading = null; reject(new Error('Не удалось загрузить модуль для таблиц. Проверьте интернет.')); };
         document.head.appendChild(s);

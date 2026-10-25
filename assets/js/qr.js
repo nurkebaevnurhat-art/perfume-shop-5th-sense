@@ -5,6 +5,8 @@ window.FS = window.FS || {};
 
 FS.qr = (function () {
   const LIB = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
+  // Отпечаток файла (SRI): если на CDN подменят код, браузер его не запустит. Обновили версию — пересчитайте.
+  const LIB_SRI = 'sha384-8FWZA6BGMXhsfO+BLtrJK0We6gg5o1JyO8xQm6peWDEUs17ACA5ziE/NIAkl9z2k';
   let loading = null;
 
   function lib() {
@@ -13,6 +15,8 @@ FS.qr = (function () {
       loading = new Promise((resolve, reject) => {
         const s = document.createElement('script');
         s.src = LIB;
+        s.integrity = LIB_SRI;
+        s.crossOrigin = 'anonymous';
         s.onload = () => resolve(window.qrcode);
         s.onerror = () => { loading = null; reject(new Error('Не удалось загрузить QR-код. Проверьте интернет.')); };
         document.head.appendChild(s);

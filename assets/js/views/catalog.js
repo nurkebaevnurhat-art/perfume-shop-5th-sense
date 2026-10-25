@@ -204,6 +204,7 @@ FS.views.catalog = (function () {
         <aside class="filters" id="catalog-filters" aria-label="Фильтры">${filtersMarkup()}</aside>
         <div class="filters-scrim" data-filters-toggle aria-hidden="true"></div>
         <div class="catalog-main">
+          <h2 class="visually-hidden">Ароматы</h2>
           ${brandStrip()}
           <div class="toolbar">
             <label class="toolbar-search">

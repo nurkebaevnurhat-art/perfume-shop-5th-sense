@@ -1589,3 +1589,11 @@ h1[tabindex="-1"]:focus { outline: none; }
 .field input, .field textarea, .field select, .option { border-radius: 12px; }
 /* Поле пароля на входе в кабинет — одна линия снизу: без скругления, иначе линия загибается. */
 .route-admin .login-pass input { border-radius: 0; }
+
+/* Длинные слова и адреса (например, ссылка или адрес без пробелов) переносятся, а не раздвигают страницу. */
+.info > section, .info section > *, .info-list > div > * { min-width: 0; }
+.info h2 { font-size: clamp(28px, 8.4vw, 38px); }
+.info-list dd, .option-note, .footer-col p { overflow-wrap: anywhere; }
+/* Текстовые ссылки-действия и «хлебные крошки» — не меньше 24 px по высоте (удобно нажимать пальцем, WCAG 2.5.8). */
+.hero-link { padding-top: 7px; }
+.crumbs a { display: inline-block; padding-block: 4px; }
