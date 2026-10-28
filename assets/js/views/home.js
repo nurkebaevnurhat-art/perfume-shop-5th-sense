@@ -45,6 +45,15 @@ FS.views.home = (function () {
     });
 
 
+    const family = (f, i) => {
+      const list = FS.api.visible().filter((p) => p.family === f.id);
+      return `<a class="fam" href="#family-${f.id}" style="--i:${i}">
+          <span class="fam-name">${esc(f.name)}</span>
+          <span class="fam-notes">${esc(f.notes)}</span>
+          <span class="fam-count">${list.length} ${plural(list.length, 'аромат', 'аромата', 'ароматов')}</span>
+        </a>`;
+    };
+
     return `
       <section class="hero" data-head="light" aria-labelledby="hero-title">
         <div class="hero-pin">
@@ -66,7 +75,13 @@ FS.views.home = (function () {
       <section class="story" data-head="dark" aria-labelledby="story-title">
         <div class="story-inner">
           <h2 id="story-title" class="visually-hidden">О бутике 5th SENSE</h2>
-          <p class="story-text">Парфюмерный бар в Актобе: селективные и нишевые ароматы на распив от 5 мл. Каждая ${FS.config.gifts.every}-я покупка — с подарком.</p>
+          <p class="story-text">5th SENSE — парфюмерный бар. Селективные и нишевые ароматы можно попробовать в бутике и взять на распив от 5 мл, а понравившийся — заказать полным флаконом.</p>
+          <ul class="services">
+            <li><h3>Подбор аромата</h3><p>Расскажите, что вам нравилось раньше, — консультант предложит несколько вариантов.</p></li>
+            <li><h3>Распив 5, 10, 15 и 20 мл</h3><p>Хватит, чтобы поносить аромат неделю и решить, нужен ли флакон.</p></li>
+            <li><h3>Подарки за покупки</h3><p>Каждая ${FS.config.gifts.every}-я покупка — с подарком. <a class="text-link" href="#gifts">Как это работает</a></p></li>
+            <li><h3>Только оригиналы</h3><p>Отливаем из оригинальных флаконов. Документы на товар покажем по запросу.</p></li>
+          </ul>
         </div>
       </section>
 
@@ -120,8 +135,11 @@ FS.views.home = (function () {
       </section>
 
       <section class="families" id="aromaty" data-head="light" aria-labelledby="fam-title">
-        <h2 id="fam-title" class="families-title">Ароматы по семействам</h2>
-        <nav class="fam-row" aria-label="Семейства ароматов">${FS.families.filter((f) => FS.api.visible().some((p) => p.family === f.id)).map((f) => `<a href="#family-${f.id}">${esc(f.name)}</a>`).join('')}</nav>
+        <div class="families-head">
+          <h2 id="fam-title">Ароматы по семействам</h2>
+          <p class="families-lead">Знаете, какие ноты вам нравятся? Начните с семейства.</p>
+        </div>
+        <div class="fam-list">${FS.families.map(family).join('')}</div>
       </section>
 
       <section class="finale" data-head="dark" aria-labelledby="finale-title">

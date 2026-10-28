@@ -347,8 +347,12 @@ h1[tabindex="-1"]:focus { outline: none; }
 
 /* История бренда */
 .story { position: relative; background: var(--ink); color: var(--on-dark); }
-.story-inner { width: min(100% - 2 * var(--gutter), var(--max)); margin-inline: auto; padding-block: clamp(56px, 7vw, 100px) clamp(56px, 7vw, 100px); display: grid; gap: clamp(32px, 5vw, 64px); }
+.story-inner { width: min(100% - 2 * var(--gutter), var(--max)); margin-inline: auto; padding-block: clamp(72px, 10vw, 150px) clamp(64px, 8vw, 120px); display: grid; gap: clamp(32px, 5vw, 64px); }
 .story-text { font-family: var(--ff-serif); font-size: clamp(26px, 3vw, 46px); line-height: 1.18; letter-spacing: 0.005em; max-width: 30ch; }
+.services { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 28px; }
+.services li { display: grid; gap: 8px; padding-top: 18px; border-top: 1px solid var(--line-gold); }
+.services h3 { font-family: var(--ff-serif); font-size: 26px; letter-spacing: 0.02em; }
+.services p { font-size: 14.5px; color: var(--on-dark-soft); }
 
 /* Индекс избранных ароматов */
 
@@ -367,12 +371,17 @@ h1[tabindex="-1"]:focus { outline: none; }
 .hscroll-bar span { display: block; height: 100%; background: var(--gold-soft); transform-origin: left; transform: scaleX(0); }
 
 /* Семейства ароматов */
-.families { position: relative; background: var(--paper-2); color: var(--ink); padding-block: clamp(48px, 6vw, 90px); }
-/* Семейства — одной строкой названий (минимализм): нажал — открылся каталог семейства. */
-.families-title { width: min(100% - 2 * var(--gutter), var(--max)); margin: 0 auto 20px; font-family: var(--ff-serif); font-size: clamp(28px, 3vw, 44px); line-height: 1.05; }
-.fam-row { width: min(100% - 2 * var(--gutter), var(--max)); margin-inline: auto; display: flex; flex-wrap: wrap; gap: 10px 28px; }
-.fam-row a { font-family: var(--ff-serif); font-size: clamp(20px, 2vw, 28px); line-height: 1.3; border-bottom: 1px solid var(--line-strong); padding-bottom: 2px; transition: color 0.3s, border-color 0.3s; }
-.fam-row a:hover { color: var(--gold-deep); border-color: var(--gold-deep); }
+.families { position: relative; background: var(--paper-2); color: var(--ink); padding-block: clamp(80px, 10vw, 150px); overflow: hidden; }
+.families-head { width: min(100% - 2 * var(--gutter), var(--max)); margin-inline: auto; display: grid; gap: 16px; margin-bottom: 40px; }
+.families-lead { color: var(--ink-soft); }
+.families-head h2 { font-family: var(--ff-serif); font-size: clamp(40px, 5.6vw, 96px); line-height: 0.95; }
+.families-lead { max-width: 52ch; }
+.fam-list { width: min(100% - 2 * var(--gutter), var(--max)); margin-inline: auto; border-bottom: 1px solid var(--line-strong); }
+.fam { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto; align-items: baseline; gap: 20px; padding: 18px 0; border-top: 1px solid var(--line-strong); transition: color 0.5s var(--ease), padding 0.7s var(--ease); }
+.fam-name { font-family: var(--ff-serif); font-size: clamp(32px, 4.6vw, 80px); line-height: 1; }
+.fam-notes { font-size: 14px; color: var(--ink-soft); }
+.fam-count { font-size: 13px; letter-spacing: 0.01em; color: var(--ink-soft); white-space: nowrap; }
+.fam:hover { color: var(--gold-deep); padding-left: 16px; }
 
 /* Новинки */
 
@@ -756,6 +765,7 @@ h1[tabindex="-1"]:focus { outline: none; }
 @media (max-width: 1180px) {
   .shelf-grid--four { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .footer-top { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .services { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 1000px) {
@@ -765,6 +775,8 @@ h1[tabindex="-1"]:focus { outline: none; }
   .hero-cta { grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: flex-start; gap: 22px; }
   .menu-grid { grid-template-columns: minmax(0, 1fr); }
   .menu-shots, .menu-logo { display: none; }
+  .fam { grid-template-columns: minmax(0, 1fr) auto; }
+  .fam-notes { grid-column: 1 / -1; grid-row: 2; }
   .catalog { grid-template-columns: minmax(0, 1fr); }
   .filters-open { display: inline-flex; }
   .filters { position: fixed; z-index: 70; inset: 0 auto 0 0; top: 0; width: min(380px, 92vw); max-height: none; height: 100%; padding: calc(20px + env(safe-area-inset-top, 0px)) 24px calc(24px + env(safe-area-inset-bottom, 0px)); background: var(--paper); transform: translateX(-104%); visibility: hidden; transition: transform 0.7s var(--ease), visibility 0s linear 0.7s; align-content: start; }
@@ -795,6 +807,7 @@ h1[tabindex="-1"]:focus { outline: none; }
   .hero-cta { flex-wrap: wrap; gap: 12px 18px; }
   .hero-link { letter-spacing: 0.12em; }
   .story-text { font-size: clamp(24px, 6.6vw, 32px); }
+  .services { grid-template-columns: minmax(0, 1fr); }
   .shelf-grid, .shelf-grid--four { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 12px; }
   .pcard--wide { grid-column: span 2; }
   .pcard-name { font-size: 20px; }
@@ -803,6 +816,9 @@ h1[tabindex="-1"]:focus { outline: none; }
   .pcard-actions { gap: 14px; }
   .line-link { letter-spacing: 0.12em; }
   .hscroll-track > .pcard { flex-basis: 72vw; }
+  .fam { grid-template-columns: minmax(0, 1fr); gap: 6px 12px; }
+  .fam-count { grid-column: 1; }
+  .fam-name { font-size: 32px; }
   .page-head h1 { font-size: clamp(36px, 10.6vw, 64px); }
   .field-grid { grid-template-columns: minmax(0, 1fr); }
   .footer-top { grid-template-columns: minmax(0, 1fr); gap: 28px; }
@@ -1589,3 +1605,11 @@ h1[tabindex="-1"]:focus { outline: none; }
 .field input, .field textarea, .field select, .option { border-radius: 12px; }
 /* Поле пароля на входе в кабинет — одна линия снизу: без скругления, иначе линия загибается. */
 .route-admin .login-pass input { border-radius: 0; }
+
+/* Длинные слова и адреса (например, ссылка или адрес без пробелов) переносятся, а не раздвигают страницу. */
+.info > section, .info section > *, .info-list > div > * { min-width: 0; }
+.info h2 { font-size: clamp(28px, 8.4vw, 38px); }
+.info-list dd, .option-note, .footer-col p { overflow-wrap: anywhere; }
+/* Текстовые ссылки-действия и «хлебные крошки» — не меньше 24 px по высоте (удобно нажимать пальцем, WCAG 2.5.8). */
+.hero-link { padding-top: 7px; }
+.crumbs a { display: inline-block; padding-block: 4px; }
