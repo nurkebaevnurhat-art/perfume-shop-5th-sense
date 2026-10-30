@@ -64,6 +64,7 @@ FS.app = (function () {
     if (t === 'favorites') return { name: 'favorites', key: t };
     if (t === 'delivery') return { name: 'delivery', key: t };
     if (t === 'gifts') return { name: 'gifts', key: t };
+    if (t === 'podbor' || t === 'nabory') return { name: t, key: t };
     if (t === 'kassa') return { name: 'kassa', key: t };
     if ((m = t.match(/^card-([\w-]{12,32})$/))) return { name: 'card', key: t, token: m[1] };
     if (t === 'terms') return { name: 'offer', key: t }; // «Условия заказа» (старый адрес #offer тоже работает)

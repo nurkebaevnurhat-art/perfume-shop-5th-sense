@@ -4,7 +4,7 @@
    Обновления: страница, стили и код при интернете берутся из сети (сохранённая копия —
    только без связи или если сеть не ответила за 3 секунды), поэтому после выкладки
    новая версия видна с первого же открытия. Фото — из копии, обновляются в фоне. */
-const VERSION = '7a27c96871';
+const VERSION = '792ade3aa1';
 const CACHE = `fs-${VERSION}`;
 const FONTS = 'fs-fonts';
 const PRECACHE = [
@@ -39,6 +39,7 @@ const PRECACHE = [
   "assets/js/views/home.js",
   "assets/js/views/kassa.js",
   "assets/js/views/pages.js",
+  "assets/js/views/podbor.js",
   "assets/js/views/product.js",
   "index.html",
   "kassa.webmanifest",

@@ -1613,3 +1613,90 @@ h1[tabindex="-1"]:focus { outline: none; }
 /* Текстовые ссылки-действия и «хлебные крошки» — не меньше 24 px по высоте (удобно нажимать пальцем, WCAG 2.5.8). */
 .hero-link { padding-top: 7px; }
 .crumbs a { display: inline-block; padding-block: 4px; }
+
+/* ---------- Подбор аромата (#podbor) ----------
+   Один вопрос на экран, ответы — те же плашки, что в оформлении заказа. */
+.qz { max-width: 820px; }
+.qz-progress { height: 2px; background: var(--line); border-radius: 2px; overflow: hidden; margin-bottom: clamp(28px, 4vw, 44px); }
+.qz-progress span { display: block; height: 100%; width: calc(var(--p) * 100%); background: var(--gold); transition: width 0.6s var(--ease); }
+.qz-step { border: 0; padding: 0; margin: 0; min-width: 0; }
+.qz-legend { display: grid; gap: 12px; padding: 0; margin-bottom: clamp(22px, 3vw, 32px); }
+.qz-count { font-size: 13.5px; color: var(--ink-soft); }
+.qz-title { font-family: var(--ff-serif); font-size: clamp(32px, 5vw, 54px); line-height: 1.04; outline: none; }
+.qz-options { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
+.qz-option { align-items: center; min-height: 72px; padding: 18px 20px; }
+.qz-option .option-name { font-size: 17px; }
+.qz-nav { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 24px; }
+.qz-hint { font-size: 13px; color: var(--ink-soft); text-align: right; }
+.qz-result { display: grid; gap: 18px; }
+.qz-lead { color: var(--ink-soft); max-width: 56ch; }
+.qz-picks { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: clamp(18px, 2.4vw, 28px); }
+.qz-pick { display: grid; grid-template-columns: minmax(0, 40%) minmax(0, 1fr); gap: clamp(16px, 3vw, 36px); align-items: center; }
+.qz-pick-media { position: relative; display: flex; align-items: center; justify-content: center; aspect-ratio: 4 / 5; padding: 10%; background: var(--scene); border-radius: 22px; overflow: hidden; }
+.qz-pick-media img, .qz-pick-media svg { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }
+.qz-pick-body { display: grid; gap: 8px; justify-items: start; }
+.qz-pick-name { font-family: var(--ff-serif); font-size: clamp(24px, 3vw, 36px); line-height: 1.04; }
+.qz-pick-short { font-size: 14.5px; color: var(--ink-soft); }
+.qz-why { list-style: none; padding: 0; margin: 2px 0 4px; display: grid; gap: 4px; font-size: 14px; }
+.qz-why li { position: relative; padding-left: 16px; }
+.qz-why li::before { content: ''; position: absolute; left: 1px; top: 0.55em; width: 6px; height: 6px; border: 1px solid var(--gold); transform: rotate(45deg); }
+.qz-all { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; margin-top: 12px; padding: 20px 24px; background: var(--ink); color: var(--on-dark); border-radius: 22px; }
+.qz-all p { display: grid; gap: 2px; }
+.qz-all-name { font-family: var(--ff-serif); font-size: 24px; }
+.qz-all-price { font-size: 14px; color: var(--on-dark-soft); }
+.qz-all .line-link:hover { color: var(--gold-soft); }
+.qz-all :focus-visible { outline-color: var(--gold-soft); }
+.qz-after { display: flex; flex-wrap: wrap; gap: 8px 28px; }
+.qz-help { font-size: 14px; color: var(--ink-soft); }
+.qz-help .manager-links { display: inline; }
+
+/* ---------- Наборы пробников (#nabory) ---------- */
+.sets { display: grid; gap: clamp(48px, 7vw, 96px); padding-bottom: calc(clamp(64px, 8vw, 110px) + 72px); }
+.sets-block { display: grid; gap: 18px; min-width: 0; }
+.sets-title { font-family: var(--ff-serif); font-size: clamp(32px, 4.4vw, 56px); line-height: 1; }
+.sets-lead { color: var(--ink-soft); }
+.set-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); }
+.set-card { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; align-content: start; background: var(--sheet); border: 1px solid var(--line); border-radius: 22px; overflow: hidden; }
+.set-thumbs { display: flex; align-items: flex-start; justify-content: center; min-width: 0; padding: 22px 16px 14px; background: radial-gradient(ellipse 80% 90% at 50% 40%, #efe8dc 0%, var(--paper-2) 100%); }
+/* Флаконы чуть заходят друг на друга, по краям ниже — дугой. Без transform: иначе белый фон фото не растворяется. */
+.set-thumb { flex: 0 1 22%; min-width: 0; aspect-ratio: 3 / 4; margin-inline: -1.5%; margin-top: calc((var(--i) - 2) * (var(--i) - 2) * 4px); display: flex; align-items: center; justify-content: center; }
+.set-thumb img, .set-thumb svg { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }
+.set-card-body { display: grid; gap: 10px; padding: 20px 22px 18px; }
+.set-name { font-family: var(--ff-serif); font-size: 28px; line-height: 1.04; }
+.set-lead { font-size: 14.5px; color: var(--ink-soft); }
+.set-list { list-style: none; padding: 12px 0 0; margin: 0; display: grid; gap: 6px; font-size: 14px; border-top: 1px solid var(--line); }
+.set-list a { border-bottom: 1px solid transparent; transition: border-color 0.3s; }
+.set-list a:hover { border-color: currentColor; }
+.set-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--line); }
+.set-price { font-size: 15px; font-weight: 500; }
+.mix-grid { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(46%, 170px), 1fr)); }
+.mix-btn { position: relative; width: 100%; height: 100%; display: grid; align-content: start; gap: 3px; padding: 10px 10px 14px; text-align: left; background: var(--sheet); border: 1px solid var(--line); border-radius: 18px; cursor: pointer; transition: border-color 0.3s var(--ease), box-shadow 0.3s var(--ease); }
+.mix-btn:hover { border-color: var(--line-strong); }
+.mix-img { display: flex; align-items: center; justify-content: center; aspect-ratio: 1; padding: 10%; margin-bottom: 8px; background: var(--scene); border-radius: 12px; overflow: hidden; }
+.mix-img img, .mix-img svg { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }
+.mix-brand { font-size: 11.5px; color: var(--gold-deep); }
+.mix-name { font-family: var(--ff-serif); font-size: 18px; line-height: 1.1; }
+.mix-price { font-size: 13px; color: var(--ink-soft); }
+/* Отметка выбора — ромб, как у фильтров каталога. */
+.mix-mark { position: absolute; top: 18px; right: 18px; width: 16px; height: 16px; border: 1px solid var(--ink); background: var(--sheet); transform: rotate(45deg); transition: background 0.3s; }
+.mix-tile.is-on .mix-btn { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.mix-tile.is-on .mix-mark { background: var(--ink); box-shadow: inset 0 0 0 3px var(--sheet); }
+.mix-bar { position: fixed; z-index: 30; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); width: min(100% - 2 * var(--gutter), 720px); display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 14px 12px 22px; background: var(--ink); color: var(--on-dark); border-radius: 999px; box-shadow: 0 18px 40px -18px rgba(14, 12, 10, 0.6); transform: translate(-50%, 140%); transition: transform 0.6s var(--ease); }
+.mix-bar.is-shown { transform: translate(-50%, 0); }
+.mix-bar-text { display: grid; gap: 1px; min-width: 0; }
+.mix-bar-count { font-size: 15px; font-weight: 500; }
+.mix-bar-price { font-size: 13px; color: var(--on-dark-soft); }
+.mix-bar .line-link { padding-inline: 8px; }
+.mix-bar :focus-visible { outline-color: var(--gold-soft); }
+@media (min-width: 900px) {
+  .qz-pick { grid-template-columns: 260px minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+  .qz-pick { grid-template-columns: minmax(0, 38%) minmax(0, 1fr); align-items: start; }
+  .qz-hint { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qz-progress span, .mix-bar { transition: none; }
+}
+.mix-bar .line-link--gold { color: var(--gold-soft); }
+.mix-bar .line-link--gold:hover { color: var(--on-dark); }
