@@ -77,7 +77,7 @@ FS.ui = (function () {
       <div class="header-inner">
         <div class="header-left">
           <button class="hl hl--menu" type="button" data-action="menu" aria-expanded="false" aria-controls="site-menu">Меню</button>
-          <a class="hl hl--wide" href="#catalog" data-nav="catalog">Коллекция</a>
+          <a class="hl hl--wide" href="#catalog" data-nav="catalog">Каталог</a>
         </div>
         <a class="header-mark" href="#home" aria-label="5th SENSE Perfume Bar, на главную"><img class="header-logo" src="${FS.assetUrl('assets/img/logo-intro.png')}" alt="" width="520" height="962"></a>
         <div class="header-right">
@@ -87,7 +87,7 @@ FS.ui = (function () {
         </div>
       </div>`;
 
-    const menuItems = [{ href: '#catalog', name: 'Вся коллекция' }]
+    const menuItems = [{ href: '#catalog', name: 'Весь каталог' }]
       .concat(FS.categories.map((c) => ({ href: `#catalog-${c.id}`, name: c.name })))
       .concat({ href: '#podbor', name: 'Подбор аромата' })
       .concat({ href: '#delivery', name: 'Доставка и оплата' }, { href: '#gifts', name: 'Подарки за покупки' });

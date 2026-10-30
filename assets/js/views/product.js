@@ -118,7 +118,7 @@ FS.views.product = (function () {
           <div class="pd-info">
             <nav class="crumbs" aria-label="Навигационная цепочка">
               <a href="#home">Главная</a><span aria-hidden="true">/</span>
-              <a href="#catalog">Коллекция</a><span aria-hidden="true">/</span>
+              <a href="#catalog">Каталог</a><span aria-hidden="true">/</span>
               <a href="#catalog-${category.id}">${esc(category.name)}</a>
             </nav>
             <a class="pd-brand" href="#brand-${FS.api.brandSlug(product.brand)}">${esc(product.brand)}</a>
