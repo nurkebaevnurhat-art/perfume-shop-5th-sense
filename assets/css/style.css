@@ -1650,44 +1650,6 @@ h1[tabindex="-1"]:focus { outline: none; }
 .qz-help { font-size: 14px; color: var(--ink-soft); }
 .qz-help .manager-links { display: inline; }
 
-/* ---------- Наборы пробников (#nabory) ---------- */
-.sets { display: grid; gap: clamp(48px, 7vw, 96px); padding-bottom: calc(clamp(64px, 8vw, 110px) + 72px); }
-.sets-block { display: grid; gap: 18px; min-width: 0; }
-.sets-title { font-family: var(--ff-serif); font-size: clamp(32px, 4.4vw, 56px); line-height: 1; }
-.sets-lead { color: var(--ink-soft); }
-.set-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); }
-.set-card { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; align-content: start; background: var(--sheet); border: 1px solid var(--line); border-radius: 22px; overflow: hidden; }
-.set-thumbs { display: flex; align-items: flex-start; justify-content: center; min-width: 0; padding: 22px 16px 14px; background: radial-gradient(ellipse 80% 90% at 50% 40%, #efe8dc 0%, var(--paper-2) 100%); }
-/* Флаконы чуть заходят друг на друга, по краям ниже — дугой. Без transform: иначе белый фон фото не растворяется. */
-.set-thumb { flex: 0 1 22%; min-width: 0; aspect-ratio: 3 / 4; margin-inline: -1.5%; margin-top: calc((var(--i) - 2) * (var(--i) - 2) * 4px); display: flex; align-items: center; justify-content: center; }
-.set-thumb img, .set-thumb svg { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }
-.set-card-body { display: grid; gap: 10px; padding: 20px 22px 18px; }
-.set-name { font-family: var(--ff-serif); font-size: 28px; line-height: 1.04; }
-.set-lead { font-size: 14.5px; color: var(--ink-soft); }
-.set-list { list-style: none; padding: 12px 0 0; margin: 0; display: grid; gap: 6px; font-size: 14px; border-top: 1px solid var(--line); }
-.set-list a { border-bottom: 1px solid transparent; transition: border-color 0.3s; }
-.set-list a:hover { border-color: currentColor; }
-.set-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--line); }
-.set-price { font-size: 15px; font-weight: 500; }
-.mix-grid { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(46%, 170px), 1fr)); }
-.mix-btn { position: relative; width: 100%; height: 100%; display: grid; align-content: start; gap: 3px; padding: 10px 10px 14px; text-align: left; background: var(--sheet); border: 1px solid var(--line); border-radius: 18px; cursor: pointer; transition: border-color 0.3s var(--ease), box-shadow 0.3s var(--ease); }
-.mix-btn:hover { border-color: var(--line-strong); }
-.mix-img { display: flex; align-items: center; justify-content: center; aspect-ratio: 1; padding: 10%; margin-bottom: 8px; background: var(--scene); border-radius: 12px; overflow: hidden; }
-.mix-img img, .mix-img svg { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }
-.mix-brand { font-size: 11.5px; color: var(--gold-deep); }
-.mix-name { font-family: var(--ff-serif); font-size: 18px; line-height: 1.1; }
-.mix-price { font-size: 13px; color: var(--ink-soft); }
-/* Отметка выбора — ромб, как у фильтров каталога. */
-.mix-mark { position: absolute; top: 18px; right: 18px; width: 16px; height: 16px; border: 1px solid var(--ink); background: var(--sheet); transform: rotate(45deg); transition: background 0.3s; }
-.mix-tile.is-on .mix-btn { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
-.mix-tile.is-on .mix-mark { background: var(--ink); box-shadow: inset 0 0 0 3px var(--sheet); }
-.mix-bar { position: fixed; z-index: 30; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); width: min(100% - 2 * var(--gutter), 720px); display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 14px 12px 22px; background: var(--ink); color: var(--on-dark); border-radius: 999px; box-shadow: 0 18px 40px -18px rgba(14, 12, 10, 0.6); transform: translate(-50%, 140%); transition: transform 0.6s var(--ease); }
-.mix-bar.is-shown { transform: translate(-50%, 0); }
-.mix-bar-text { display: grid; gap: 1px; min-width: 0; }
-.mix-bar-count { font-size: 15px; font-weight: 500; }
-.mix-bar-price { font-size: 13px; color: var(--on-dark-soft); }
-.mix-bar .line-link { padding-inline: 8px; }
-.mix-bar :focus-visible { outline-color: var(--gold-soft); }
 @media (min-width: 900px) {
   .qz-pick { grid-template-columns: 260px minmax(0, 1fr); }
 }
@@ -1696,7 +1658,5 @@ h1[tabindex="-1"]:focus { outline: none; }
   .qz-hint { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .qz-progress span, .mix-bar { transition: none; }
+  .qz-progress span { transition: none; }
 }
-.mix-bar .line-link--gold { color: var(--gold-soft); }
-.mix-bar .line-link--gold:hover { color: var(--on-dark); }

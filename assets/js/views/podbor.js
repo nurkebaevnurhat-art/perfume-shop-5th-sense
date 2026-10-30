@@ -1,6 +1,5 @@
-/* 5th SENSE — «Подбор аромата» (5 вопросов → три аромата) и «Наборы пробников»
-   (готовые наборы по 5 мл и «Соберите свой»). Набор кладётся в корзину обычными
-   позициями по 5 мл — цены, как и всегда, пересчитывает сервер. */
+/* 5th SENSE — «Подбор аромата»: 5 вопросов → три аромата. «Взять все три» кладёт
+   в корзину обычные позиции по 5 мл — цены, как и всегда, пересчитывает сервер. */
 window.FS = window.FS || {};
 FS.views = FS.views || {};
 
@@ -19,9 +18,8 @@ FS.sampler = (function () {
     if (n) FS.ui.toast(`${n} ${FS.ui.plural(n, 'пробник', 'пробника', 'пробников')} в корзине`, { label: 'Открыть', run: FS.ui.openCart });
     else FS.ui.toast('Не удалось добавить: этих ароматов сейчас нет');
   }
-  const thumbs = (list) => `<span class="set-thumbs" aria-hidden="true">${list.map((p, i) => `<span class="set-thumb" style="--i:${i}">${FS.bottle.media(p)}</span>`).join('')}</span>`;
   const priceLine = (list) => `${list.length} × ${sample(list[0]) ? sample(list[0]).ml : 5} мл · ${money(total(list))}`;
-  return { sample, total, addAll, thumbs, priceLine };
+  return { sample, total, addAll, priceLine };
 })();
 
 FS.views.podbor = (function () {
@@ -154,7 +152,7 @@ FS.views.podbor = (function () {
         </div>
         <div class="qz-after">
           <button class="line-link line-link--soft" type="button" data-qz-restart>Пройти заново</button>
-          <a class="line-link line-link--soft" href="#nabory">Наборы пробников</a>
+          <a class="line-link line-link--soft" href="#catalog">Весь каталог</a>
         </div>
         <p class="qz-help">Хотите живого совета? ${managerLinks()}</p>
       </div>`;
@@ -197,136 +195,6 @@ FS.views.podbor = (function () {
         if (e.target.closest('[data-qz-back]')) { step = Math.max(0, step - 1); draw(root, true); }
         if (e.target.closest('[data-qz-restart]')) { step = 0; answers = {}; draw(root, true); }
         if (e.target.closest('[data-qz-all]')) S.addAll(pickThree(answers).map((t) => t.p));
-      }, { signal });
-    }
-  };
-})();
-
-FS.views.nabory = (function () {
-  const { esc, money, tint } = FS.ui;
-  const S = FS.sampler;
-  const SIZE = 5;
-  let picked = [];
-
-  // Готовые наборы собираются из каталога сами: сначала бестселлеры, потом остальные.
-  const READY = [
-    { id: 'her', name: 'Для неё', lead: 'Цветы, фрукты и мягкая сладость', match: (p) => p.gender !== 'men' && ['floral', 'fruity', 'gourmand', 'amber'].includes(p.family) },
-    { id: 'him', name: 'Для него', lead: 'Свежесть, дерево и специи', match: (p) => p.gender !== 'women' && ['fresh', 'woody', 'amber', 'chypre'].includes(p.family) },
-    { id: 'winter', name: 'Тёплые на зиму', lead: 'Амбра, ваниль, уд и коньяк', match: (p) => ['amber', 'gourmand', 'woody'].includes(p.family) && (p.sillage || 3) >= 4 },
-    { id: 'summer', name: 'Свежие на лето', lead: 'Цитрусы, море и зелень', match: (p) => ['fresh', 'fruity'].includes(p.family) || (p.family === 'floral' && (p.sillage || 3) <= 3) },
-    { id: 'niche', name: 'Знакомство с нишей', lead: 'Пять ароматов, о которых спрашивают чаще всего', match: (p) => p.niche }
-  ];
-  const pool = () => FS.api.visible().filter((p) => p.type !== 'set' && S.sample(p));
-  // Наборы собираются по очереди: аромат, уже попавший в прошлый набор, идёт в следующий
-  // только если других подходящих нет — так наборы не повторяют друг друга.
-  let built = {};
-  function buildAll() {
-    const used = {};
-    built = {};
-    READY.forEach((set) => {
-      const rank = (p) => (p.bestseller ? 2 : 0) + (p.featured ? 1 : 0) + (p.image ? 0.5 : 0) - (used[p.id] || 0) * 4;
-      const list = pool().filter(set.match).sort((a, b) => rank(b) - rank(a));
-      // Не больше двух ароматов одного бренда, чтобы набор был разнообразным.
-      const out = [];
-      const seen = {};
-      list.forEach((p) => { if (out.length < SIZE && (seen[p.brand] || 0) < 2) { out.push(p); seen[p.brand] = (seen[p.brand] || 0) + 1; } });
-      out.forEach((p) => { used[p.id] = (used[p.id] || 0) + 1; });
-      built[set.id] = out;
-    });
-  }
-
-  function readyCard(set) {
-    const list = built[set.id] || [];
-    if (list.length < SIZE) return '';
-    return `
-      <article class="set-card">
-        ${S.thumbs(list)}
-        <div class="set-card-body">
-          <h3 class="set-name">${esc(set.name)}</h3>
-          <p class="set-lead">${esc(set.lead)}</p>
-          <ul class="set-list">${list.map((p) => `<li><a href="#product-${p.id}">${esc(p.brand)} ${esc(p.name)}</a></li>`).join('')}</ul>
-          <div class="set-foot">
-            <span class="set-price">${S.priceLine(list)}</span>
-            <button class="line-link" type="button" data-set="${set.id}">Набор в корзину</button>
-          </div>
-        </div>
-      </article>`;
-  }
-
-  function tile(p) {
-    const v = S.sample(p);
-    const on = picked.includes(p.id);
-    return `
-      <li class="mix-tile ${on ? 'is-on' : ''}" style="--tint:${tint(p)}">
-        <button type="button" class="mix-btn" data-mix="${p.id}" aria-pressed="${on}">
-          <span class="mix-img" aria-hidden="true">${FS.bottle.media(p)}</span>
-          <span class="mix-brand">${esc(p.brand)}</span>
-          <span class="mix-name">${esc(p.name)}</span>
-          <span class="mix-price">${v.ml} мл · ${money(v.price)}</span>
-          <span class="mix-mark" aria-hidden="true"></span>
-        </button>
-      </li>`;
-  }
-
-  function bar() {
-    const list = picked.map(FS.api.productSync).filter(Boolean);
-    const full = list.length === SIZE;
-    return `
-      <p class="mix-bar-text"><span class="mix-bar-count">Выбрано ${list.length} из ${SIZE}</span>
-        <span class="mix-bar-price">${list.length ? money(S.total(list)) : 'Выберите ароматы для набора'}</span></p>
-      <button class="line-link line-link--gold" type="button" data-mix-add ${list.length ? '' : 'disabled'}>${full ? 'Набор в корзину' : list.length ? `В корзину (${list.length})` : 'В корзину'}</button>`;
-  }
-
-  return {
-    title: () => 'Наборы пробников',
-    render() {
-      picked = [];
-      buildAll();
-      const ready = READY.map(readyCard).join('');
-      return `
-        <section class="page-head">
-          <nav class="crumbs" aria-label="Навигационная цепочка"><a href="#home">Главная</a><span aria-hidden="true">/</span><span aria-current="page">Наборы пробников</span></nav>
-          <h1>Наборы пробников</h1>
-          <p class="page-lead">Пять ароматов по 5 мл — чтобы спокойно поносить каждый и выбрать свой. Хороший подарок, если не знаете, что человек любит.</p>
-        </section>
-        <div class="page-body sets">
-          <section class="sets-block" aria-labelledby="sets-ready">
-            <h2 id="sets-ready" class="sets-title">Готовые наборы</h2>
-            <div class="set-grid">${ready}</div>
-          </section>
-          <section class="sets-block" aria-labelledby="sets-mix">
-            <h2 id="sets-mix" class="sets-title">Соберите свой</h2>
-            <p class="sets-lead">Отметьте пять ароматов. Не знаете, с чего начать? <a class="text-link" href="#podbor">Пройдите подбор</a>.</p>
-            <ul class="mix-grid">${pool().map(tile).join('')}</ul>
-          </section>
-        </div>
-        <div class="mix-bar" data-mix-bar>${bar()}</div>`;
-    },
-    mount(root, route, params, signal) {
-      const barEl = root.querySelector('[data-mix-bar]');
-      root.addEventListener('click', (e) => {
-        const set = e.target.closest('[data-set]');
-        if (set) { S.addAll(built[set.dataset.set] || []); return; }
-        const b = e.target.closest('[data-mix]');
-        if (b) {
-          const id = b.dataset.mix;
-          if (picked.includes(id)) picked = picked.filter((x) => x !== id);
-          else if (picked.length < SIZE) picked.push(id);
-          else { FS.ui.toast(`В наборе уже ${SIZE} ароматов. Снимите один, чтобы выбрать другой.`); return; }
-          const on = picked.includes(id);
-          b.setAttribute('aria-pressed', String(on));
-          b.parentElement.classList.toggle('is-on', on);
-          barEl.innerHTML = bar();
-          barEl.classList.toggle('is-shown', picked.length > 0);
-          return;
-        }
-        if (e.target.closest('[data-mix-add]')) {
-          S.addAll(picked.map(FS.api.productSync).filter(Boolean));
-          picked = [];
-          root.querySelectorAll('.mix-tile.is-on').forEach((t) => { t.classList.remove('is-on'); t.querySelector('[data-mix]').setAttribute('aria-pressed', 'false'); });
-          barEl.innerHTML = bar();
-          barEl.classList.remove('is-shown');
-        }
       }, { signal });
     }
   };
