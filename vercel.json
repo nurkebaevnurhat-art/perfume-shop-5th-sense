@@ -43,7 +43,7 @@
       "destination": "/api/sitemap?robots=1"
     },
     {
-      "source": "/:p(catalog|catalog-[a-z]+|family-[a-z]+|brands|brand-[a-z0-9-]+|product-[a-z0-9-]+|delivery|gifts|terms|privacy|returns)",
+      "source": "/:p(catalog|catalog-[a-z]+|family-[a-z]+|brands|brand-[a-z0-9-]+|product-[a-z0-9-]+|delivery|gifts|podbor|terms|privacy|returns)",
       "destination": "/api/page?p=:p"
     }
   ],

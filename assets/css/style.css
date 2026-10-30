@@ -1613,3 +1613,50 @@ h1[tabindex="-1"]:focus { outline: none; }
 /* Текстовые ссылки-действия и «хлебные крошки» — не меньше 24 px по высоте (удобно нажимать пальцем, WCAG 2.5.8). */
 .hero-link { padding-top: 7px; }
 .crumbs a { display: inline-block; padding-block: 4px; }
+
+/* ---------- Подбор аромата (#podbor) ----------
+   Один вопрос на экран, ответы — те же плашки, что в оформлении заказа. */
+.qz { max-width: 820px; }
+.qz-progress { height: 2px; background: var(--line); border-radius: 2px; overflow: hidden; margin-bottom: clamp(28px, 4vw, 44px); }
+.qz-progress span { display: block; height: 100%; width: calc(var(--p) * 100%); background: var(--gold); transition: width 0.6s var(--ease); }
+.qz-step { border: 0; padding: 0; margin: 0; min-width: 0; }
+.qz-legend { display: grid; gap: 12px; padding: 0; margin-bottom: clamp(22px, 3vw, 32px); }
+.qz-count { font-size: 13.5px; color: var(--ink-soft); }
+.qz-title { font-family: var(--ff-serif); font-size: clamp(32px, 5vw, 54px); line-height: 1.04; outline: none; }
+.qz-options { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
+.qz-option { align-items: center; min-height: 72px; padding: 18px 20px; }
+.qz-option .option-name { font-size: 17px; }
+.qz-nav { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 24px; }
+.qz-hint { font-size: 13px; color: var(--ink-soft); text-align: right; }
+.qz-result { display: grid; gap: 18px; }
+.qz-lead { color: var(--ink-soft); max-width: 56ch; }
+.qz-picks { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: clamp(18px, 2.4vw, 28px); }
+.qz-pick { display: grid; grid-template-columns: minmax(0, 40%) minmax(0, 1fr); gap: clamp(16px, 3vw, 36px); align-items: center; }
+.qz-pick-media { position: relative; display: flex; align-items: center; justify-content: center; aspect-ratio: 4 / 5; padding: 10%; background: var(--scene); border-radius: 22px; overflow: hidden; }
+.qz-pick-media img, .qz-pick-media svg { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }
+.qz-pick-body { display: grid; gap: 8px; justify-items: start; }
+.qz-pick-name { font-family: var(--ff-serif); font-size: clamp(24px, 3vw, 36px); line-height: 1.04; }
+.qz-pick-short { font-size: 14.5px; color: var(--ink-soft); }
+.qz-why { list-style: none; padding: 0; margin: 2px 0 4px; display: grid; gap: 4px; font-size: 14px; }
+.qz-why li { position: relative; padding-left: 16px; }
+.qz-why li::before { content: ''; position: absolute; left: 1px; top: 0.55em; width: 6px; height: 6px; border: 1px solid var(--gold); transform: rotate(45deg); }
+.qz-all { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; margin-top: 12px; padding: 20px 24px; background: var(--ink); color: var(--on-dark); border-radius: 22px; }
+.qz-all p { display: grid; gap: 2px; }
+.qz-all-name { font-family: var(--ff-serif); font-size: 24px; }
+.qz-all-price { font-size: 14px; color: var(--on-dark-soft); }
+.qz-all .line-link:hover { color: var(--gold-soft); }
+.qz-all :focus-visible { outline-color: var(--gold-soft); }
+.qz-after { display: flex; flex-wrap: wrap; gap: 8px 28px; }
+.qz-help { font-size: 14px; color: var(--ink-soft); }
+.qz-help .manager-links { display: inline; }
+
+@media (min-width: 900px) {
+  .qz-pick { grid-template-columns: 260px minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+  .qz-pick { grid-template-columns: minmax(0, 38%) minmax(0, 1fr); align-items: start; }
+  .qz-hint { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qz-progress span { transition: none; }
+}

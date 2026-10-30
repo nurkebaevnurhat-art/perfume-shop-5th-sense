@@ -644,8 +644,8 @@ FS.views.admin = (function () {
     return `
       <div class="admin-toolbar">
         <label class="toolbar-search"><span class="visually-hidden">Поиск товара</span>${FS.ui.icon.search}<input id="product-search" type="search" placeholder="Название или бренд" value="${esc(productFilter.q)}" autocomplete="off"></label>
-        <label class="toolbar-sort"><span class="visually-hidden">Коллекция</span>
-          <select id="product-category"><option value="">Все коллекции</option>${FS.categories.map((c) => `<option value="${c.id}" ${c.id === productFilter.category ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select>
+        <label class="toolbar-sort"><span class="visually-hidden">Раздел каталога</span>
+          <select id="product-category"><option value="">Все разделы</option>${FS.categories.map((c) => `<option value="${c.id}" ${c.id === productFilter.category ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select>
         </label>
         <a class="btn btn--primary btn--sm" href="#admin-new">Добавить товар</a>
       </div>
@@ -688,7 +688,7 @@ FS.views.admin = (function () {
             <span class="ptable-vols ${editable(p) ? 'ptable-vols--edit' : ''}" role="cell">${editable(p) ? editVols(p) : vols(p)}</span>
             <span class="ptable-actions" role="cell"><a class="btn btn--outline btn--sm" href="#admin-edit-${p.id}">Редактировать</a><a class="link-btn" href="#product-${p.id}">На сайте</a></span>
           </div>`).join('')}
-      </div>` : '<p class="panel-empty">Товары не найдены. Измените запрос или выберите другую коллекцию.</p>'}
+      </div>` : '<p class="panel-empty">Товары не найдены. Измените запрос или выберите другой раздел.</p>'}
       ${pe ? priceBar() : ''}`;
   }
 
